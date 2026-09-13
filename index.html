@@ -108,6 +108,9 @@
   .btn-text { background: none; border: none; color: var(--accent); font-size: 12.5px; font-weight: 600; cursor: pointer; padding: 0; display: inline-flex; align-items: center; gap: 5px; font-family: inherit; }
 
   .tabs { display: flex; gap: 8px; flex-wrap: wrap; margin: 0 0 22px; }
+  .profile-tabs { display: flex; gap: 22px; border-bottom: 1px solid var(--line); margin: 0 0 20px; }
+  .profile-tab { background: none; border: none; padding: 0 0 10px; font-size: 14px; font-weight: 600; color: var(--ink-soft); cursor: pointer; font-family: inherit; border-bottom: 2px solid transparent; margin-bottom: -1px; }
+  .profile-tab.active { color: var(--ink); border-bottom-color: var(--ink); }
   .tab {
     background: #fff; border: 1px solid var(--line-strong); padding: 8px 16px; border-radius: 999px;
     font-size: 13px; color: var(--ink-soft); cursor: pointer; font-family: inherit; font-weight: 500;
@@ -1075,13 +1078,72 @@
       <div id="profileIdentitySliders"></div>
     </div>
 
-    <div class="tabs" id="profileTabs">
-      <button class="tab active" data-profile-tab="armario">Armario</button>
-      <button class="tab" data-profile-tab="outfits">Outfits</button>
-      <button class="tab" data-profile-tab="listas">Listas</button>
+    <div class="profile-tabs" id="profileTabs">
+      <button class="profile-tab active" data-profile-tab="armario">Armario</button>
+      <button class="profile-tab" data-profile-tab="outfits">Outfits</button>
+      <button class="profile-tab" data-profile-tab="listas">Listas</button>
     </div>
 
-    <div class="section" style="margin-bottom:0;" id="profileCollectionsSection">
+    <div id="profileArmarioTab">
+      <div class="foreign-gallery-controls" id="profileWardrobeChipRow"></div>
+      <div class="section">
+        <div class="foreign-gallery-section-controls">
+          <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+            <div class="grid-header-icon-badge" id="profileWardrobeIconBadge"></div>
+            <div style="min-width:0;">
+              <p class="grid-header-title" id="profileWardrobeTitle"></p>
+              <p class="grid-header-count" id="profileWardrobeCount"></p>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <button class="foreign-sort-btn" id="profileWardrobeFilterBtn" title="Filtrar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+              <span class="filter-dot-badge" id="profileWardrobeFilterDot" style="display:none;"></span>
+            </button>
+            <div class="foreign-sort-wrap" style="position:relative;">
+              <button class="sort-text-btn" id="profileWardrobeSortBtn"></button>
+              <div class="foreign-sort-dropdown" id="profileWardrobeSortDropdown">
+                <button class="foreign-sort-option" data-psort="recent">Más recientes</button>
+                <button class="foreign-sort-option" data-psort="category">Por categoría</button>
+                <button class="foreign-sort-option" data-psort="color">Por color</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foreign-gallery-grid" id="profileWardrobeGrid"></div>
+      </div>
+    </div>
+
+    <div id="profileOutfitsTab" style="display:none;">
+      <div class="foreign-gallery-controls" id="profileOutfitsTabChipRow"></div>
+      <div class="section">
+        <div class="foreign-gallery-section-controls">
+          <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+            <div class="grid-header-icon-badge" id="profileOutfitsTabIconBadge"></div>
+            <div style="min-width:0;">
+              <p class="grid-header-title" id="profileOutfitsTabTitle"></p>
+              <p class="grid-header-count" id="profileOutfitsTabCount"></p>
+            </div>
+          </div>
+          <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+            <button class="foreign-sort-btn" id="profileOutfitsTabFilterBtn" title="Filtrar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+              <span class="filter-dot-badge" id="profileOutfitsTabFilterDot" style="display:none;"></span>
+            </button>
+            <div class="foreign-sort-wrap" style="position:relative;">
+              <button class="sort-text-btn" id="profileOutfitsTabSortBtn"></button>
+              <div class="foreign-sort-dropdown" id="profileOutfitsTabSortDropdown">
+                <button class="foreign-sort-option" data-posort="recent">Más recientes</button>
+                <button class="foreign-sort-option" data-posort="style">Por estilo</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="foreign-gallery-grid" id="profileOutfitsTabGrid"></div>
+      </div>
+    </div>
+
+    <div class="section" style="margin-bottom:0; display:none;" id="profileCollectionsSection">
       <div class="section-header">
         <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
         <div class="section-header-text">
@@ -6503,6 +6565,7 @@ function renderProfile() {
   document.getElementById("profileHeaderOutfitLabel").textContent = outfits.length === 1 ? "outfit" : "outfits";
   renderProfileIdentitySliders();
   renderProfileCollections();
+  switchProfileTab(profileActiveTab || "armario");
 }
 
 function renderProfileIdentitySliders() {
@@ -7076,17 +7139,261 @@ function openEditProfileModal() {
   document.getElementById("editProfileBackdrop").classList.add("open");
 }
 document.getElementById("profileEditBtn").addEventListener("click", openEditProfileModal);
-document.querySelectorAll("#profileTabs [data-profile-tab]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const tab = btn.dataset.profileTab;
-    if (tab === "armario") { switchView("wardrobe"); return; }
-    if (tab === "outfits") { switchView("outfits"); return; }
-    // "Listas" aún no tiene pantalla propia: de momento lleva hasta las
-    // colecciones, que siguen viviendo dentro del perfil.
-    document.querySelectorAll("#profileTabs [data-profile-tab]").forEach(b => b.classList.toggle("active", b === btn));
-    const target = document.getElementById("profileCollectionsSection");
-    if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
+
+// ---- Pestañas del perfil propio: el contenido se muestra debajo, sin salir
+// de la pantalla de perfil (misma cabecera/estadísticas siempre visibles). ----
+let profileActiveTab = "armario";
+let profileWardrobeState = { categoryFilter: "all", colorFilter: "", contextFilter: "", seasonFilter: "", sort: "recent" };
+let profileOutfitsTabState = { styleFilter: "all", colorFilter: "", seasonFilter: "", sort: "recent" };
+
+function switchProfileTab(tab) {
+  profileActiveTab = tab;
+  document.querySelectorAll("#profileTabs [data-profile-tab]").forEach(b => b.classList.toggle("active", b.dataset.profileTab === tab));
+  document.getElementById("profileArmarioTab").style.display = tab === "armario" ? "block" : "none";
+  document.getElementById("profileOutfitsTab").style.display = tab === "outfits" ? "block" : "none";
+  document.getElementById("profileCollectionsSection").style.display = tab === "listas" ? "block" : "none";
+  if (tab === "armario") renderProfileWardrobeTab();
+  else if (tab === "outfits") renderProfileOutfitsTabContent();
+}
+
+function renderProfileWardrobeChips() {
+  const sections = allSections().map(sec => ({ ...sec, items: garmentsInSection(garments, sec) })).filter(sec => sec.items.length > 0);
+  const st = profileWardrobeState;
+  const row = document.getElementById("profileWardrobeChipRow");
+  const chips = [{ id: "all", label: "Todo" }, ...sections.map(s => ({ id: s.id, label: s.label }))];
+  row.innerHTML = chips.map(c => `<button class="foreign-filter-chip ${st.categoryFilter === c.id ? "active" : ""}" data-pcat="${c.id}">${c.label}</button>`).join("");
+  row.querySelectorAll("[data-pcat]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      st.categoryFilter = btn.dataset.pcat;
+      renderProfileWardrobeChips();
+      renderProfileWardrobeGrid();
+    });
   });
+  return sections;
+}
+
+function profileWardrobeFilteredSorted() {
+  const st = profileWardrobeState;
+  let list = st.categoryFilter === "all"
+    ? garments.slice()
+    : garmentsInSection(garments, { id: st.categoryFilter, isCustom: customCategories.some(c => c.id === st.categoryFilter) });
+  if (st.colorFilter) list = list.filter(g => g.color === st.colorFilter);
+  if (st.contextFilter) { const ctx = CONTEXTS.find(c => c.id === st.contextFilter); if (ctx) list = list.filter(g => fitsContext(g, ctx.target)); }
+  if (st.seasonFilter) list = list.filter(g => (g.season || "entretiempo") === st.seasonFilter);
+  list = list.slice().reverse();
+  if (st.sort === "category") list.sort((a, b) => categoryLabel(a.category).localeCompare(categoryLabel(b.category)));
+  else if (st.sort === "color") list.sort((a, b) => (colorById[a.color]?.label || "").localeCompare(colorById[b.color]?.label || ""));
+  return list;
+}
+
+function updateProfileWardrobeSortDropdown() {
+  const st = profileWardrobeState;
+  const dd = document.getElementById("profileWardrobeSortDropdown");
+  const btn = document.getElementById("profileWardrobeSortBtn");
+  if (btn) btn.innerHTML = `${SORT_LABELS[st.sort]} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+  if (dd) dd.querySelectorAll("[data-psort]").forEach(b => b.classList.toggle("active", b.dataset.psort === st.sort));
+}
+
+function renderProfileWardrobeGrid() {
+  const st = profileWardrobeState;
+  const sections = allSections().map(sec => ({ ...sec, items: garmentsInSection(garments, sec) })).filter(sec => sec.items.length > 0);
+  const list = profileWardrobeFilteredSorted();
+  const activeSection = st.categoryFilter === "all" ? null : sections.find(s => s.id === st.categoryFilter);
+  document.getElementById("profileWardrobeIconBadge").innerHTML = categoryBadgeIcon(st.categoryFilter === "all" ? "all" : st.categoryFilter);
+  document.getElementById("profileWardrobeTitle").textContent = st.categoryFilter === "all" ? "Todo el armario" : (activeSection ? activeSection.label : categoryLabel(st.categoryFilter));
+  document.getElementById("profileWardrobeCount").textContent = `${list.length} ${list.length === 1 ? "prenda" : "prendas"}`;
+  const dot = document.getElementById("profileWardrobeFilterDot");
+  if (dot) dot.style.display = (st.colorFilter || st.contextFilter || st.seasonFilter) ? "block" : "none";
+  const grid = document.getElementById("profileWardrobeGrid");
+  if (!list.length) {
+    grid.innerHTML = `<p class="sub foreign-gallery-empty">Ninguna prenda coincide con estos filtros.</p>`;
+  } else {
+    grid.innerHTML = list.map(g => {
+      const cat = CATEGORIES.find(c => c.id === g.category);
+      const title = g.name ? g.name.charAt(0).toUpperCase() + g.name.slice(1) : (cat ? cat.label : categoryLabel(g.category));
+      const colorLabel = (colorById[g.color] || {}).label || "";
+      return `
+      <div class="foreign-gallery-item" data-pg-id="${g.id}">
+        <div class="foreign-gallery-img"><img src="${g.image}" alt="${title}" loading="lazy"></div>
+        <div class="foreign-gallery-caption">
+          <p class="foreign-gallery-title">${title}</p>
+          ${colorLabel ? `<p class="foreign-gallery-sub">${colorLabel}</p>` : ""}
+        </div>
+      </div>`;
+    }).join("");
+    grid.querySelectorAll("[data-pg-id]").forEach(card => {
+      card.addEventListener("click", () => {
+        const g = garments.find(x => x.id === card.dataset.pgId);
+        if (g) openGarmentDetailsModal(g);
+      });
+    });
+  }
+  updateProfileWardrobeSortDropdown();
+}
+
+function renderProfileWardrobeTab() {
+  renderProfileWardrobeChips();
+  renderProfileWardrobeGrid();
+}
+
+// Reutiliza el MISMO modal de "Filtrar" de Mi armario (mismos elementos del
+// DOM), pero aplicando los cambios sobre el estado de la pestaña del perfil
+// en vez del estado global de la pantalla dedicada.
+function openProfileWardrobeFilterModal() {
+  const st = profileWardrobeState;
+  let pendingColor = st.colorFilter, pendingContext = st.contextFilter, pendingSeason = st.seasonFilter;
+  const colorRow = document.getElementById("wardrobeFilterColorOptions");
+  const styleRow = document.getElementById("wardrobeFilterStyleOptions");
+  const seasonRow = document.getElementById("wardrobeFilterSeasonOptions");
+  const paintColors = () => colorRow.querySelectorAll("[data-color]").forEach(b => b.classList.toggle("selected", b.dataset.color === pendingColor));
+  const paintStyle = () => styleRow.querySelectorAll("[data-style]").forEach(b => b.classList.toggle("selected", b.dataset.style === pendingContext));
+  const paintSeason = () => seasonRow.querySelectorAll("[data-season]").forEach(b => b.classList.toggle("selected", b.dataset.season === pendingSeason));
+  colorRow.innerHTML = COLORS.map(c => `<button class="color-btn" data-color="${c.id}">${swatchHTML(c.id, 11)} ${c.label}</button>`).join("");
+  styleRow.innerHTML = CONTEXTS.map(c => `<button class="formality-btn" data-style="${c.id}">${c.label}</button>`).join("");
+  seasonRow.innerHTML = SEASONS.map(s => `<button class="formality-btn" data-season="${s.id}">${s.label}</button>`).join("");
+  paintColors(); paintStyle(); paintSeason();
+  colorRow.querySelectorAll("[data-color]").forEach(btn => btn.addEventListener("click", () => { pendingColor = pendingColor === btn.dataset.color ? "" : btn.dataset.color; paintColors(); }));
+  styleRow.querySelectorAll("[data-style]").forEach(btn => btn.addEventListener("click", () => { pendingContext = pendingContext === btn.dataset.style ? "" : btn.dataset.style; paintStyle(); }));
+  seasonRow.querySelectorAll("[data-season]").forEach(btn => btn.addEventListener("click", () => { pendingSeason = pendingSeason === btn.dataset.season ? "" : btn.dataset.season; paintSeason(); }));
+  document.getElementById("wardrobeFilterApplyBtn").onclick = () => {
+    st.colorFilter = pendingColor; st.contextFilter = pendingContext; st.seasonFilter = pendingSeason;
+    renderProfileWardrobeGrid();
+    document.getElementById("wardrobeFilterBackdrop").classList.remove("open");
+  };
+  document.getElementById("wardrobeFilterClearBtn").onclick = () => {
+    pendingColor = ""; pendingContext = ""; pendingSeason = "";
+    paintColors(); paintStyle(); paintSeason();
+  };
+  document.getElementById("wardrobeFilterBackdrop").classList.add("open");
+}
+
+function renderProfileOutfitsTabChips() {
+  const st = profileOutfitsTabState;
+  const row = document.getElementById("profileOutfitsTabChipRow");
+  const chips = [{ id: "all", label: "Todo" }, ...CONTEXTS.map(c => ({ id: String(c.target), label: c.label }))];
+  row.innerHTML = chips.map(c => `<button class="foreign-filter-chip ${st.styleFilter === c.id ? "active" : ""}" data-postyle="${c.id}">${c.label}</button>`).join("");
+  row.querySelectorAll("[data-postyle]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      st.styleFilter = btn.dataset.postyle;
+      renderProfileOutfitsTabChips();
+      renderProfileOutfitsTabGrid();
+    });
+  });
+}
+
+function profileOutfitsTabFilteredSorted() {
+  const st = profileOutfitsTabState;
+  let list = outfits.slice();
+  if (st.styleFilter !== "all") list = list.filter(o => outfitAvgFormality(o) === parseInt(st.styleFilter, 10));
+  if (st.colorFilter) list = list.filter(o => [o.top, o.bottom, o.shoes].some(g => g && g.color === st.colorFilter));
+  if (st.seasonFilter) list = list.filter(o => [o.top, o.bottom, o.shoes].some(g => g && (g.season || "entretiempo") === st.seasonFilter));
+  if (st.sort === "style") list = list.slice().sort((a, b) => outfitAvgFormality(a) - outfitAvgFormality(b));
+  return list;
+}
+
+function updateProfileOutfitsTabSortDropdown() {
+  const st = profileOutfitsTabState;
+  const dd = document.getElementById("profileOutfitsTabSortDropdown");
+  const btn = document.getElementById("profileOutfitsTabSortBtn");
+  const labels = { recent: "Más recientes", style: "Por estilo" };
+  if (btn) btn.innerHTML = `${labels[st.sort]} <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m6 9 6 6 6-6"/></svg>`;
+  if (dd) dd.querySelectorAll("[data-posort]").forEach(b => b.classList.toggle("active", b.dataset.posort === st.sort));
+}
+
+function renderProfileOutfitsTabGrid() {
+  const st = profileOutfitsTabState;
+  const list = profileOutfitsTabFilteredSorted();
+  const activeStyle = st.styleFilter === "all" ? null : CONTEXTS.find(c => String(c.target) === st.styleFilter);
+  document.getElementById("profileOutfitsTabIconBadge").innerHTML = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>`;
+  document.getElementById("profileOutfitsTabTitle").textContent = st.styleFilter === "all" ? "Todos los outfits" : (activeStyle ? activeStyle.label : "Outfits");
+  document.getElementById("profileOutfitsTabCount").textContent = `${list.length} ${list.length === 1 ? "outfit" : "outfits"}`;
+  const dot = document.getElementById("profileOutfitsTabFilterDot");
+  if (dot) dot.style.display = (st.colorFilter || st.seasonFilter) ? "block" : "none";
+  const grid = document.getElementById("profileOutfitsTabGrid");
+  if (!list.length) {
+    grid.innerHTML = `<p class="sub foreign-gallery-empty">Ningún outfit coincide con estos filtros.</p>`;
+  } else {
+    grid.innerHTML = list.map(o => `
+      <div class="foreign-gallery-item" data-po-id="${o.id}">
+        <div class="foreign-gallery-img"><img src="${o.thumbCache || garmentImageForDisplay(o.top)}" alt="${o.name || ""}" loading="lazy"></div>
+        <div class="foreign-gallery-caption">
+          <p class="foreign-gallery-title">${o.name || "Outfit sin nombre"}</p>
+          ${o.label ? `<p class="foreign-gallery-sub">${o.label}</p>` : ""}
+        </div>
+      </div>`).join("");
+    grid.querySelectorAll("[data-po-id]").forEach(card => {
+      card.addEventListener("click", () => {
+        const o = outfits.find(x => x.id === card.dataset.poId);
+        if (o) openOutfitDetail(o.id);
+      });
+    });
+  }
+  updateProfileOutfitsTabSortDropdown();
+}
+
+function renderProfileOutfitsTabContent() {
+  renderProfileOutfitsTabChips();
+  renderProfileOutfitsTabGrid();
+}
+
+function openProfileOutfitsFilterModal() {
+  const st = profileOutfitsTabState;
+  let pendingColor = st.colorFilter, pendingSeason = st.seasonFilter;
+  const colorRow = document.getElementById("outfitFilterColorOptions");
+  const seasonRow = document.getElementById("outfitFilterSeasonOptions");
+  const paintColors = () => colorRow.querySelectorAll("[data-color]").forEach(b => b.classList.toggle("selected", b.dataset.color === pendingColor));
+  const paintSeason = () => seasonRow.querySelectorAll("[data-season]").forEach(b => b.classList.toggle("selected", b.dataset.season === pendingSeason));
+  colorRow.innerHTML = COLORS.map(c => `<button class="color-btn" data-color="${c.id}">${swatchHTML(c.id, 11)} ${c.label}</button>`).join("");
+  seasonRow.innerHTML = SEASONS.map(s => `<button class="formality-btn" data-season="${s.id}">${s.label}</button>`).join("");
+  paintColors(); paintSeason();
+  colorRow.querySelectorAll("[data-color]").forEach(btn => btn.addEventListener("click", () => { pendingColor = pendingColor === btn.dataset.color ? "" : btn.dataset.color; paintColors(); }));
+  seasonRow.querySelectorAll("[data-season]").forEach(btn => btn.addEventListener("click", () => { pendingSeason = pendingSeason === btn.dataset.season ? "" : btn.dataset.season; paintSeason(); }));
+  document.getElementById("outfitFilterApplyBtn").onclick = () => {
+    st.colorFilter = pendingColor; st.seasonFilter = pendingSeason;
+    renderProfileOutfitsTabGrid();
+    document.getElementById("outfitFilterBackdrop").classList.remove("open");
+  };
+  document.getElementById("outfitFilterClearBtn").onclick = () => {
+    pendingColor = ""; pendingSeason = "";
+    paintColors(); paintSeason();
+  };
+  document.getElementById("outfitFilterBackdrop").classList.add("open");
+}
+
+document.querySelectorAll("#profileTabs [data-profile-tab]").forEach(btn => {
+  btn.addEventListener("click", () => switchProfileTab(btn.dataset.profileTab));
+});
+document.getElementById("profileWardrobeFilterBtn").addEventListener("click", openProfileWardrobeFilterModal);
+document.getElementById("profileWardrobeSortBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const dd = document.getElementById("profileWardrobeSortDropdown");
+  dd.style.display = dd.style.display === "block" ? "none" : "block";
+});
+document.getElementById("profileWardrobeSortDropdown").querySelectorAll("[data-psort]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    profileWardrobeState.sort = btn.dataset.psort;
+    document.getElementById("profileWardrobeSortDropdown").style.display = "none";
+    renderProfileWardrobeGrid();
+  });
+});
+document.getElementById("profileOutfitsTabFilterBtn").addEventListener("click", openProfileOutfitsFilterModal);
+document.getElementById("profileOutfitsTabSortBtn").addEventListener("click", (e) => {
+  e.stopPropagation();
+  const dd = document.getElementById("profileOutfitsTabSortDropdown");
+  dd.style.display = dd.style.display === "block" ? "none" : "block";
+});
+document.getElementById("profileOutfitsTabSortDropdown").querySelectorAll("[data-posort]").forEach(btn => {
+  btn.addEventListener("click", () => {
+    profileOutfitsTabState.sort = btn.dataset.posort;
+    document.getElementById("profileOutfitsTabSortDropdown").style.display = "none";
+    renderProfileOutfitsTabGrid();
+  });
+});
+document.addEventListener("click", (e) => {
+  const dd1 = document.getElementById("profileWardrobeSortDropdown");
+  if (dd1 && dd1.style.display === "block" && !dd1.contains(e.target) && e.target.closest("#profileWardrobeSortBtn") == null) dd1.style.display = "none";
+  const dd2 = document.getElementById("profileOutfitsTabSortDropdown");
+  if (dd2 && dd2.style.display === "block" && !dd2.contains(e.target) && e.target.closest("#profileOutfitsTabSortBtn") == null) dd2.style.display = "none";
 });
 document.getElementById("profileShareBtn").addEventListener("click", () => {
   showAppToast("Muy pronto podrás compartir tu perfil.");
