@@ -408,10 +408,9 @@
     #viewTabShop { display: none; }
     #viewTabNotifications { display: none; }
     #viewTabWardrobe { order: 1; }
-    #viewTabOutfits { order: 2; }
+    #viewTabHome { order: 2; }
     #viewTabSearchUser { order: 3; }
-    #viewTabGuardados { order: 4; }
-    #viewTabProfile { order: 5; }
+    #viewTabProfile { order: 4; }
     html, .grid-row-collapsed, .picker-scroll, .modal-backdrop {
       scrollbar-width: none; -ms-overflow-style: none;
     }
@@ -565,6 +564,11 @@
   @media (min-width:640px) { .foreign-gallery-grid { grid-template-columns:repeat(4, 1fr); gap:20px 14px; } }
   @media (min-width:960px) { .foreign-gallery-grid { grid-template-columns:repeat(5, 1fr); } }
   @media (min-width:1300px) { .foreign-gallery-grid { grid-template-columns:repeat(6, 1fr); } }
+  .home-feed-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:18px 14px; }
+  .home-feed-owner { display:flex; align-items:center; gap:6px; margin-bottom:2px; }
+  .home-feed-owner-avatar { width:18px; height:18px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--ink-soft); }
+  .home-feed-owner-avatar img { width:100%; height:100%; object-fit:cover; }
+  .home-feed-date-label { font-size:13px; font-weight:700; color:var(--ink); margin:0 0 12px; }
   .foreign-gallery-item { cursor:pointer; }
   .foreign-gallery-img { width:100%; aspect-ratio:3/4; background:#EFEFEC; overflow:hidden; border-radius:6px; }
   .foreign-gallery-img img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.3s ease; }
@@ -741,13 +745,9 @@
   <aside class="sidebar">
     <div class="brand"><img src="data:image/png;base64,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" alt=""><div class="brand-text"><span>D</span><span>R</span><span>O</span><span>B</span><span>R</span></div></div>
     <nav class="nav-list">
-      <button class="nav-item nav-active" id="viewTabWardrobe">
+      <button class="nav-item" id="viewTabWardrobe">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="1.2"/><circle cx="15" cy="12" r="1" fill="currentColor" stroke="none"/></svg>
         Mi armario
-      </button>
-      <button class="nav-item" id="viewTabOutfits">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg>
-        Outfits
       </button>
       <button class="nav-item" id="viewTabShop">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4.5a1 1 0 0 0-1 1.11l1 9A2 2 0 0 0 6.48 17H16.5a2 2 0 0 0 2-1.83l.85-9.06A1 1 0 0 0 18.35 5H9Z"/><path d="M9 5a3 3 0 0 1 6 0"/><circle cx="9" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".6" fill="currentColor" stroke="none"/></svg>
@@ -758,16 +758,16 @@
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         Buscar
       </button>
+      <button class="nav-item nav-active" id="viewTabHome">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg>
+        Inicio
+      </button>
       <button class="nav-item" id="viewTabNotifications">
         <span style="position:relative; display:inline-flex;">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
           <span class="notif-dot" style="top:-2px; right:-2px;"></span>
         </span>
         Notificaciones
-      </button>
-      <button class="nav-item" id="viewTabGuardados">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
-        Guardados
       </button>
       <div class="nav-divider"></div>
       <button class="nav-item" id="viewTabProfile">
@@ -798,7 +798,25 @@
     </div>
   </div>
 
-  <div id="viewWardrobe">
+  <div id="viewHome">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="m3 11 9-8 9 8"/><path d="M5 10v10a1 1 0 0 0 1 1h4v-6h4v6h4a1 1 0 0 0 1-1V10"/></svg></div>
+        <div class="section-header-text">
+          <h2>Inicio</h2>
+          <p class="section-header-sub">Los últimos outfits de las personas que sigues.</p>
+        </div>
+      </div>
+      <div id="homeFeedContent"></div>
+    </div>
+  </div>
+
+  <div id="viewWardrobe" style="display:none;">
+  <div class="profile-tabs" id="wardrobeMainTabs">
+    <button class="profile-tab active" data-wtab="armario">Armario</button>
+    <button class="profile-tab" data-wtab="outfits">Outfits</button>
+  </div>
+  <div id="wardrobeArmarioPane">
   <div id="bulkActionBar" style="flex-wrap:wrap; row-gap:8px; display:none !important;">
     <span id="bulkActionCount" style="font-size:13px; color:var(--ink-soft);"></span>
     <div style="display:flex; gap:8px; flex-wrap:wrap; justify-content:flex-end;">
@@ -850,6 +868,42 @@
   <div id="actionsRow" style="display:none;">
     <button id="generateOutfitBtn"></button>
     <button id="builderToggleBtn"></button>
+  </div>
+  </div>
+
+  <div id="wardrobeOutfitsPane" style="display:none;">
+    <input type="text" id="outfitSearchInput" placeholder="Buscar por nombre…" style="margin-top:0; width:220px; margin-bottom:18px;">
+    <div id="outfitsEmpty" class="empty" style="display:none;">Aún no has guardado ningún outfit. ¡Crea uno y guárdalo para que aparezca!</div>
+    <div class="wardrobe-filter-top-row" id="outfitFilterTopRow" style="display:none;">
+      <button class="fav-filter-circle" id="outfitFavoritesFilterBtn" title="Favoritos">★</button>
+      <div class="foreign-gallery-controls" id="outfitStyleChipRow" style="margin-bottom:0; flex:1;"></div>
+    </div>
+    <div class="section" id="outfitsGridSection" style="display:none;">
+      <div class="foreign-gallery-section-controls">
+        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
+          <div class="grid-header-icon-badge" id="outfitsGridIconBadge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg></div>
+          <div style="min-width:0;">
+            <p class="grid-header-title" id="outfitsGridTitle"></p>
+            <p class="grid-header-count" id="outfitsGridCount"></p>
+          </div>
+        </div>
+        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
+          <button class="foreign-sort-btn" id="outfitsFilterBtn" title="Filtrar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+            <span class="filter-dot-badge" id="outfitsFilterDot" style="display:none;"></span>
+          </button>
+          <div class="foreign-sort-wrap" style="position:relative;">
+            <button class="sort-text-btn" id="outfitsSortBtn"></button>
+            <div class="foreign-sort-dropdown" id="outfitsSortDropdown">
+              <button class="foreign-sort-option" data-osort="recent">Más recientes</button>
+              <button class="foreign-sort-option" data-osort="style">Por estilo</button>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div id="outfitsList"></div>
+      <div id="outfitsToggle" style="display:none; margin:-10px 0 0;"></div>
+    </div>
   </div>
 
 
@@ -928,41 +982,6 @@
       <div class="modal-head"><h2 id="garmentDetailsTitle" style="font-size:16px;"></h2><button class="modal-close" id="garmentDetailsClose">✕</button></div>
       <img id="garmentDetailsImg" class="detail-img" style="margin:0 auto 16px; display:block;" alt="">
       <div id="garmentDetailsFields"></div>
-    </div>
-  </div>
-
-  <div id="viewOutfits" style="display:none;">
-    <input type="text" id="outfitSearchInput" placeholder="Buscar por nombre…" style="margin-top:0; width:220px; margin-bottom:18px;">
-    <div id="outfitsEmpty" class="empty" style="display:none;">Aún no has guardado ningún outfit. ¡Crea uno y guárdalo para que aparezca!</div>
-    <div class="wardrobe-filter-top-row" id="outfitFilterTopRow" style="display:none;">
-      <button class="fav-filter-circle" id="outfitFavoritesFilterBtn" title="Favoritos">★</button>
-      <div class="foreign-gallery-controls" id="outfitStyleChipRow" style="margin-bottom:0; flex:1;"></div>
-    </div>
-    <div class="section" id="outfitsGridSection" style="display:none;">
-      <div class="foreign-gallery-section-controls">
-        <div style="display:flex; align-items:center; gap:10px; min-width:0;">
-          <div class="grid-header-icon-badge" id="outfitsGridIconBadge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.38 3.46 16 2a4 4 0 0 1-8 0L3.62 3.46a2 2 0 0 0-1.34 2.23l.58 3.47a1 1 0 0 0 .99.84H6v10a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V10h2.15a1 1 0 0 0 .99-.84l.58-3.47a2 2 0 0 0-1.34-2.23z"/></svg></div>
-          <div style="min-width:0;">
-            <p class="grid-header-title" id="outfitsGridTitle"></p>
-            <p class="grid-header-count" id="outfitsGridCount"></p>
-          </div>
-        </div>
-        <div style="display:flex; align-items:center; gap:6px; flex-shrink:0;">
-          <button class="foreign-sort-btn" id="outfitsFilterBtn" title="Filtrar">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-            <span class="filter-dot-badge" id="outfitsFilterDot" style="display:none;"></span>
-          </button>
-          <div class="foreign-sort-wrap" style="position:relative;">
-            <button class="sort-text-btn" id="outfitsSortBtn"></button>
-            <div class="foreign-sort-dropdown" id="outfitsSortDropdown">
-              <button class="foreign-sort-option" data-osort="recent">Más recientes</button>
-              <button class="foreign-sort-option" data-osort="style">Por estilo</button>
-            </div>
-          </div>
-        </div>
-      </div>
-      <div id="outfitsList"></div>
-      <div id="outfitsToggle" style="display:none; margin:-10px 0 0;"></div>
     </div>
   </div>
 
@@ -1097,6 +1116,7 @@
       <button class="profile-tab active" data-profile-tab="armario">Armario</button>
       <button class="profile-tab" data-profile-tab="outfits">Outfits</button>
       <button class="profile-tab" data-profile-tab="listas">Colecciones</button>
+      <button class="profile-tab" data-profile-tab="guardados">Guardados</button>
     </div>
 
     <div id="profileArmarioTab">
@@ -1168,9 +1188,8 @@
       </div>
       <div class="collection-grid" id="profileCollectionsGrid"></div>
     </div>
-  </div>
 
-  <div id="viewGuardados" style="display:none;">
+    <div id="profileGuardadosTab" style="display:none;">
     <div class="profile-tabs" id="guardadosTabs">
       <button class="profile-tab active" data-gtab="prendas">Prendas</button>
       <button class="profile-tab" data-gtab="outfits">Outfits</button>
@@ -1217,6 +1236,7 @@
         </button>
       </div>
       <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:14px;" id="savedOutfitsGrid"></div>
+    </div>
     </div>
     </div>
   </div>
@@ -2069,7 +2089,7 @@ let manualAccessoryVisible = false;
 let selectedForMatch = new Set();
 let selectedOutfits = new Set();
 let outfitsOrganizeMode = false;
-let currentView = "wardrobe";
+let currentView = "home";
 let lockedPieces = { top: null, bottom: null, shoes: null };
 let currentSuggestionOutfit = null;
 let searchQuery = "";
@@ -2546,7 +2566,7 @@ function duplicateGarment(g) {
 }
 
 function updateSelectionBar() {
-  if (currentView === "outfits") { renderOutfitFab(); return; }
+  if (wardrobeActiveTab === "outfits") { renderOutfitFab(); return; }
   const n = selectedForMatch.size;
   const ok = canSuggest();
   const menu = document.getElementById("fabMenu");
@@ -4265,7 +4285,8 @@ function showSavedOutfitCard(top, bottom, shoes, outfitName, accessories) {
   document.getElementById("savedOutfitBackdrop").classList.add("open");
   document.getElementById("savedOutfitGoBtn").onclick = () => {
     document.getElementById("savedOutfitBackdrop").classList.remove("open");
-    switchView("outfits");
+    switchView("wardrobe");
+    switchWardrobeTab("outfits");
   };
   document.getElementById("savedOutfitShareBtn").onclick = () => {
     shareOutfitAsImage(top, bottom, shoes, outfitName, document.getElementById("savedOutfitShareBtn"), list);
@@ -4630,54 +4651,65 @@ document.getElementById("deselectAllBtn").addEventListener("click", () => {
 });
 
 const PAGE_META = {
+  home: { title: "Inicio", subtitle: "Los outfits de las personas que sigues.", action: false },
   wardrobe: { title: "Mi armario", subtitle: "Gestiona tu ropa y crea combinaciones que realmente vayan con tu estilo.", action: true },
-  outfits: { title: "Mis outfits", subtitle: "Tu colección de outfits, lista para consultar cuando quieras.", action: false },
   shop: { title: "¿Me lo compro?", subtitle: "¿Dudas si esa prenda combinaría con lo que ya tienes? ¡Compruébalo antes de comprarla!", action: false },
   profile: { title: "Perfil", subtitle: "DROBR no muestra quién eres. Muestra cómo utilizas lo que tienes.", action: false },
-  guardados: { title: "Guardados", subtitle: "Prendas y outfits de otras personas que has guardado como inspiración.", action: false },
   settings: { title: "Configuración", subtitle: "Copia de seguridad de tu armario.", action: false },
 };
 
 function switchView(view) {
   currentView = view;
   document.getElementById("viewVisitorProfile").style.display = "none";
+  document.getElementById("viewHome").style.display = view === "home" ? "block" : "none";
   document.getElementById("viewWardrobe").style.display = view === "wardrobe" ? "block" : "none";
-  document.getElementById("viewOutfits").style.display = view === "outfits" ? "block" : "none";
   document.getElementById("viewShop").style.display = view === "shop" ? "block" : "none";
   document.getElementById("viewProfile").style.display = view === "profile" ? "block" : "none";
-  document.getElementById("viewGuardados").style.display = view === "guardados" ? "block" : "none";
   document.getElementById("viewSettings").style.display = view === "settings" ? "block" : "none";
   if (view === "settings") populateAccountSettings();
   document.getElementById("topbarSettingsBtn").style.display = view === "profile" ? "flex" : "none";
-  if (view === "wardrobe") {
-    renderActions();
-  } else if (view === "outfits") {
-    // el FAB de esta vista se actualiza dentro de renderOutfits() más abajo
-  } else {
+  if (view !== "wardrobe") {
     document.getElementById("wardrobeFab").style.display = "none";
     closeFabMenu();
   }
   const meta = PAGE_META[view];
   document.getElementById("pageAction").style.display = meta.action ? "flex" : "none";
   document.getElementById("pageHead").style.display = meta.action ? "flex" : "none";
+  const hTab = document.getElementById("viewTabHome");
   const wTab = document.getElementById("viewTabWardrobe");
-  const oTab = document.getElementById("viewTabOutfits");
   const shTab = document.getElementById("viewTabShop");
   const pTab = document.getElementById("viewTabProfile");
-  const gTab = document.getElementById("viewTabGuardados");
   const sTab = document.getElementById("viewTabSettings");
-  [wTab, oTab, shTab, pTab, gTab, sTab].forEach(t => t.classList.remove("nav-active"));
-  ({ wardrobe: wTab, outfits: oTab, shop: shTab, profile: pTab, guardados: gTab, settings: sTab }[view]).classList.add("nav-active");
-  if (view === "outfits") renderOutfits();
+  [hTab, wTab, shTab, pTab, sTab].forEach(t => t.classList.remove("nav-active"));
+  ({ home: hTab, wardrobe: wTab, shop: shTab, profile: pTab, settings: sTab }[view]).classList.add("nav-active");
+  if (view === "home") renderHomeFeed();
+  if (view === "wardrobe") switchWardrobeTab("armario");
   if (view === "shop") renderShopView();
   if (view === "profile") renderProfile();
-  if (view === "guardados") { renderGuardados(); switchGuardadosTab("prendas"); }
 }
+document.getElementById("viewTabHome").addEventListener("click", () => switchView("home"));
 document.getElementById("viewTabWardrobe").addEventListener("click", () => switchView("wardrobe"));
-document.getElementById("viewTabOutfits").addEventListener("click", () => switchView("outfits"));
 document.getElementById("viewTabShop").addEventListener("click", () => switchView("shop"));
 document.getElementById("viewTabProfile").addEventListener("click", () => switchView("profile"));
-document.getElementById("viewTabGuardados").addEventListener("click", () => switchView("guardados"));
+
+// Pestañas internas de Mi armario (Armario / Outfits): mismo patrón que las
+// pestañas del perfil. El FAB flotante cambia de contenido según la pestaña
+// activa (updateSelectionBar mira wardrobeActiveTab), igual que antes cambiaba
+// según la vista completa.
+let wardrobeActiveTab = "armario";
+function switchWardrobeTab(tab) {
+  wardrobeActiveTab = tab;
+  document.querySelectorAll("#wardrobeMainTabs [data-wtab]").forEach(b => b.classList.toggle("active", b.dataset.wtab === tab));
+  document.getElementById("wardrobeArmarioPane").style.display = tab === "armario" ? "block" : "none";
+  document.getElementById("wardrobeOutfitsPane").style.display = tab === "outfits" ? "block" : "none";
+  document.getElementById("pageAction").style.display = tab === "armario" ? "flex" : "none";
+  document.getElementById("pageHead").style.display = tab === "armario" ? "flex" : "none";
+  if (tab === "armario") renderActions();
+  else renderOutfits();
+}
+document.querySelectorAll("#wardrobeMainTabs [data-wtab]").forEach(btn => {
+  btn.addEventListener("click", () => switchWardrobeTab(btn.dataset.wtab));
+});
 document.getElementById("viewTabSearchUser").addEventListener("click", openUserSearchModal);
 document.getElementById("savedGarmentsSearchBtn")?.addEventListener("click", openUserSearchModal);
 document.getElementById("savedOutfitsSearchBtn")?.addEventListener("click", openUserSearchModal);
@@ -4919,7 +4951,7 @@ document.addEventListener("drobrAuthChecked", (e) => {
 }, { once: true });
 
 document.addEventListener("drobrAuthChecked", (e) => {
-  if (e.detail.user) watchFollowRequests(e.detail.user.uid);
+  if (e.detail.user) { watchFollowRequests(e.detail.user.uid); renderHomeFeed(); }
 });
 
 document.getElementById("logoutBtn").addEventListener("click", async () => {
@@ -5258,6 +5290,131 @@ async function getFollowingCount(targetUid) {
   return snap.data().count;
 }
 
+/* ---------------- Inicio (feed) ---------------- */
+// Devuelve los UIDs de las cuentas que sigo de verdad (status "accepted"), vía
+// collectionGroup sobre "followers": el uid destino es el padre del documento
+// encontrado. Al ser un follow ya aceptado, la privacidad del dueño no bloquea
+// nada aquí (mismo criterio que canSeeContent en el perfil visitante).
+async function getFollowingUids(myUid) {
+  const { collectionGroup, query, where, getDocs } = window.__drobrFirestoreFns;
+  const q = query(collectionGroup(window.__drobrDb, "followers"), where("followerUid", "==", myUid), where("status", "==", "accepted"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.ref.parent.parent.id);
+}
+
+// Agrupa por "Hoy / Ayer / Esta semana / Anteriores" en vez de un río
+// cronológico sin cortes: sensación de contenido curado, no de timeline.
+function homeFeedDateGroupLabel(dateStr) {
+  const d = new Date(dateStr || Date.now());
+  const now = new Date();
+  const startOfDay = (dt) => new Date(dt.getFullYear(), dt.getMonth(), dt.getDate());
+  const diffDays = Math.round((startOfDay(now) - startOfDay(d)) / 86400000);
+  if (diffDays <= 0) return "Hoy";
+  if (diffDays === 1) return "Ayer";
+  if (diffDays <= 7) return "Esta semana";
+  return "Anteriores";
+}
+
+function homeFeedOwnerAvatarHTML(meta) {
+  const name = meta.name || meta.username || "?";
+  return meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
+}
+
+function homeFeedCardHTML(entry) {
+  const o = entry.outfit;
+  const img = o.thumbCache || garmentImageForDisplay(o.top) || "";
+  return `
+    <div class="foreign-gallery-item" data-feed-id="${o.id}" data-feed-uid="${entry.uid}">
+      <div class="foreign-gallery-img">${img ? `<img src="${img}" alt="" loading="lazy">` : ""}</div>
+      <div class="foreign-gallery-caption">
+        <div class="home-feed-owner">
+          <div class="home-feed-owner-avatar">${homeFeedOwnerAvatarHTML(entry.meta)}</div>
+          <span class="foreign-gallery-sub">@${entry.meta.username || ""}</span>
+        </div>
+        <p class="foreign-gallery-title">${o.name || "Outfit sin nombre"}</p>
+      </div>
+    </div>`;
+}
+
+function renderHomeFeedGroupsHTML(entries) {
+  const order = ["Hoy", "Ayer", "Esta semana", "Anteriores"];
+  const groups = new Map();
+  entries.forEach(e => {
+    const label = homeFeedDateGroupLabel(e.outfit.date);
+    if (!groups.has(label)) groups.set(label, []);
+    groups.get(label).push(e);
+  });
+  return order.filter(l => groups.has(l)).map(label => `
+    <div style="margin-bottom:24px;">
+      <p class="home-feed-date-label">${label}</p>
+      <div class="home-feed-grid">${groups.get(label).map(homeFeedCardHTML).join("")}</div>
+    </div>`).join("");
+}
+
+function homeFeedEmptyHTML(kind) {
+  if (kind === "no-follows") {
+    return `
+      <div class="empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--line-strong)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+        <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Todavía no sigues a nadie</p>
+        <p class="sub" style="margin:0 auto 16px; text-align:center;">En cuanto sigas a otras personas, sus outfits irán apareciendo aquí.</p>
+        <button class="btn btn-outline" id="homeFeedSearchBtn" style="margin:0 auto;">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+          Buscar personas
+        </button>
+      </div>`;
+  }
+  return `
+    <div class="empty">
+      <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Nada nuevo por aquí todavía</p>
+      <p class="sub" style="margin:0 auto; text-align:center;">Las personas que sigues aún no han creado ningún outfit.</p>
+    </div>`;
+}
+
+let homeFeedEntriesCache = [];
+async function renderHomeFeed() {
+  const container = document.getElementById("homeFeedContent");
+  if (!container) return;
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (!myUid) return;
+  container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p>`;
+  try {
+    const uids = await getFollowingUids(myUid);
+    if (!uids.length) {
+      container.innerHTML = homeFeedEmptyHTML("no-follows");
+      const btn = document.getElementById("homeFeedSearchBtn");
+      if (btn) btn.addEventListener("click", openUserSearchModal);
+      return;
+    }
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const entries = [];
+    await Promise.all(uids.map(async (uid) => {
+      const [metaSnap, outfitsArr] = await Promise.all([
+        getDoc(doc(window.__drobrDb, "armarios", uid)),
+        leerColeccion(uid, "outfits"),
+      ]);
+      const meta = metaSnap.exists() ? metaSnap.data() : {};
+      outfitsArr.forEach(o => entries.push({ outfit: o, meta, uid, outfitsArr }));
+    }));
+    if (!entries.length) {
+      container.innerHTML = homeFeedEmptyHTML("no-posts");
+      return;
+    }
+    entries.sort((a, b) => new Date(b.outfit.date || 0) - new Date(a.outfit.date || 0));
+    homeFeedEntriesCache = entries;
+    container.innerHTML = renderHomeFeedGroupsHTML(entries);
+    container.querySelectorAll("[data-feed-id]").forEach(card => {
+      card.addEventListener("click", () => {
+        const entry = homeFeedEntriesCache.find(e => e.outfit.id === card.dataset.feedId && e.uid === card.dataset.feedUid);
+        if (entry) openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">No se pudo cargar el inicio.</p>`;
+  }
+}
+
 // Escucha en tiempo real las solicitudes pendientes propias, para el punto rojo
 // de la campana y el panel de "Solicitudes de seguimiento".
 let pendingFollowRequests = [];
@@ -5342,7 +5499,7 @@ async function refreshOwnFollowCounts() {
 // Muestra una de las pantallas "ajenas" (perfil / armario / outfits de solo
 // lectura) y oculta el resto de vistas principales de la app.
 function showForeignSubView(id) {
-  ["viewWardrobe", "viewOutfits", "viewShop", "viewProfile", "viewGuardados", "viewSettings", ...FOREIGN_SUBVIEWS].forEach(v => {
+  ["viewWardrobe", "viewShop", "viewProfile", "viewSettings", ...FOREIGN_SUBVIEWS].forEach(v => {
     document.getElementById(v).style.display = v === id ? "block" : "none";
   });
   document.getElementById("topbarSettingsBtn").style.display = "none";
@@ -6731,7 +6888,7 @@ function saveGarmentToGuardados(garmentSnapshot) {
   if (yaGuardada) return false;
   guardados.prendas.push({ ...garmentSnapshot, sourceId: garmentSnapshot.id, id: `saved-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
   saveGuardados(guardados);
-  if (currentView === "guardados") renderSavedGarments();
+  if (currentView === "profile" && profileActiveTab === "guardados") renderSavedGarments();
   return true;
 }
 function isGarmentSaved(garment, username) {
@@ -6740,7 +6897,7 @@ function isGarmentSaved(garment, username) {
 function saveOutfitToGuardados(outfitSnapshot) {
   guardados.outfits.push({ ...outfitSnapshot, id: `saved-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
   saveGuardados(guardados);
-  if (currentView === "guardados") renderSavedOutfits();
+  if (currentView === "profile" && profileActiveTab === "guardados") renderSavedOutfits();
 }
 
 function renderGuardados() {
@@ -7113,8 +7270,10 @@ function switchProfileTab(tab) {
   document.getElementById("profileArmarioTab").style.display = tab === "armario" ? "block" : "none";
   document.getElementById("profileOutfitsTab").style.display = tab === "outfits" ? "block" : "none";
   document.getElementById("profileCollectionsSection").style.display = tab === "listas" ? "block" : "none";
+  document.getElementById("profileGuardadosTab").style.display = tab === "guardados" ? "block" : "none";
   if (tab === "armario") renderProfileWardrobeTab();
   else if (tab === "outfits") renderProfileOutfitsTabContent();
+  else if (tab === "guardados") { renderGuardados(); switchGuardadosTab("prendas"); }
 }
 
 function renderProfileWardrobeChips() {
