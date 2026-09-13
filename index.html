@@ -1067,21 +1067,24 @@
     </div>
 
     <div class="section">
-      <div class="section-header">
+      <button class="section-header identity-toggle-btn" id="profileIdentityToggle" style="width:100%; text-align:left; background:none; border:none; cursor:pointer; font-family:inherit; padding:0;">
         <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="4"/><path d="M4 20c0-3.6 3.6-6 8-6s8 2.4 8 6"/></svg></div>
         <div class="section-header-text">
           <h2>Mi identidad</h2>
           <p class="section-header-sub">La forma en la que vistes lo que tienes.</p>
         </div>
-        <button class="btn-text" id="profileIdentityDetailBtn">Ver análisis →</button>
+        <svg id="profileIdentityChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; transition:transform 0.2s ease; color:var(--ink-soft);"><path d="m6 9 6 6 6-6"/></svg>
+      </button>
+      <div id="profileIdentityBody" style="display:none;">
+        <div id="profileIdentitySliders" style="margin-top:18px;"></div>
+        <button class="btn-text" id="profileIdentityDetailBtn" style="margin-top:14px;">Ver análisis →</button>
       </div>
-      <div id="profileIdentitySliders"></div>
     </div>
 
     <div class="profile-tabs" id="profileTabs">
       <button class="profile-tab active" data-profile-tab="armario">Armario</button>
       <button class="profile-tab" data-profile-tab="outfits">Outfits</button>
-      <button class="profile-tab" data-profile-tab="listas">Listas</button>
+      <button class="profile-tab" data-profile-tab="listas">Colecciones</button>
     </div>
 
     <div id="profileArmarioTab">
@@ -7099,6 +7102,13 @@ function openCollectionDetail(collectionId) {
 
 document.getElementById("collectionPickerClose").addEventListener("click", () => document.getElementById("collectionPickerBackdrop").classList.remove("open"));
 document.getElementById("collectionDetailClose").addEventListener("click", () => document.getElementById("collectionDetailBackdrop").classList.remove("open"));
+document.getElementById("profileIdentityToggle").addEventListener("click", () => {
+  const body = document.getElementById("profileIdentityBody");
+  const chevron = document.getElementById("profileIdentityChevron");
+  const isOpen = body.style.display !== "none";
+  body.style.display = isOpen ? "none" : "block";
+  chevron.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
+});
 document.getElementById("profileIdentityDetailBtn").addEventListener("click", renderIdentityAnalysis);
 document.getElementById("identityAnalysisClose").addEventListener("click", () => document.getElementById("identityAnalysisBackdrop").classList.remove("open"));
 
