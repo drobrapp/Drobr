@@ -1222,43 +1222,6 @@
     <div id="visitorProfileContent"></div>
   </div>
 
-  <div id="viewForeignWardrobe" style="display:none;">
-    <div class="foreign-wardrobe-topbar">
-      <button class="back-chip" id="foreignWardrobeBackBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        Armario
-      </button>
-      <div style="position:relative;">
-        <button class="foreign-wardrobe-menu-btn" id="foreignWardrobeMenuBtn" aria-label="Más opciones">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
-        </button>
-        <div id="foreignWardrobeMenuDropdown" style="display:none; position:absolute; right:0; top:36px; background:#fff; border:1px solid var(--line-strong); border-radius:var(--radius-sm); box-shadow:var(--shadow); min-width:170px; z-index:20; overflow:hidden;">
-          <button id="foreignWardrobeShareBtn" style="display:block; width:100%; text-align:left; padding:11px 14px; background:none; border:none; font-size:13px; color:var(--ink); cursor:pointer; font-family:inherit;">Compartir armario</button>
-        </div>
-      </div>
-    </div>
-    <div id="foreignWardrobeContent"></div>
-  </div>
-
-  <div id="viewForeignOutfits" style="display:none;">
-    <div class="foreign-wardrobe-topbar">
-      <button class="back-chip" id="foreignOutfitsBackBtn">
-        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
-        Outfits
-      </button>
-      <div style="position:relative;">
-        <button class="foreign-wardrobe-menu-btn" id="foreignOutfitsMenuBtn" aria-label="Más opciones">
-          <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.8"/><circle cx="12" cy="12" r="1.8"/><circle cx="19" cy="12" r="1.8"/></svg>
-        </button>
-        <div id="foreignOutfitsMenuDropdown" style="display:none; position:absolute; right:0; top:36px; background:#fff; border:1px solid var(--line-strong); border-radius:var(--radius-sm); box-shadow:var(--shadow); min-width:170px; z-index:20; overflow:hidden;">
-          <button id="foreignOutfitsShareBtn" style="display:block; width:100%; text-align:left; padding:11px 14px; background:none; border:none; font-size:13px; color:var(--ink); cursor:pointer; font-family:inherit;">Compartir</button>
-        </div>
-      </div>
-    </div>
-    <div id="foreignOutfitsContent"></div>
-  </div>
-
-
   <div class="modal-backdrop" id="identityAnalysisBackdrop">
     <div class="modal" style="max-width:520px;">
       <div class="modal-head"><h2 style="font-size:16px;">Análisis de tu identidad</h2><button class="modal-close" id="identityAnalysisClose">✕</button></div>
@@ -3750,6 +3713,7 @@ function outfitEntryHTML(entry) {
     </div>`;
 }
 
+let lastOutfitsRenderKey = null; // Fase 2: evita reconstruir la lista si nada cambió desde el último render
 let outfitSearchQuery = "";
 let outfitColorFilterValue = "";
 let outfitSeasonFilterValue = "";
@@ -3871,6 +3835,10 @@ function renderOutfits() {
 
   const isCollapsed = !outfitsExpanded && list.length > OUTFITS_ROW_MAX;
   const visibleList = isCollapsed ? list.slice(0, OUTFITS_ROW_MAX) : list;
+
+  const outfitsRenderKey = visibleList.map(o => `${o.id}:${o.name}:${o.favorite ? 1 : 0}`).join(",") + "|" + isCollapsed + "|" + list.length + "|" + outfitsOrganizeMode;
+  if (outfitsRenderKey === lastOutfitsRenderKey) return;
+  lastOutfitsRenderKey = outfitsRenderKey;
 
   listEl.innerHTML = visibleList.map(outfitEntryHTML).join("");
 
@@ -4664,8 +4632,6 @@ const PAGE_META = {
 function switchView(view) {
   currentView = view;
   document.getElementById("viewVisitorProfile").style.display = "none";
-  document.getElementById("viewForeignWardrobe").style.display = "none";
-  document.getElementById("viewForeignOutfits").style.display = "none";
   document.getElementById("viewWardrobe").style.display = view === "wardrobe" ? "block" : "none";
   document.getElementById("viewOutfits").style.display = view === "outfits" ? "block" : "none";
   document.getElementById("viewShop").style.display = view === "shop" ? "block" : "none";
@@ -4715,8 +4681,6 @@ document.getElementById("followRequestsBackdrop").addEventListener("click", (e) 
 document.getElementById("userSearchGoBtn").addEventListener("click", performUserSearch);
 document.getElementById("userSearchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") performUserSearch(); });
 document.getElementById("visitorProfileBackBtn").addEventListener("click", closeVisitorProfile);
-document.getElementById("foreignWardrobeBackBtn").addEventListener("click", () => showForeignSubView("viewVisitorProfile"));
-document.getElementById("foreignOutfitsBackBtn").addEventListener("click", () => showForeignSubView("viewVisitorProfile"));
 document.getElementById("viewTabSettings").addEventListener("click", () => switchView("settings"));
 document.getElementById("topbarSettingsBtn").addEventListener("click", () => switchView("settings"));
 document.getElementById("topbarShopBtn").addEventListener("click", () => switchView("shop"));
@@ -5226,7 +5190,7 @@ function foreignSections(meta) {
 }
 
 let visitorProfilePreviousView = "profile";
-const FOREIGN_SUBVIEWS = ["viewVisitorProfile", "viewForeignWardrobe", "viewForeignOutfits"];
+const FOREIGN_SUBVIEWS = ["viewVisitorProfile"];
 
 /* ---------------- Seguir / Dejar de seguir ---------------- */
 // La relación vive solo en armarios/{targetUid}/followers/{followerUid}, nunca duplicada
@@ -5424,18 +5388,8 @@ function openForeignWardrobe(targetUid, meta, prendas, foreignOutfitsArr) {
     targetUid, meta, prendas, foreignOutfitsArr: foreignOutfitsArr || [], sections,
     categoryFilter: "all", colorFilter: "", formalityFilter: "", seasonFilter: "", sort: "recent",
   };
-  const name = meta.name || meta.username || "usuario";
-  const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
-  const outfitsCount = foreignGalleryState.foreignOutfitsArr.length;
-  const content = document.getElementById("foreignWardrobeContent");
+  const content = document.getElementById("visitorArmarioTabPane");
   content.innerHTML = `
-    <div class="section" style="margin-bottom:18px;">
-      <div class="foreign-gallery-identity" style="margin-bottom:0;">
-        <div class="foreign-gallery-avatar">${avatarHTML}</div>
-        <p class="foreign-gallery-name">${name}</p>
-        <p class="foreign-gallery-meta">${meta.username ? `@${meta.username} · ` : ""}${prendas.length} ${prendas.length === 1 ? "prenda" : "prendas"} · ${outfitsCount} ${outfitsCount === 1 ? "outfit" : "outfits"}</p>
-      </div>
-    </div>
     <div class="foreign-gallery-controls" id="foreignFilterChipRow"></div>
     <div class="section">
       <div class="foreign-gallery-section-controls">
@@ -5481,7 +5435,6 @@ function openForeignWardrobe(targetUid, meta, prendas, foreignOutfitsArr) {
     });
   });
   document.getElementById("foreignFilterMoreBtn").addEventListener("click", openForeignFilterModal);
-  showForeignSubView("viewForeignWardrobe");
 }
 
 function renderForeignFilterChips() {
@@ -5615,24 +5568,11 @@ function openForeignFilterModal() {
 }
 document.getElementById("foreignFilterClose").addEventListener("click", () => document.getElementById("foreignFilterBackdrop").classList.remove("open"));
 
-document.getElementById("foreignWardrobeMenuBtn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  const menu = document.getElementById("foreignWardrobeMenuDropdown");
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
-});
 document.addEventListener("click", (e) => {
-  const menu = document.getElementById("foreignWardrobeMenuDropdown");
-  if (menu && menu.style.display === "block" && !menu.contains(e.target) && e.target.id !== "foreignWardrobeMenuBtn") {
-    menu.style.display = "none";
-  }
   const sortDd = document.getElementById("foreignSortDropdown");
   if (sortDd && sortDd.style.display === "block" && !sortDd.contains(e.target) && e.target.closest("#foreignSortBtn") == null) {
     sortDd.style.display = "none";
   }
-});
-document.getElementById("foreignWardrobeShareBtn").addEventListener("click", () => {
-  document.getElementById("foreignWardrobeMenuDropdown").style.display = "none";
-  showAppToast("Muy pronto podrás compartir este armario.");
 });
 
 // Outfits de otro usuario, de solo lectura: lista completa de collages (no se
@@ -5640,17 +5580,8 @@ document.getElementById("foreignWardrobeShareBtn").addEventListener("click", () 
 let foreignOutfitsGalleryState = null;
 function openForeignOutfits(meta, foreignOutfitsArr) {
   foreignOutfitsGalleryState = { meta, foreignOutfitsArr, styleFilter: "all", colorFilter: "", seasonFilter: "", sort: "recent" };
-  const name = meta.name || meta.username || "usuario";
-  const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
-  const content = document.getElementById("foreignOutfitsContent");
+  const content = document.getElementById("visitorOutfitsTabPane");
   content.innerHTML = `
-    <div class="section" style="margin-bottom:18px;">
-      <div class="foreign-gallery-identity" style="margin-bottom:0;">
-        <div class="foreign-gallery-avatar">${avatarHTML}</div>
-        <p class="foreign-gallery-name">${name}</p>
-        <p class="foreign-gallery-meta">${meta.username ? `@${meta.username} · ` : ""}${foreignOutfitsArr.length} ${foreignOutfitsArr.length === 1 ? "outfit" : "outfits"}</p>
-      </div>
-    </div>
     <div class="foreign-gallery-controls" id="foreignOutfitsStyleChipRow"></div>
     <div class="section">
       <div class="foreign-gallery-section-controls">
@@ -5694,7 +5625,6 @@ function openForeignOutfits(meta, foreignOutfitsArr) {
     });
   });
   document.getElementById("foreignOutfitsFilterBtn").addEventListener("click", openForeignOutfitFilterModal);
-  showForeignSubView("viewForeignOutfits");
 }
 
 function renderForeignOutfitsStyleChips() {
@@ -5791,20 +5721,7 @@ function openForeignOutfitFilterModal() {
   document.getElementById("foreignOutfitFilterBackdrop").classList.add("open");
 }
 document.getElementById("foreignOutfitFilterClose").addEventListener("click", () => document.getElementById("foreignOutfitFilterBackdrop").classList.remove("open"));
-document.getElementById("foreignOutfitsMenuBtn").addEventListener("click", (e) => {
-  e.stopPropagation();
-  const menu = document.getElementById("foreignOutfitsMenuDropdown");
-  menu.style.display = menu.style.display === "block" ? "none" : "block";
-});
-document.getElementById("foreignOutfitsShareBtn").addEventListener("click", () => {
-  document.getElementById("foreignOutfitsMenuDropdown").style.display = "none";
-  showAppToast("Muy pronto podrás compartir estos outfits.");
-});
 document.addEventListener("click", (e) => {
-  const menu = document.getElementById("foreignOutfitsMenuDropdown");
-  if (menu && menu.style.display === "block" && !menu.contains(e.target) && e.target.closest("#foreignOutfitsMenuBtn") == null) {
-    menu.style.display = "none";
-  }
   const dd = document.getElementById("foreignOutfitsSortDropdown");
   if (dd && dd.style.display === "block" && !dd.contains(e.target) && e.target.closest("#foreignOutfitsSortBtn") == null) {
     dd.style.display = "none";
@@ -6199,14 +6116,17 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
     </div>
 
     ${canSeeContent ? `
-    <div class="tabs" id="visitorProfileTabs">
-      <button class="tab active" data-vtab="armario">Armario</button>
-      ${foreignOutfits.length ? `<button class="tab" data-vtab="outfits">Outfits</button>` : ""}
-      ${publicCollections.length ? `<button class="tab" data-vtab="listas">Listas</button>` : ""}
+    <div class="profile-tabs" id="visitorProfileTabs">
+      <button class="profile-tab active" data-vtab="armario">Armario</button>
+      ${foreignOutfits.length ? `<button class="profile-tab" data-vtab="outfits">Outfits</button>` : ""}
+      ${publicCollections.length ? `<button class="profile-tab" data-vtab="colecciones">Colecciones</button>` : ""}
     </div>
 
+    <div id="visitorArmarioTabPane"></div>
+    <div id="visitorOutfitsTabPane" style="display:none;"></div>
+
     ${publicCollections.length ? `
-    <div class="section" style="margin-bottom:0;" id="visitorCollectionsSection">
+    <div class="section" style="margin-bottom:0; display:none;" id="visitorCollectionsSection">
       <div class="section-header">
         <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
         <div class="section-header-text">
@@ -6257,18 +6177,19 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
       }
     });
   }
+  function switchVisitorTab(tab) {
+    document.querySelectorAll("#visitorProfileTabs [data-vtab]").forEach(b => b.classList.toggle("active", b.dataset.vtab === tab));
+    document.getElementById("visitorArmarioTabPane").style.display = tab === "armario" ? "block" : "none";
+    document.getElementById("visitorOutfitsTabPane").style.display = tab === "outfits" ? "block" : "none";
+    const collSection = document.getElementById("visitorCollectionsSection");
+    if (collSection) collSection.style.display = tab === "colecciones" ? "block" : "none";
+    if (tab === "armario") openForeignWardrobe(targetUid, meta, prendas, foreignOutfits);
+    else if (tab === "outfits") openForeignOutfits(meta, foreignOutfits);
+  }
   document.querySelectorAll("#visitorProfileTabs [data-vtab]").forEach(btn => {
-    btn.addEventListener("click", () => {
-      const tab = btn.dataset.vtab;
-      if (tab === "armario") { openForeignWardrobe(targetUid, meta, prendas, foreignOutfits); return; }
-      if (tab === "outfits") { openForeignOutfits(meta, foreignOutfits); return; }
-      // "Listas": de momento lleva hasta las colecciones públicas, que
-      // siguen viviendo dentro del propio perfil visitante.
-      document.querySelectorAll("#visitorProfileTabs [data-vtab]").forEach(b => b.classList.toggle("active", b === btn));
-      const target = document.getElementById("visitorCollectionsSection");
-      if (target) target.scrollIntoView({ behavior: "smooth", block: "start" });
-    });
+    btn.addEventListener("click", () => switchVisitorTab(btn.dataset.vtab));
   });
+  if (canSeeContent) switchVisitorTab("armario");
   document.querySelectorAll("#visitorProfileContent [data-cat-tile]").forEach(tile => {
     tile.addEventListener("click", () => {
       const g = prendas.find(p => p.id === tile.dataset.catTile);
