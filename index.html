@@ -564,7 +564,7 @@
   @media (min-width:640px) { .foreign-gallery-grid { grid-template-columns:repeat(4, 1fr); gap:20px 14px; } }
   @media (min-width:960px) { .foreign-gallery-grid { grid-template-columns:repeat(5, 1fr); } }
   @media (min-width:1300px) { .foreign-gallery-grid { grid-template-columns:repeat(6, 1fr); } }
-  .home-feed-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px 12px; }
+  .home-feed-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px 12px; align-items:start; }
   .home-feed-date-label { font-size:13px; font-weight:700; color:var(--ink); margin:0 0 12px; }
   /* ---- Tarjeta de publicación estilo post (feed / explorar / perfil) ---- */
   .post-card { border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); background:var(--paper); overflow:hidden; display:flex; flex-direction:column; }
@@ -586,7 +586,7 @@
   .post-card-action-btn.post-card-save { margin-left:auto; }
   .post-card-caption { padding:5px 9px 10px; font-size:11px; color:var(--ink); line-height:1.3; }
   .post-card-caption b { font-weight:700; }
-  .post-card-kebab-wrap { position:relative; }
+  .post-card-kebab-wrap { position:static; }
   .post-card-kebab-menu { position:absolute; top:32px; right:6px; background:var(--paper); border:1px solid var(--line-strong); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; z-index:5; min-width:180px; display:none; }
   .post-card-kebab-menu.open { display:block; }
   .post-card-kebab-menu button { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:none; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
@@ -687,6 +687,7 @@
   @media (max-width: 720px) {
     .category-grid { grid-template-columns: repeat(auto-fill, 84px); }
     .category-tile-img { width:84px; height:84px; }
+    .home-feed-grid { grid-template-columns: 1fr; gap:16px; margin: 0 -20px; }
   }
 </style>
 </head>
