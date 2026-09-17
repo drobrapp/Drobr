@@ -462,6 +462,14 @@
     display: none; position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%;
     background: var(--danger); border: 1.5px solid var(--sidebar-bg);
   }
+  .activity-notif-item { display:flex; gap:10px; align-items:flex-start; padding:9px 6px; border-radius:8px; cursor:pointer; }
+  .activity-notif-item:hover { background:var(--bg); }
+  .activity-notif-item.unread { background:rgba(47,72,88,0.07); }
+  .activity-notif-avatar { width:34px; height:34px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:700; color:var(--ink-soft); }
+  .activity-notif-avatar img { width:100%; height:100%; object-fit:cover; }
+  .activity-notif-text { font-size:13px; color:var(--ink); line-height:1.35; margin:0; }
+  .activity-notif-text b { font-weight:700; }
+  .activity-notif-time { font-size:11px; color:var(--ink-soft); margin:2px 0 0; }
   @media (max-width: 720px) and (orientation: portrait) {
     .mobile-topbar { display: flex; }
     .wrap { padding-top: 20px; }
@@ -1571,11 +1579,21 @@
 <div class="modal-backdrop" id="followRequestsBackdrop">
   <div class="modal" style="max-width:380px;">
     <div class="modal-head">
-      <h2 style="font-size:16px;">Solicitudes de seguimiento</h2>
+      <h2 style="font-size:16px;">Notificaciones</h2>
       <button class="modal-close" id="followRequestsClose">✕</button>
     </div>
-    <div id="followRequestsList" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
-    <p id="followRequestsEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">No tienes solicitudes pendientes.</p>
+    <div class="profile-tabs" id="notifTabs" style="margin-bottom:14px;">
+      <button class="profile-tab active" data-ntab="solicitudes">Solicitudes</button>
+      <button class="profile-tab" data-ntab="actividad">Actividad</button>
+    </div>
+    <div id="notifSolicitudesPane">
+      <div id="followRequestsList" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
+      <p id="followRequestsEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">No tienes solicitudes pendientes.</p>
+    </div>
+    <div id="notifActividadPane" style="display:none;">
+      <div id="activityNotifList" style="display:flex; flex-direction:column; gap:4px; max-height:400px; overflow-y:auto;"></div>
+      <p id="activityNotifEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">Todavía no tienes actividad.</p>
+    </div>
   </div>
 </div>
 
@@ -1694,7 +1712,7 @@
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut,
     verifyPasswordResetCode, confirmPasswordReset, EmailAuthProvider, reauthenticateWithCredential, deleteUser
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBnPDPZRPbWWd-6V8idGQVFFtNBImS5tNk",
@@ -1712,7 +1730,7 @@
 
   window.__drobrAuth = auth;
   window.__drobrDb = db;
-  window.__drobrFirestoreFns = { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, serverTimestamp };
+  window.__drobrFirestoreFns = { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, limit, serverTimestamp };
   window.__drobrSignIn = (email, password) => signInWithEmailAndPassword(auth, email, password);
   window.__drobrSignUp = (email, password) => createUserWithEmailAndPassword(auth, email, password);
   window.__drobrSignOut = () => signOut(auth);
@@ -4988,7 +5006,7 @@ document.addEventListener("drobrAuthChecked", (e) => {
 }, { once: true });
 
 document.addEventListener("drobrAuthChecked", (e) => {
-  if (e.detail.user) { watchFollowRequests(e.detail.user.uid); renderHomeFeed(); }
+  if (e.detail.user) { watchFollowRequests(e.detail.user.uid); watchActivityNotifications(e.detail.user.uid); renderHomeFeed(); }
 });
 
 document.getElementById("logoutBtn").addEventListener("click", async () => {
@@ -5897,7 +5915,7 @@ function watchFollowRequests(myUid) {
   }, (err) => console.error("No se pudieron escuchar las solicitudes de seguimiento:", err));
 }
 function updateFollowRequestsBadge() {
-  const hasPending = pendingFollowRequests.length > 0;
+  const hasPending = pendingFollowRequests.length > 0 || unreadActivityCount > 0;
   document.querySelectorAll(".notif-dot").forEach(el => { el.style.display = hasPending ? "block" : "none"; });
 }
 async function renderFollowRequestsPanel() {
@@ -5946,12 +5964,112 @@ async function renderFollowRequestsPanel() {
   });
 }
 function openFollowRequestsPanel() {
+  switchNotifTab("solicitudes");
   renderFollowRequestsPanel();
   document.getElementById("followRequestsBackdrop").classList.add("open");
 }
 function closeFollowRequestsPanel() {
   document.getElementById("followRequestsBackdrop").classList.remove("open");
 }
+
+/* ---------------- Actividad (like / guardado / comentario reales) ---------------- */
+let activityNotifications = [];
+let unreadActivityCount = 0;
+let unsubscribeActivityNotifications = null;
+
+function watchActivityNotifications(myUid) {
+  if (unsubscribeActivityNotifications) unsubscribeActivityNotifications();
+  const { collection, query, orderBy, limit, onSnapshot } = window.__drobrFirestoreFns;
+  const q = query(collection(window.__drobrDb, "armarios", myUid, "notifications"), orderBy("createdAt", "desc"), limit(30));
+  unsubscribeActivityNotifications = onSnapshot(q, (snap) => {
+    activityNotifications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    unreadActivityCount = activityNotifications.filter(n => !n.read).length;
+    updateFollowRequestsBadge();
+    const panelOpen = document.getElementById("followRequestsBackdrop").classList.contains("open");
+    const onActividad = document.getElementById("notifActividadPane").style.display !== "none";
+    if (panelOpen && onActividad) renderActivityPanel();
+  }, (err) => console.error("No se pudo escuchar la actividad:", err));
+}
+
+function activityNotifText(n) {
+  const name = n.fromUsername ? `@${n.fromUsername}` : "Alguien";
+  const cosa = n.postType === "outfit" ? "tu outfit" : "tu prenda";
+  if (n.type === "like") return `<b>${name}</b> le dio like a ${cosa}`;
+  if (n.type === "save") return `<b>${name}</b> guardó ${cosa}`;
+  if (n.type === "comment") return `<b>${name}</b> comentó: “${n.text || ""}”`;
+  return `<b>${name}</b> interactuó con ${cosa}`;
+}
+
+function activityNotifTimeLabel(n) {
+  if (!n.createdAt || typeof n.createdAt.toDate !== "function") return "";
+  const diffMin = Math.round((Date.now() - n.createdAt.toDate().getTime()) / 60000);
+  if (diffMin < 1) return "ahora";
+  if (diffMin < 60) return `hace ${diffMin} min`;
+  const diffH = Math.round(diffMin / 60);
+  if (diffH < 24) return `hace ${diffH} h`;
+  return `hace ${Math.round(diffH / 24)} d`;
+}
+
+function renderActivityPanel() {
+  const list = document.getElementById("activityNotifList");
+  const empty = document.getElementById("activityNotifEmpty");
+  if (!activityNotifications.length) {
+    list.innerHTML = "";
+    empty.style.display = "block";
+    return;
+  }
+  empty.style.display = "none";
+  list.innerHTML = activityNotifications.map(n => {
+    const avatarHTML = n.fromAvatar ? `<img src="${n.fromAvatar}" alt="">` : (n.fromUsername || "?").charAt(0).toUpperCase();
+    return `
+      <div class="activity-notif-item${n.read ? "" : " unread"}" data-notif-id="${n.id}">
+        <div class="activity-notif-avatar">${avatarHTML}</div>
+        <div>
+          <p class="activity-notif-text">${activityNotifText(n)}</p>
+          <p class="activity-notif-time">${activityNotifTimeLabel(n)}</p>
+        </div>
+      </div>`;
+  }).join("");
+  list.querySelectorAll("[data-notif-id]").forEach(row => {
+    row.addEventListener("click", () => {
+      const n = activityNotifications.find(x => x.id === row.dataset.notifId);
+      if (n) openNotificationTarget(n);
+    });
+  });
+}
+
+function openNotificationTarget(n) {
+  closeFollowRequestsPanel();
+  if (n.postType === "outfit") {
+    openOutfitDetail(n.postId);
+  } else {
+    const g = garments.find(x => x.id === n.postId);
+    if (g) openGarmentDetailsModal(g);
+    else showAppToast("Esa prenda ya no existe.");
+  }
+}
+
+async function markActivityAsRead() {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  const unread = activityNotifications.filter(n => !n.read);
+  if (!myUid || !unread.length) return;
+  try {
+    const { writeBatch, doc } = window.__drobrFirestoreFns;
+    const batch = writeBatch(window.__drobrDb);
+    unread.forEach(n => batch.update(doc(window.__drobrDb, "armarios", myUid, "notifications", n.id), { read: true }));
+    await batch.commit();
+  } catch (err) { console.error("No se pudieron marcar como leídas:", err); }
+}
+
+function switchNotifTab(tab) {
+  document.querySelectorAll("#notifTabs [data-ntab]").forEach(b => b.classList.toggle("active", b.dataset.ntab === tab));
+  document.getElementById("notifSolicitudesPane").style.display = tab === "solicitudes" ? "block" : "none";
+  document.getElementById("notifActividadPane").style.display = tab === "actividad" ? "block" : "none";
+  if (tab === "actividad") { renderActivityPanel(); markActivityAsRead(); }
+}
+document.querySelectorAll("#notifTabs [data-ntab]").forEach(btn => {
+  btn.addEventListener("click", () => switchNotifTab(btn.dataset.ntab));
+});
 async function refreshOwnFollowCounts() {
   const user = window.__drobrAuth && window.__drobrAuth.currentUser;
   if (!user) return;
