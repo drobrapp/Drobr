@@ -572,7 +572,7 @@
   .post-card-avatar { width:24px; height:24px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--ink-soft); }
   .post-card-avatar img { width:100%; height:100%; object-fit:cover; }
   .post-card-username { font-size:11.5px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-  .post-card-media { position:relative; width:100%; aspect-ratio:3/4; background:#EFEFEC; cursor:pointer; }
+  .post-card-media { position:relative; width:100%; aspect-ratio:3/4; background:#EFEFEC; cursor:pointer; overflow:hidden; }
   .post-card-media img { width:100%; height:100%; object-fit:cover; display:block; }
   .post-card-kebab { position:absolute; top:6px; right:6px; width:25px; height:25px; border-radius:50%; border:none; background:rgba(255,255,255,0.88); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink); padding:0; }
   .post-card-actions { display:flex; align-items:center; gap:11px; padding:8px 9px 0; }
@@ -591,15 +591,16 @@
   .post-card-kebab-menu.open { display:block; }
   .post-card-kebab-menu button { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:none; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
   .post-card-kebab-menu button:hover { background:var(--bg); }
-  .post-card-comments { border-top:1px solid var(--line); padding:8px 9px 9px; }
-  .post-card-comments-list { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin:0 0 8px; }
+  .post-card-comments { position:absolute; inset:0; background:rgba(255,255,255,0.82); z-index:8; padding:10px; display:flex; flex-direction:column; transform:translateY(100%); opacity:0; pointer-events:none; transition:transform 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.22s ease; }
+  .post-card-comments.open { transform:translateY(0); opacity:1; pointer-events:auto; }
+  .post-card-comments-list { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin:0 0 8px; }
   .post-card-comment-item { display:flex; gap:7px; align-items:flex-start; }
   .post-card-comment-avatar { width:20px; height:20px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--ink-soft); }
   .post-card-comment-avatar img { width:100%; height:100%; object-fit:cover; }
   .post-card-comment-body { font-size:11.5px; line-height:1.35; color:var(--ink); }
   .post-card-comment-username { font-weight:700; margin-right:4px; }
   .post-card-comments-empty { font-size:11.5px; color:var(--ink-soft); margin:0; }
-  .post-card-comment-form { display:flex; gap:6px; }
+  .post-card-comment-form { display:flex; gap:6px; flex-shrink:0; }
   .post-card-comment-input { flex:1; min-width:0; border:1px solid var(--line-strong); border-radius:999px; padding:7px 12px; font-size:11.5px; font-family:inherit; background:var(--bg); color:var(--ink); }
   .post-card-comment-input:focus { outline:none; border-color:var(--accent); }
   .post-card-comment-send { border:none; background:none; color:var(--accent); font-weight:700; font-size:11.5px; cursor:pointer; padding:0 4px; flex-shrink:0; }
@@ -5525,6 +5526,13 @@ function postCardHTML(entry) {
           </button>
           <div class="post-card-kebab-menu">${postCardKebabItemsHTML(type)}</div>
         </div>
+        <div class="post-card-comments" data-role="comments-panel">
+          <div class="post-card-comments-list" data-role="comments-list"></div>
+          <div class="post-card-comment-form">
+            <input type="text" class="post-card-comment-input" data-role="comment-input" placeholder="Escribe un comentario…" maxlength="300">
+            <button type="button" class="post-card-comment-send" data-role="comment-send">Enviar</button>
+          </div>
+        </div>
       </div>
       <div class="post-card-actions">
         <button type="button" class="post-card-action-btn${s.liked ? " liked" : ""}" data-role="like">
@@ -5544,13 +5552,6 @@ function postCardHTML(entry) {
         </button>
       </div>
       <div class="post-card-caption"><b>@${entry.meta.username || ""}</b> ${title}</div>
-      <div class="post-card-comments" data-role="comments-panel" style="display:none;">
-        <div class="post-card-comments-list" data-role="comments-list"></div>
-        <div class="post-card-comment-form">
-          <input type="text" class="post-card-comment-input" data-role="comment-input" placeholder="Escribe un comentario…" maxlength="300">
-          <button type="button" class="post-card-comment-send" data-role="comment-send">Enviar</button>
-        </div>
-      </div>
     </article>`;
 }
 
@@ -5605,6 +5606,17 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
     window.__drobrKebabOutsideClickBound = true;
     document.addEventListener("click", () => {
       document.querySelectorAll(".post-card-kebab-menu.open").forEach(m => m.classList.remove("open"));
+    });
+  }
+  // El panel de comentarios flota sobre lo que haya debajo (no empuja la
+  // tarjeta ni descuadra la rejilla de 2 columnas); por eso se cierra solo al
+  // pulsar fuera, igual que el menú "...".
+  if (!window.__drobrCommentsOutsideClickBound) {
+    window.__drobrCommentsOutsideClickBound = true;
+    document.addEventListener("click", (e) => {
+      document.querySelectorAll(".post-card-comments.open").forEach(p => {
+        if (!p.contains(e.target)) p.classList.remove("open");
+      });
     });
   }
   container.querySelectorAll(".post-card").forEach(card => {
@@ -5695,6 +5707,7 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
       }
     });
     const commentsPanel = card.querySelector('[data-role="comments-panel"]');
+    commentsPanel.addEventListener("click", (e) => e.stopPropagation());
     const commentsList = card.querySelector('[data-role="comments-list"]');
     const commentInput = card.querySelector('[data-role="comment-input"]');
     const commentSendBtn = card.querySelector('[data-role="comment-send"]');
@@ -5713,9 +5726,9 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
     // solo pide los comentarios a Firestore la primera vez que se abre.
     card.querySelector('[data-role="comment"]').addEventListener("click", async (e) => {
       e.stopPropagation();
-      const isOpen = commentsPanel.style.display !== "none";
-      if (isOpen) { commentsPanel.style.display = "none"; return; }
-      commentsPanel.style.display = "block";
+      const isOpen = commentsPanel.classList.contains("open");
+      if (isOpen) { commentsPanel.classList.remove("open"); return; }
+      commentsPanel.classList.add("open");
       if (!commentsLoaded) {
         commentsLoaded = true;
         commentsList.innerHTML = `<p class="post-card-comments-empty">Cargando...</p>`;
