@@ -591,6 +591,19 @@
   .post-card-kebab-menu.open { display:block; }
   .post-card-kebab-menu button { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:none; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
   .post-card-kebab-menu button:hover { background:var(--bg); }
+  .post-card-comments { border-top:1px solid var(--line); padding:8px 9px 9px; }
+  .post-card-comments-list { max-height:220px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin:0 0 8px; }
+  .post-card-comment-item { display:flex; gap:7px; align-items:flex-start; }
+  .post-card-comment-avatar { width:20px; height:20px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--ink-soft); }
+  .post-card-comment-avatar img { width:100%; height:100%; object-fit:cover; }
+  .post-card-comment-body { font-size:11.5px; line-height:1.35; color:var(--ink); }
+  .post-card-comment-username { font-weight:700; margin-right:4px; }
+  .post-card-comments-empty { font-size:11.5px; color:var(--ink-soft); margin:0; }
+  .post-card-comment-form { display:flex; gap:6px; }
+  .post-card-comment-input { flex:1; min-width:0; border:1px solid var(--line-strong); border-radius:999px; padding:7px 12px; font-size:11.5px; font-family:inherit; background:var(--bg); color:var(--ink); }
+  .post-card-comment-input:focus { outline:none; border-color:var(--accent); }
+  .post-card-comment-send { border:none; background:none; color:var(--accent); font-weight:700; font-size:11.5px; cursor:pointer; padding:0 4px; flex-shrink:0; }
+  .post-card-comment-send:disabled { color:var(--ink-soft); cursor:default; }
   .foreign-gallery-item { cursor:pointer; }
   .foreign-gallery-img { width:100%; aspect-ratio:3/4; background:#EFEFEC; overflow:hidden; border-radius:6px; }
   .foreign-gallery-img img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.3s ease; }
@@ -1679,7 +1692,7 @@
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut,
     verifyPasswordResetCode, confirmPasswordReset, EmailAuthProvider, reauthenticateWithCredential, deleteUser
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBnPDPZRPbWWd-6V8idGQVFFtNBImS5tNk",
@@ -1697,7 +1710,7 @@
 
   window.__drobrAuth = auth;
   window.__drobrDb = db;
-  window.__drobrFirestoreFns = { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, serverTimestamp };
+  window.__drobrFirestoreFns = { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, serverTimestamp };
   window.__drobrSignIn = (email, password) => signInWithEmailAndPassword(auth, email, password);
   window.__drobrSignUp = (email, password) => createUserWithEmailAndPassword(auth, email, password);
   window.__drobrSignOut = () => signOut(auth);
@@ -5356,6 +5369,32 @@ async function getCommentCount(ownerUid, postType, postId) {
   return getPostInteractionCount(ownerUid, postType, postId, "comments");
 }
 
+function postCommentsCollectionRef(ownerUid, postType, postId) {
+  const { collection } = window.__drobrFirestoreFns;
+  return collection(window.__drobrDb, "armarios", ownerUid, postSubcollection(postType), postId, "comments");
+}
+
+async function fetchPostComments(ownerUid, postType, postId) {
+  const { getDocs, query, orderBy } = window.__drobrFirestoreFns;
+  const q = query(postCommentsCollectionRef(ownerUid, postType, postId), orderBy("createdAt", "asc"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ id: d.id, ...d.data() }));
+}
+
+// Publica un comentario real (persistido). El dueño se notifica igual que
+// con like/guardado, salvo que sea uno mismo comentando su propio post.
+async function addPostComment(ownerUid, postType, postId, text) {
+  const me = currentUserSocialMeta();
+  const trimmed = (text || "").trim();
+  if (!me.fromUid || !trimmed) return null;
+  const { doc, setDoc, serverTimestamp } = window.__drobrFirestoreFns;
+  const ref = doc(postCommentsCollectionRef(ownerUid, postType, postId));
+  const data = { fromUid: me.fromUid, fromUsername: me.fromUsername, fromAvatar: me.fromAvatar, text: trimmed, createdAt: serverTimestamp() };
+  await setDoc(ref, data);
+  notifyPostOwner(ownerUid, { type: "comment", ...me, postType, postId, text: trimmed });
+  return { id: ref.id, ...data, createdAt: new Date() };
+}
+
 // Notificación al dueño del contenido: nunca a uno mismo. Queda también
 // forzado por las reglas de Firestore (ver INSTRUCCIONES_FIRESTORE_RULES.txt),
 // de modo que aunque se manipule la llamada nadie pueda notificar en nombre
@@ -5504,6 +5543,13 @@ function postCardHTML(entry) {
         </button>
       </div>
       <div class="post-card-caption"><b>@${entry.meta.username || ""}</b> ${title}</div>
+      <div class="post-card-comments" data-role="comments-panel" style="display:none;">
+        <div class="post-card-comments-list" data-role="comments-list"></div>
+        <div class="post-card-comment-form">
+          <input type="text" class="post-card-comment-input" data-role="comment-input" placeholder="Escribe un comentario…" maxlength="300">
+          <button type="button" class="post-card-comment-send" data-role="comment-send">Enviar</button>
+        </div>
+      </div>
     </article>`;
 }
 
@@ -5647,9 +5693,72 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
         saveBtn.disabled = false;
       }
     });
-    card.querySelector('[data-role="comment"]').addEventListener("click", (e) => {
+    const commentsPanel = card.querySelector('[data-role="comments-panel"]');
+    const commentsList = card.querySelector('[data-role="comments-list"]');
+    const commentInput = card.querySelector('[data-role="comment-input"]');
+    const commentSendBtn = card.querySelector('[data-role="comment-send"]');
+    let commentsLoaded = false;
+
+    function commentItemHTML(c) {
+      const name = c.fromUsername || "";
+      return `
+        <div class="post-card-comment-item">
+          <div class="post-card-comment-avatar">${c.fromAvatar ? `<img src="${c.fromAvatar}" alt="">` : (name.charAt(0) || "?").toUpperCase()}</div>
+          <div class="post-card-comment-body"><span class="post-card-comment-username">@${name}</span><span class="post-card-comment-text">${c.text || ""}</span></div>
+        </div>`;
+    }
+
+    // Desplegable cerrado por defecto: se abre/cierra con el propio icono, y
+    // solo pide los comentarios a Firestore la primera vez que se abre.
+    card.querySelector('[data-role="comment"]').addEventListener("click", async (e) => {
       e.stopPropagation();
-      openDetail();
+      const isOpen = commentsPanel.style.display !== "none";
+      if (isOpen) { commentsPanel.style.display = "none"; return; }
+      commentsPanel.style.display = "block";
+      if (!commentsLoaded) {
+        commentsLoaded = true;
+        commentsList.innerHTML = `<p class="post-card-comments-empty">Cargando...</p>`;
+        try {
+          const comments = await fetchPostComments(uid, type, id);
+          commentsList.innerHTML = comments.length
+            ? comments.map(commentItemHTML).join("")
+            : `<p class="post-card-comments-empty">Aún no hay comentarios. ¡Sé el primero!</p>`;
+          commentsList.scrollTop = commentsList.scrollHeight;
+        } catch (err) {
+          console.error(err);
+          commentsList.innerHTML = `<p class="post-card-comments-empty">No se pudieron cargar los comentarios.</p>`;
+          commentsLoaded = false;
+        }
+      }
+    });
+
+    async function submitComment() {
+      const text = commentInput.value.trim();
+      if (!text || commentSendBtn.disabled) return;
+      commentSendBtn.disabled = true;
+      try {
+        const nuevo = await addPostComment(uid, type, id, text);
+        if (nuevo) {
+          if (commentsList.querySelector(".post-card-comments-empty")) commentsList.innerHTML = "";
+          commentsList.insertAdjacentHTML("beforeend", commentItemHTML(nuevo));
+          commentsList.scrollTop = commentsList.scrollHeight;
+          commentInput.value = "";
+          entry.social = entry.social || { commentCount: 0 };
+          entry.social.commentCount = (entry.social.commentCount || 0) + 1;
+          card.querySelector('[data-role="comment-count"]').textContent = entry.social.commentCount;
+        }
+      } catch (err) {
+        console.error(err);
+        showAppToast("No se pudo publicar el comentario.");
+      } finally {
+        commentSendBtn.disabled = false;
+      }
+    }
+    commentSendBtn.addEventListener("click", (e) => { e.stopPropagation(); submitComment(); });
+    commentInput.addEventListener("click", (e) => e.stopPropagation());
+    commentInput.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") { e.preventDefault(); submitComment(); }
+      e.stopPropagation();
     });
     card.querySelector('[data-role="share"]').addEventListener("click", (e) => {
       e.stopPropagation();
