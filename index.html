@@ -564,11 +564,33 @@
   @media (min-width:640px) { .foreign-gallery-grid { grid-template-columns:repeat(4, 1fr); gap:20px 14px; } }
   @media (min-width:960px) { .foreign-gallery-grid { grid-template-columns:repeat(5, 1fr); } }
   @media (min-width:1300px) { .foreign-gallery-grid { grid-template-columns:repeat(6, 1fr); } }
-  .home-feed-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:18px 14px; }
-  .home-feed-owner { display:flex; align-items:center; gap:6px; margin-bottom:2px; }
-  .home-feed-owner-avatar { width:18px; height:18px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:9px; font-weight:700; color:var(--ink-soft); }
-  .home-feed-owner-avatar img { width:100%; height:100%; object-fit:cover; }
+  .home-feed-grid { display:grid; grid-template-columns:repeat(2, 1fr); gap:16px 12px; }
   .home-feed-date-label { font-size:13px; font-weight:700; color:var(--ink); margin:0 0 12px; }
+  /* ---- Tarjeta de publicación estilo post (feed / explorar / perfil) ---- */
+  .post-card { border:1.5px solid var(--line-strong); border-radius:var(--radius-sm); background:var(--paper); overflow:hidden; display:flex; flex-direction:column; }
+  .post-card-header { display:flex; align-items:center; gap:7px; padding:9px 9px; cursor:pointer; }
+  .post-card-avatar { width:24px; height:24px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:10px; font-weight:700; color:var(--ink-soft); }
+  .post-card-avatar img { width:100%; height:100%; object-fit:cover; }
+  .post-card-username { font-size:11.5px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+  .post-card-media { position:relative; width:100%; aspect-ratio:3/4; background:#EFEFEC; cursor:pointer; }
+  .post-card-media img { width:100%; height:100%; object-fit:cover; display:block; }
+  .post-card-kebab { position:absolute; top:6px; right:6px; width:25px; height:25px; border-radius:50%; border:none; background:rgba(255,255,255,0.88); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink); padding:0; }
+  .post-card-actions { display:flex; align-items:center; gap:11px; padding:8px 9px 0; }
+  .post-card-action-btn { display:flex; align-items:center; gap:3px; background:none; border:none; padding:0; cursor:pointer; color:var(--ink); font-family:inherit; -webkit-tap-highlight-color:transparent; }
+  .post-card-action-btn svg { display:block; transition:transform 0.15s ease; }
+  .post-card-action-btn:active svg { transform:scale(0.86); }
+  .post-card-count { font-size:10.5px; font-weight:600; color:var(--ink-soft); }
+  .post-card-action-btn.liked svg { fill:var(--danger); stroke:var(--danger); }
+  .post-card-action-btn.liked .post-card-count { color:var(--danger); }
+  .post-card-action-btn.saved svg { fill:var(--ink); }
+  .post-card-action-btn.post-card-save { margin-left:auto; }
+  .post-card-caption { padding:5px 9px 10px; font-size:11px; color:var(--ink); line-height:1.3; }
+  .post-card-caption b { font-weight:700; }
+  .post-card-kebab-wrap { position:relative; }
+  .post-card-kebab-menu { position:absolute; top:32px; right:6px; background:var(--paper); border:1px solid var(--line-strong); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; z-index:5; min-width:180px; display:none; }
+  .post-card-kebab-menu.open { display:block; }
+  .post-card-kebab-menu button { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:none; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
+  .post-card-kebab-menu button:hover { background:var(--bg); }
   .foreign-gallery-item { cursor:pointer; }
   .foreign-gallery-img { width:100%; aspect-ratio:3/4; background:#EFEFEC; overflow:hidden; border-radius:6px; }
   .foreign-gallery-img img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.3s ease; }
@@ -5302,6 +5324,100 @@ async function getFollowingUids(myUid) {
   return snap.docs.map(d => d.ref.parent.parent.id);
 }
 
+/* ---------------- Likes / Guardados / Notificaciones ----------------
+   Mismo criterio que "followers": el documento vive en la subcolección del
+   DUEÑO del contenido (armarios/{ownerUid}/prendas|outfits/{postId}/likes|saves/{miUid}),
+   con el id del documento = uid de quien da al botón. Así las reglas de
+   Firestore pueden exigir `request.auth.uid == likerUid/saverUid` sin
+   necesitar Cloud Functions ni campos contador que sincronizar a mano.
+   Los recuentos se piden vía getCountFromServer, igual que followers/following. */
+function postSubcollection(postType) { return postType === "outfit" ? "outfits" : "prendas"; }
+
+function postInteractionDocRef(ownerUid, postType, postId, sub, uid) {
+  const { doc } = window.__drobrFirestoreFns;
+  return doc(window.__drobrDb, "armarios", ownerUid, postSubcollection(postType), postId, sub, uid);
+}
+
+async function isPostInteracted(ownerUid, postType, postId, sub, uid) {
+  if (!uid) return false;
+  const { getDoc } = window.__drobrFirestoreFns;
+  const snap = await getDoc(postInteractionDocRef(ownerUid, postType, postId, sub, uid));
+  return snap.exists();
+}
+
+async function getPostInteractionCount(ownerUid, postType, postId, sub) {
+  const { collection, getCountFromServer } = window.__drobrFirestoreFns;
+  const ref = collection(window.__drobrDb, "armarios", ownerUid, postSubcollection(postType), postId, sub);
+  const snap = await getCountFromServer(ref);
+  return snap.data().count;
+}
+
+async function getCommentCount(ownerUid, postType, postId) {
+  return getPostInteractionCount(ownerUid, postType, postId, "comments");
+}
+
+// Notificación al dueño del contenido: nunca a uno mismo. Queda también
+// forzado por las reglas de Firestore (ver INSTRUCCIONES_FIRESTORE_RULES.txt),
+// de modo que aunque se manipule la llamada nadie pueda notificar en nombre
+// de otra persona ni auto-notificarse.
+async function notifyPostOwner(ownerUid, payload) {
+  if (!ownerUid || ownerUid === payload.fromUid) return;
+  try {
+    const { doc, collection, setDoc, serverTimestamp } = window.__drobrFirestoreFns;
+    const ref = doc(collection(window.__drobrDb, "armarios", ownerUid, "notifications"));
+    await setDoc(ref, { ...payload, postOwnerUid: ownerUid, read: false, createdAt: serverTimestamp() });
+  } catch (err) {
+    console.error("No se pudo crear la notificación:", err);
+  }
+}
+
+function currentUserSocialMeta() {
+  const u = window.__drobrAuth.currentUser;
+  return { fromUid: u ? u.uid : null, fromUsername: (profileData && profileData.username) || "", fromAvatar: (profileData && profileData.avatar) || null };
+}
+
+// Alterna like sobre una prenda/outfit ajeno o propio. Devuelve el nuevo estado (true = dado).
+async function togglePostLike(ownerUid, postType, postId) {
+  const me = currentUserSocialMeta();
+  if (!me.fromUid) return false;
+  const { setDoc, deleteDoc, serverTimestamp } = window.__drobrFirestoreFns;
+  const ref = postInteractionDocRef(ownerUid, postType, postId, "likes", me.fromUid);
+  const yaLiked = await isPostInteracted(ownerUid, postType, postId, "likes", me.fromUid);
+  if (yaLiked) {
+    await deleteDoc(ref);
+    return false;
+  }
+  await setDoc(ref, { likerUid: me.fromUid, since: serverTimestamp() });
+  notifyPostOwner(ownerUid, { type: "like", ...me, postType, postId });
+  return true;
+}
+
+// Alterna guardado: además de marcar el "save" (para contador + notificación),
+// mantiene el comportamiento ya existente de copiar la prenda/outfit al propio
+// armario la primera vez que se guarda (saveGarmentToGuardados/saveOutfitToGuardados).
+async function togglePostSave(ownerUid, postType, postId, postData, ownerUsername) {
+  const me = currentUserSocialMeta();
+  if (!me.fromUid) return false;
+  const { setDoc, deleteDoc, serverTimestamp } = window.__drobrFirestoreFns;
+  const ref = postInteractionDocRef(ownerUid, postType, postId, "saves", me.fromUid);
+  const yaGuardado = await isPostInteracted(ownerUid, postType, postId, "saves", me.fromUid);
+  if (yaGuardado) {
+    await deleteDoc(ref);
+    return false;
+  }
+  await setDoc(ref, { saverUid: me.fromUid, since: serverTimestamp() });
+  try {
+    if (postType === "outfit") {
+      if (!postData.thumbCache) await generateAndCacheOutfitThumb(postData);
+      saveOutfitToGuardados({ ...postData, savedFrom: { username: ownerUsername || "" } });
+    } else {
+      saveGarmentToGuardados({ ...postData, savedFrom: { username: ownerUsername || "" } });
+    }
+  } catch (err) { console.error("No se pudo copiar al armario propio:", err); }
+  notifyPostOwner(ownerUid, { type: "save", ...me, postType, postId });
+  return true;
+}
+
 // Agrupa por "Hoy / Ayer / Esta semana / Anteriores" en vez de un río
 // cronológico sin cortes: sensación de contenido curado, no de timeline.
 function homeFeedDateGroupLabel(dateStr) {
@@ -5320,35 +5436,227 @@ function homeFeedOwnerAvatarHTML(meta) {
   return meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
 }
 
-function homeFeedCardHTML(entry) {
-  const o = entry.outfit;
-  const img = o.thumbCache || garmentImageForDisplay(o.top) || "";
+// Fecha comparable para ordenar/agrupar tanto outfits (tienen "date") como
+// prendas (no guardan fecha propia: se extrae del prefijo timestamp del id).
+function homeFeedEntryDate(entry) {
+  if (entry.outfit) return entry.outfit.date;
+  const ts = parseInt((entry.garment.id || "").split("-")[0], 10);
+  return isNaN(ts) ? null : new Date(ts).toISOString();
+}
+
+// Opciones específicas de prenda/outfit que antes vivían sueltas como botones
+// del detalle y ahora se agrupan en el menú "..." de la propia tarjeta,
+// dejando like/comentarios/compartir/guardar como acciones principales.
+function postCardKebabItemsHTML(type) {
+  if (type === "garment") {
+    return `
+      <button type="button" data-kaction="check">Comprobar combinaciones</button>
+      <button type="button" data-kaction="outfits">Sus outfits con esta prenda</button>`;
+  }
+  return `<button type="button" data-kaction="recreate">Recrear con mi armario</button>`;
+}
+
+// Tarjeta de publicación estilo post (avatar+usuario arriba, foto, iconos de
+// acción debajo, contadores reales de like/guardado/comentarios). Se usa en
+// el feed y está pensada para reutilizarse tal cual en Explorar y en Perfil.
+function postCardHTML(entry) {
+  const type = entry.outfit ? "outfit" : "garment";
+  const id = type === "outfit" ? entry.outfit.id : entry.garment.id;
+  const img = type === "outfit" ? (entry.outfit.thumbCache || garmentImageForDisplay(entry.outfit.top) || "") : (entry.garment.image || "");
+  let title;
+  if (type === "outfit") {
+    title = entry.outfit.name || "Outfit sin nombre";
+  } else {
+    const cat = CATEGORIES.find(c => c.id === entry.garment.category);
+    title = entry.garment.name ? entry.garment.name.charAt(0).toUpperCase() + entry.garment.name.slice(1) : (cat ? cat.label : foreignCategoryLabel(entry.garment.category, entry.meta));
+  }
+  const s = entry.social || { liked: false, saved: false, likeCount: 0, saveCount: 0, commentCount: 0 };
   return `
-    <div class="foreign-gallery-item" data-feed-id="${o.id}" data-feed-uid="${entry.uid}">
-      <div class="foreign-gallery-img">${img ? `<img src="${img}" alt="" loading="lazy">` : ""}</div>
-      <div class="foreign-gallery-caption">
-        <div class="home-feed-owner">
-          <div class="home-feed-owner-avatar">${homeFeedOwnerAvatarHTML(entry.meta)}</div>
-          <span class="foreign-gallery-sub">@${entry.meta.username || ""}</span>
+    <article class="post-card" data-feed-type="${type}" data-feed-id="${id}" data-feed-uid="${entry.uid}">
+      <header class="post-card-header" data-role="open-profile">
+        <div class="post-card-avatar">${homeFeedOwnerAvatarHTML(entry.meta)}</div>
+        <span class="post-card-username">@${entry.meta.username || ""}</span>
+      </header>
+      <div class="post-card-media" data-role="open-detail">
+        ${img ? `<img src="${img}" alt="" loading="lazy">` : ""}
+        <div class="post-card-kebab-wrap">
+          <button type="button" class="post-card-kebab" data-role="kebab" title="Más opciones">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
+          </button>
+          <div class="post-card-kebab-menu">${postCardKebabItemsHTML(type)}</div>
         </div>
-        <p class="foreign-gallery-title">${o.name || "Outfit sin nombre"}</p>
       </div>
-    </div>`;
+      <div class="post-card-actions">
+        <button type="button" class="post-card-action-btn${s.liked ? " liked" : ""}" data-role="like">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="${s.liked ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M20.8 4.6a5.5 5.5 0 0 0-7.8 0L12 5.6l-1-1a5.5 5.5 0 0 0-7.8 7.8l1 1L12 21l7.8-7.8 1-1a5.5 5.5 0 0 0 0-7.8z"/></svg>
+          <span class="post-card-count" data-role="like-count">${s.likeCount}</span>
+        </button>
+        <button type="button" class="post-card-action-btn" data-role="comment">
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5c-1.35 0-2.62-.34-3.73-.94L3 21l1.94-5.77A8.38 8.38 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg>
+          <span class="post-card-count" data-role="comment-count">${s.commentCount}</span>
+        </button>
+        <button type="button" class="post-card-action-btn" data-role="share">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
+        </button>
+        <button type="button" class="post-card-action-btn post-card-save${s.saved ? " saved" : ""}" data-role="save">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="${s.saved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <span class="post-card-count" data-role="save-count">${s.saveCount}</span>
+        </button>
+      </div>
+      <div class="post-card-caption"><b>@${entry.meta.username || ""}</b> ${title}</div>
+    </article>`;
+}
+
+function homeFeedEntryCardHTML(entry) {
+  return postCardHTML(entry);
 }
 
 function renderHomeFeedGroupsHTML(entries) {
   const order = ["Hoy", "Ayer", "Esta semana", "Anteriores"];
   const groups = new Map();
   entries.forEach(e => {
-    const label = homeFeedDateGroupLabel(e.outfit.date);
+    const label = homeFeedDateGroupLabel(homeFeedEntryDate(e));
     if (!groups.has(label)) groups.set(label, []);
     groups.get(label).push(e);
   });
   return order.filter(l => groups.has(l)).map(label => `
     <div style="margin-bottom:24px;">
       <p class="home-feed-date-label">${label}</p>
-      <div class="home-feed-grid">${groups.get(label).map(homeFeedCardHTML).join("")}</div>
+      <div class="home-feed-grid">${groups.get(label).map(homeFeedEntryCardHTML).join("")}</div>
     </div>`).join("");
+}
+
+// Rellena entry.social (liked/saved/likeCount/saveCount/commentCount) para
+// cada entrada antes de pintarla. Nota: esto hace ~5 lecturas por tarjeta
+// (2 getDoc + 3 getCountFromServer); para un feed grande a futuro convendría
+// mover los contadores a Cloud Functions, pero no hay backend propio todavía.
+async function attachPostSocialMeta(entries) {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  await Promise.all(entries.map(async (entry) => {
+    const type = entry.outfit ? "outfit" : "garment";
+    const id = type === "outfit" ? entry.outfit.id : entry.garment.id;
+    try {
+      const [liked, saved, likeCount, saveCount, commentCount] = await Promise.all([
+        isPostInteracted(entry.uid, type, id, "likes", myUid),
+        isPostInteracted(entry.uid, type, id, "saves", myUid),
+        getPostInteractionCount(entry.uid, type, id, "likes"),
+        getPostInteractionCount(entry.uid, type, id, "saves"),
+        getCommentCount(entry.uid, type, id),
+      ]);
+      entry.social = { liked, saved, likeCount, saveCount, commentCount };
+    } catch (err) {
+      console.error("No se pudo cargar la interacción de un post:", err);
+      entry.social = { liked: false, saved: false, likeCount: 0, saveCount: 0, commentCount: 0 };
+    }
+  }));
+}
+
+// Conecta cabecera/foto/menú "..."/acciones de cada .post-card ya pintada
+// dentro de container, buscando su entrada en outfitEntries/garmentEntries.
+function wirePostCards(container, outfitEntries, garmentEntries) {
+  if (!window.__drobrKebabOutsideClickBound) {
+    window.__drobrKebabOutsideClickBound = true;
+    document.addEventListener("click", () => {
+      document.querySelectorAll(".post-card-kebab-menu.open").forEach(m => m.classList.remove("open"));
+    });
+  }
+  container.querySelectorAll(".post-card").forEach(card => {
+    const type = card.dataset.feedType;
+    const id = card.dataset.feedId;
+    const uid = card.dataset.feedUid;
+    const entry = type === "outfit"
+      ? outfitEntries.find(e => e.outfit.id === id && e.uid === uid)
+      : garmentEntries.find(e => e.garment.id === id && e.uid === uid);
+    if (!entry) return;
+    const openDetail = () => {
+      if (type === "outfit") openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
+      else openForeignGarmentDetail(entry.garment, entry.meta, entry.outfitsArr);
+    };
+    card.querySelector('[data-role="open-detail"]').addEventListener("click", openDetail);
+    card.querySelector('[data-role="open-profile"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+      if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
+    });
+    const kebabBtn = card.querySelector('[data-role="kebab"]');
+    const kebabMenu = card.querySelector(".post-card-kebab-menu");
+    kebabBtn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      const wasOpen = kebabMenu.classList.contains("open");
+      document.querySelectorAll(".post-card-kebab-menu.open").forEach(m => m.classList.remove("open"));
+      kebabMenu.classList.toggle("open", !wasOpen);
+    });
+    kebabMenu.querySelectorAll("[data-kaction]").forEach(item => {
+      item.addEventListener("click", (e) => {
+        e.stopPropagation();
+        kebabMenu.classList.remove("open");
+        const action = item.dataset.kaction;
+        if (type === "garment") {
+          openForeignGarmentDetail(entry.garment, entry.meta, entry.outfitsArr);
+          setTimeout(() => {
+            if (action === "check") document.getElementById("foreignGarmentCheckBtn")?.click();
+            if (action === "outfits") document.getElementById("foreignGarmentOutfitsBtn")?.click();
+          }, 0);
+        } else {
+          openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
+          setTimeout(() => {
+            if (action === "recreate") document.getElementById("foreignOutfitRecreateBtn")?.click();
+          }, 0);
+        }
+      });
+    });
+    const likeBtn = card.querySelector('[data-role="like"]');
+    likeBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (likeBtn.disabled) return;
+      likeBtn.disabled = true;
+      try {
+        const nowLiked = await togglePostLike(uid, type, id);
+        entry.social = entry.social || { likeCount: 0 };
+        entry.social.liked = nowLiked;
+        entry.social.likeCount = Math.max(0, (entry.social.likeCount || 0) + (nowLiked ? 1 : -1));
+        likeBtn.classList.toggle("liked", nowLiked);
+        likeBtn.querySelector("svg").setAttribute("fill", nowLiked ? "currentColor" : "none");
+        likeBtn.querySelector('[data-role="like-count"]').textContent = entry.social.likeCount;
+      } catch (err) {
+        console.error(err);
+        showAppToast("No se pudo dar like.");
+      } finally {
+        likeBtn.disabled = false;
+      }
+    });
+    const saveBtn = card.querySelector('[data-role="save"]');
+    saveBtn.addEventListener("click", async (e) => {
+      e.stopPropagation();
+      if (saveBtn.disabled) return;
+      saveBtn.disabled = true;
+      try {
+        const postData = type === "outfit" ? entry.outfit : entry.garment;
+        const nowSaved = await togglePostSave(uid, type, id, postData, entry.meta.username);
+        entry.social = entry.social || { saveCount: 0 };
+        entry.social.saved = nowSaved;
+        entry.social.saveCount = Math.max(0, (entry.social.saveCount || 0) + (nowSaved ? 1 : -1));
+        saveBtn.classList.toggle("saved", nowSaved);
+        saveBtn.querySelector("svg").setAttribute("fill", nowSaved ? "currentColor" : "none");
+        saveBtn.querySelector('[data-role="save-count"]').textContent = entry.social.saveCount;
+        if (nowSaved) showAppToast(type === "outfit" ? "Outfit guardado." : "Prenda guardada.");
+      } catch (err) {
+        console.error(err);
+        showAppToast("No se pudo guardar.");
+      } finally {
+        saveBtn.disabled = false;
+      }
+    });
+    card.querySelector('[data-role="comment"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      openDetail();
+    });
+    card.querySelector('[data-role="share"]').addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (type === "outfit") shareOutfitAsImage(entry.outfit.top, entry.outfit.bottom, entry.outfit.shoes, entry.outfit.name, e.currentTarget, entryAccessories(entry.outfit));
+      else shareGarmentAsImage(entry.garment, e.currentTarget);
+    });
+  });
 }
 
 function homeFeedEmptyHTML(kind) {
@@ -5357,7 +5665,7 @@ function homeFeedEmptyHTML(kind) {
       <div class="empty">
         <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--line-strong)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
         <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Todavía no sigues a nadie</p>
-        <p class="sub" style="margin:0 auto 16px; text-align:center;">En cuanto sigas a otras personas, sus outfits irán apareciendo aquí.</p>
+        <p class="sub" style="margin:0 auto 16px; text-align:center;">En cuanto sigas a otras personas, sus prendas y outfits irán apareciendo aquí.</p>
         <button class="btn btn-outline" id="homeFeedSearchBtn" style="margin:0 auto;">
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
           Buscar personas
@@ -5367,11 +5675,14 @@ function homeFeedEmptyHTML(kind) {
   return `
     <div class="empty">
       <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Nada nuevo por aquí todavía</p>
-      <p class="sub" style="margin:0 auto; text-align:center;">Las personas que sigues aún no han creado ningún outfit.</p>
+      <p class="sub" style="margin:0 auto; text-align:center;">Las personas que sigues aún no han subido ninguna prenda ni outfit.</p>
     </div>`;
 }
 
-let homeFeedEntriesCache = [];
+let homeFeedOutfitEntries = [];
+let homeFeedGarmentEntries = [];
+let homeFeedActiveTab = "todo";
+
 async function renderHomeFeed() {
   const container = document.getElementById("homeFeedContent");
   if (!container) return;
@@ -5379,40 +5690,71 @@ async function renderHomeFeed() {
   if (!myUid) return;
   container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p>`;
   try {
-    const uids = await getFollowingUids(myUid);
-    if (!uids.length) {
-      container.innerHTML = homeFeedEmptyHTML("no-follows");
+    // El feed incluye tanto a la gente que sigo como mis propias publicaciones.
+    const followingUids = await getFollowingUids(myUid);
+    const uids = Array.from(new Set([myUid, ...followingUids]));
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const outfitEntries = [];
+    const garmentEntries = [];
+    await Promise.all(uids.map(async (uid) => {
+      const [metaSnap, outfitsArr, prendasArr] = await Promise.all([
+        uid === myUid ? null : getDoc(doc(window.__drobrDb, "armarios", uid)),
+        leerColeccion(uid, "outfits"),
+        leerColeccion(uid, "prendas"),
+      ]);
+      const meta = uid === myUid ? profileData : (metaSnap && metaSnap.exists() ? metaSnap.data() : {});
+      outfitsArr.forEach(o => outfitEntries.push({ outfit: o, meta, uid, outfitsArr }));
+      prendasArr.forEach(g => garmentEntries.push({ garment: g, meta, uid, outfitsArr }));
+    }));
+    if (!outfitEntries.length && !garmentEntries.length) {
+      homeFeedOutfitEntries = [];
+      homeFeedGarmentEntries = [];
+      container.innerHTML = homeFeedEmptyHTML(followingUids.length ? "no-posts" : "no-follows");
       const btn = document.getElementById("homeFeedSearchBtn");
       if (btn) btn.addEventListener("click", openUserSearchModal);
       return;
     }
-    const { doc, getDoc } = window.__drobrFirestoreFns;
-    const entries = [];
-    await Promise.all(uids.map(async (uid) => {
-      const [metaSnap, outfitsArr] = await Promise.all([
-        getDoc(doc(window.__drobrDb, "armarios", uid)),
-        leerColeccion(uid, "outfits"),
-      ]);
-      const meta = metaSnap.exists() ? metaSnap.data() : {};
-      outfitsArr.forEach(o => entries.push({ outfit: o, meta, uid, outfitsArr }));
-    }));
-    if (!entries.length) {
-      container.innerHTML = homeFeedEmptyHTML("no-posts");
-      return;
-    }
-    entries.sort((a, b) => new Date(b.outfit.date || 0) - new Date(a.outfit.date || 0));
-    homeFeedEntriesCache = entries;
-    container.innerHTML = renderHomeFeedGroupsHTML(entries);
-    container.querySelectorAll("[data-feed-id]").forEach(card => {
-      card.addEventListener("click", () => {
-        const entry = homeFeedEntriesCache.find(e => e.outfit.id === card.dataset.feedId && e.uid === card.dataset.feedUid);
-        if (entry) openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
-      });
+    await attachPostSocialMeta([...outfitEntries, ...garmentEntries]);
+    homeFeedOutfitEntries = outfitEntries;
+    homeFeedGarmentEntries = garmentEntries;
+    container.innerHTML = `
+      <div class="profile-tabs" id="homeFeedTabs">
+        <button class="profile-tab active" data-hftab="todo">Todo</button>
+        <button class="profile-tab" data-hftab="prendas">Prendas</button>
+        <button class="profile-tab" data-hftab="outfits">Outfits</button>
+      </div>
+      <div id="homeFeedGroupsPane"></div>`;
+    document.querySelectorAll("#homeFeedTabs [data-hftab]").forEach(btn => {
+      btn.addEventListener("click", () => switchHomeFeedTab(btn.dataset.hftab));
     });
+    homeFeedActiveTab = "todo";
+    renderHomeFeedActiveTab();
   } catch (err) {
     console.error(err);
     container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">No se pudo cargar el inicio.</p>`;
   }
+}
+
+function switchHomeFeedTab(tab) {
+  homeFeedActiveTab = tab;
+  document.querySelectorAll("#homeFeedTabs [data-hftab]").forEach(b => b.classList.toggle("active", b.dataset.hftab === tab));
+  renderHomeFeedActiveTab();
+}
+
+function renderHomeFeedActiveTab() {
+  const pane = document.getElementById("homeFeedGroupsPane");
+  if (!pane) return;
+  let list;
+  if (homeFeedActiveTab === "prendas") list = homeFeedGarmentEntries.slice();
+  else if (homeFeedActiveTab === "outfits") list = homeFeedOutfitEntries.slice();
+  else list = [...homeFeedOutfitEntries, ...homeFeedGarmentEntries];
+  list.sort((a, b) => new Date(homeFeedEntryDate(b) || 0) - new Date(homeFeedEntryDate(a) || 0));
+  if (!list.length) {
+    pane.innerHTML = `<p class="sub" style="text-align:center; padding:24px 0;">Nada que mostrar en esta pestaña todavía.</p>`;
+    return;
+  }
+  pane.innerHTML = renderHomeFeedGroupsHTML(list);
+  wirePostCards(pane, homeFeedOutfitEntries, homeFeedGarmentEntries);
 }
 
 // Escucha en tiempo real las solicitudes pendientes propias, para el punto rojo
@@ -5499,7 +5841,7 @@ async function refreshOwnFollowCounts() {
 // Muestra una de las pantallas "ajenas" (perfil / armario / outfits de solo
 // lectura) y oculta el resto de vistas principales de la app.
 function showForeignSubView(id) {
-  ["viewWardrobe", "viewShop", "viewProfile", "viewSettings", ...FOREIGN_SUBVIEWS].forEach(v => {
+  ["viewHome", "viewWardrobe", "viewShop", "viewProfile", "viewSettings", ...FOREIGN_SUBVIEWS].forEach(v => {
     document.getElementById(v).style.display = v === id ? "block" : "none";
   });
   document.getElementById("topbarSettingsBtn").style.display = "none";
