@@ -608,11 +608,12 @@
   .post-card-comment-body { font-size:11.5px; line-height:1.35; color:var(--ink); }
   .post-card-comment-username { font-weight:700; margin-right:4px; }
   .post-card-comments-empty { font-size:11.5px; color:var(--ink-soft); margin:0; }
-  .post-card-comment-form { display:flex; gap:6px; flex-shrink:0; }
-  .post-card-comment-input { flex:1; min-width:0; border:1px solid var(--line-strong); border-radius:999px; padding:7px 12px; font-size:11.5px; font-family:inherit; background:var(--bg); color:var(--ink); }
+  .post-card-comment-form { display:flex; gap:6px; flex-shrink:0; position:relative; align-items:center; }
+  .post-card-comment-input { flex:1; min-width:0; border:1px solid var(--line-strong); border-radius:999px; padding:7px 34px 7px 12px; font-size:11.5px; font-family:inherit; background:var(--bg); color:var(--ink); }
   .post-card-comment-input:focus { outline:none; border-color:var(--accent); }
-  .post-card-comment-send { border:none; background:none; color:var(--accent); font-weight:700; font-size:11.5px; cursor:pointer; padding:0 4px; flex-shrink:0; }
-  .post-card-comment-send:disabled { color:var(--ink-soft); cursor:default; }
+  .post-card-comment-send { position:absolute; right:3px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:50%; background:var(--ink); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; flex-shrink:0; }
+  .post-card-comment-send svg { width:12px; height:12px; }
+  .post-card-comment-send:disabled { background:var(--line-strong); cursor:default; }
   .post-card-comment-thread { margin-bottom:2px; }
   .post-card-comment-item.is-reply { margin-left:26px; margin-top:6px; }
   .post-card-comment-item.is-highlighted { background:rgba(47,72,88,0.08); border-radius:8px; padding:5px 6px; margin-left:-6px; margin-right:-6px; }
@@ -5544,11 +5545,12 @@ function renderCommentsThreaded(comments, focusRootId, focusCommentId) {
     const replies = repliesByParent.get(root.id) || [];
     const expand = !!(focusRootId && focusRootId === root.id);
     const repliesHTML = replies.map(r => commentItemHTML(r, { reply: true, showReplyBtn: false, highlight: focusCommentId === r.id })).join("");
+    const verLabel = `Ver ${replies.length} respuesta${replies.length === 1 ? "" : "s"}`;
     return `
       <div class="post-card-comment-thread" data-thread-root="${root.id}">
         ${commentItemHTML(root, { highlight: focusCommentId === root.id })}
         ${replies.length ? `
-        <button type="button" class="post-card-comment-toggle-replies" data-toggle-replies="${root.id}" style="display:${expand ? "none" : "block"};">Ver ${replies.length} respuesta${replies.length === 1 ? "" : "s"}</button>
+        <button type="button" class="post-card-comment-toggle-replies" data-toggle-replies="${root.id}" data-ver-label="${verLabel}">${expand ? "Ocultar respuestas" : verLabel}</button>
         <div class="post-card-comment-replies" data-replies-for="${root.id}" style="display:${expand ? "block" : "none"};">${repliesHTML}</div>` : ""}
       </div>`;
   }).join("");
@@ -5561,7 +5563,9 @@ function ownDetailCommentsSectionHTML() {
       <div class="post-card-comments-list" data-role="own-comments-list" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
       <div class="post-card-comment-form">
         <input type="text" class="post-card-comment-input" data-role="own-comment-input" placeholder="Escribe un comentario…" maxlength="300">
-        <button type="button" class="post-card-comment-send" data-role="own-comment-send">Enviar</button>
+        <button type="button" class="post-card-comment-send" data-role="own-comment-send" title="Enviar">
+          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+        </button>
       </div>
     </div>`;
 }
@@ -5723,7 +5727,9 @@ function postCardHTML(entry, isOwn) {
           <div class="post-card-reply-banner" data-role="reply-banner" style="display:none;"></div>
           <div class="post-card-comment-form">
             <input type="text" class="post-card-comment-input" data-role="comment-input" placeholder="Escribe un comentario…" maxlength="300">
-            <button type="button" class="post-card-comment-send" data-role="comment-send">Enviar</button>
+            <button type="button" class="post-card-comment-send" data-role="comment-send" title="Enviar">
+              <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+            </button>
           </div>
         </div>
       </div>
@@ -5992,7 +5998,7 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
           if (!repliesEl) return;
           const nowOpen = repliesEl.style.display !== "block";
           repliesEl.style.display = nowOpen ? "block" : "none";
-          btn.style.display = nowOpen ? "none" : "block";
+          btn.textContent = nowOpen ? "Ocultar respuestas" : btn.dataset.verLabel;
         });
       });
       commentsList.querySelectorAll(".post-card-mention").forEach(el => {
