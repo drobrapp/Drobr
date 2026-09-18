@@ -613,6 +613,15 @@
   .post-card-comment-input:focus { outline:none; border-color:var(--accent); }
   .post-card-comment-send { border:none; background:none; color:var(--accent); font-weight:700; font-size:11.5px; cursor:pointer; padding:0 4px; flex-shrink:0; }
   .post-card-comment-send:disabled { color:var(--ink-soft); cursor:default; }
+  .post-card-comment-thread { margin-bottom:2px; }
+  .post-card-comment-item.is-reply { margin-left:26px; margin-top:6px; }
+  .post-card-comment-item.is-highlighted { background:rgba(47,72,88,0.08); border-radius:8px; padding:5px 6px; margin-left:-6px; margin-right:-6px; }
+  .post-card-comment-item.is-reply.is-highlighted { margin-left:20px; }
+  .post-card-comment-reply-btn { display:block; background:none; border:none; padding:0; margin-top:2px; font-size:10.5px; font-weight:700; color:var(--ink-soft); cursor:pointer; }
+  .post-card-comment-toggle-replies { display:block; background:none; border:none; padding:0; margin:4px 0 0 26px; font-size:11px; font-weight:700; color:var(--accent); cursor:pointer; }
+  .post-card-mention { color:var(--accent); font-weight:600; cursor:pointer; }
+  .post-card-reply-banner { display:flex; align-items:center; justify-content:space-between; gap:8px; background:var(--bg); border-radius:8px; padding:5px 8px; margin:0 0 6px; font-size:11px; color:var(--ink-soft); flex-shrink:0; }
+  .post-card-reply-banner button { background:none; border:none; color:var(--ink-soft); cursor:pointer; font-size:14px; padding:0; line-height:1; }
   .foreign-gallery-item { cursor:pointer; }
   .foreign-gallery-img { width:100%; aspect-ratio:3/4; background:#EFEFEC; overflow:hidden; border-radius:6px; }
   .foreign-gallery-img img { width:100%; height:100%; object-fit:cover; display:block; transition:transform 0.3s ease; }
@@ -5410,17 +5419,57 @@ async function fetchPostComments(ownerUid, postType, postId) {
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
-// Publica un comentario real (persistido). El dueño se notifica igual que
-// con like/guardado, salvo que sea uno mismo comentando su propio post.
-async function addPostComment(ownerUid, postType, postId, text) {
+// Extrae los @usuario mencionados en un texto (sin duplicados, en minúsculas
+// para que coincida con cómo se guardan los usernames).
+function extractMentionedUsernames(text) {
+  const matches = (text || "").match(/@([a-zA-Z0-9._]+)/g) || [];
+  return [...new Set(matches.map(m => m.slice(1).toLowerCase()))];
+}
+
+// Notifica a cada persona mencionada en un comentario (salvo a uno mismo).
+// postOwnerUid es explícito porque quién se menciona y de quién es la
+// publicación pueden ser personas distintas.
+async function notifyMentionedUsers(text, ctx) {
+  const usernames = extractMentionedUsernames(text);
+  if (!usernames.length) return;
+  const { doc, getDoc } = window.__drobrFirestoreFns;
+  const me = currentUserSocialMeta();
+  await Promise.all(usernames.map(async (uname) => {
+    try {
+      const usnap = await getDoc(doc(window.__drobrDb, "usernames", uname));
+      if (!usnap.exists()) return;
+      const targetUid = usnap.data().uid;
+      if (!targetUid || targetUid === me.fromUid) return;
+      await notifyPostOwner(targetUid, { type: "mention", ...me, postType: ctx.postType, postId: ctx.postId, postOwnerUid: ctx.postOwnerUid, commentId: ctx.commentId, parentId: ctx.parentId || null, text });
+    } catch (err) { console.error("No se pudo notificar una mención:", err); }
+  }));
+}
+
+// Publica un comentario real (persistido), opcionalmente como respuesta a
+// otro (parentId). Notifica, por este orden: al dueño de la publicación
+// ("comment"), a quien escribió el comentario padre si es una respuesta y no
+// es la misma persona ("reply"), y a cada @mencionado ("mention") — sin
+// duplicar si coinciden (p.ej. respondes al dueño del propio post).
+async function addPostComment(ownerUid, postType, postId, text, parentId) {
   const me = currentUserSocialMeta();
   const trimmed = (text || "").trim();
   if (!me.fromUid || !trimmed) return null;
-  const { doc, setDoc, serverTimestamp } = window.__drobrFirestoreFns;
+  const { doc, setDoc, getDoc, serverTimestamp } = window.__drobrFirestoreFns;
+  let parentAuthorUid = null;
+  if (parentId) {
+    try {
+      const parentSnap = await getDoc(doc(postCommentsCollectionRef(ownerUid, postType, postId), parentId));
+      if (parentSnap.exists()) parentAuthorUid = parentSnap.data().fromUid || null;
+    } catch (err) { console.error(err); }
+  }
   const ref = doc(postCommentsCollectionRef(ownerUid, postType, postId));
-  const data = { fromUid: me.fromUid, fromUsername: me.fromUsername, fromAvatar: me.fromAvatar, text: trimmed, createdAt: serverTimestamp() };
+  const data = { fromUid: me.fromUid, fromUsername: me.fromUsername, fromAvatar: me.fromAvatar, text: trimmed, parentId: parentId || null, createdAt: serverTimestamp() };
   await setDoc(ref, data);
-  notifyPostOwner(ownerUid, { type: "comment", ...me, postType, postId, text: trimmed });
+  notifyPostOwner(ownerUid, { type: "comment", ...me, postType, postId, postOwnerUid: ownerUid, commentId: ref.id, text: trimmed });
+  if (parentAuthorUid && parentAuthorUid !== ownerUid) {
+    notifyPostOwner(parentAuthorUid, { type: "reply", ...me, postType, postId, postOwnerUid: ownerUid, commentId: ref.id, parentId, text: trimmed });
+  }
+  notifyMentionedUsers(trimmed, { postType, postId, postOwnerUid: ownerUid, commentId: ref.id, parentId });
   return { id: ref.id, ...data, createdAt: new Date() };
 }
 
@@ -5444,15 +5493,65 @@ function currentUserSocialMeta() {
   return { fromUid: u ? u.uid : null, fromUsername: (profileData && profileData.username) || "", fromAvatar: (profileData && profileData.avatar) || null };
 }
 
+// Convierte @menciones dentro de un comentario en spans pulsables (sin
+// verificar aquí si el usuario existe de verdad; eso se resuelve al pulsar).
+function linkifyMentions(text) {
+  return (text || "").replace(/@([a-zA-Z0-9._]+)/g, (m, uname) => `<span class="post-card-mention" data-mention-username="${uname}">@${uname}</span>`);
+}
+
 // Reutilizable tanto por las tarjetas del feed como por el detalle de tu
 // propio contenido (mismo componente visual, misma fuente de datos).
-function commentItemHTML(c) {
+// opts.reply indenta como respuesta; opts.highlight resalta (al llegar desde
+// una notificación de respuesta/mención); opts.showReplyBtn añade "Responder".
+function commentItemHTML(c, opts) {
+  opts = opts || {};
   const name = c.fromUsername || "";
+  const classes = "post-card-comment-item" + (opts.reply ? " is-reply" : "") + (opts.highlight ? " is-highlighted" : "");
   return `
-    <div class="post-card-comment-item">
+    <div class="${classes}" data-comment-id="${c.id || ""}">
       <div class="post-card-comment-avatar">${c.fromAvatar ? `<img src="${c.fromAvatar}" alt="">` : (name.charAt(0) || "?").toUpperCase()}</div>
-      <div class="post-card-comment-body"><span class="post-card-comment-username">@${name}</span><span class="post-card-comment-text">${c.text || ""}</span></div>
+      <div class="post-card-comment-body">
+        <div><span class="post-card-comment-username">@${name}</span><span class="post-card-comment-text">${linkifyMentions(c.text)}</span></div>
+        ${opts.showReplyBtn === false ? "" : `<button type="button" class="post-card-comment-reply-btn" data-reply-to="${c.id}" data-reply-username="${name}">Responder</button>`}
+      </div>
     </div>`;
+}
+
+// Agrupa comentarios en raíz + respuestas (hilos a un solo nivel, como IG:
+// respondes al comentario "padre", no a otra respuesta).
+function groupComments(comments) {
+  const roots = [];
+  const repliesByParent = new Map();
+  comments.forEach(c => {
+    if (c.parentId) {
+      if (!repliesByParent.has(c.parentId)) repliesByParent.set(c.parentId, []);
+      repliesByParent.get(c.parentId).push(c);
+    } else {
+      roots.push(c);
+    }
+  });
+  return { roots, repliesByParent };
+}
+
+// Pinta los hilos SIN expandir por defecto (no invasivo): cada raíz con
+// respuestas muestra un "Ver X respuestas" que las despliega bajo pedido.
+// focusRootId/focusCommentId (al llegar desde una notificación) fuerzan que
+// ese hilo en concreto ya aparezca expandido y resaltado, sin tocar los demás.
+function renderCommentsThreaded(comments, focusRootId, focusCommentId) {
+  const { roots, repliesByParent } = groupComments(comments);
+  if (!roots.length) return `<p class="post-card-comments-empty">Aún no hay comentarios. ¡Sé el primero!</p>`;
+  return roots.map(root => {
+    const replies = repliesByParent.get(root.id) || [];
+    const expand = !!(focusRootId && focusRootId === root.id);
+    const repliesHTML = replies.map(r => commentItemHTML(r, { reply: true, showReplyBtn: false, highlight: focusCommentId === r.id })).join("");
+    return `
+      <div class="post-card-comment-thread" data-thread-root="${root.id}">
+        ${commentItemHTML(root, { highlight: focusCommentId === root.id })}
+        ${replies.length ? `
+        <button type="button" class="post-card-comment-toggle-replies" data-toggle-replies="${root.id}" style="display:${expand ? "none" : "block"};">Ver ${replies.length} respuesta${replies.length === 1 ? "" : "s"}</button>
+        <div class="post-card-comment-replies" data-replies-for="${root.id}" style="display:${expand ? "block" : "none"};">${repliesHTML}</div>` : ""}
+      </div>`;
+  }).join("");
 }
 
 function ownDetailCommentsSectionHTML() {
@@ -5577,13 +5676,17 @@ function homeFeedEntryDate(entry) {
 // Opciones específicas de prenda/outfit que antes vivían sueltas como botones
 // del detalle y ahora se agrupan en el menú "..." de la propia tarjeta,
 // dejando like/comentarios/compartir/guardar como acciones principales.
-function postCardKebabItemsHTML(type) {
+function postCardKebabItemsHTML(type, isOwn) {
   if (type === "garment") {
     return `
+      <button type="button" data-kaction="details">Ver detalles</button>
+      ${isOwn ? "" : `
       <button type="button" data-kaction="check">Comprobar combinaciones</button>
-      <button type="button" data-kaction="outfits">Sus outfits con esta prenda</button>`;
+      <button type="button" data-kaction="outfits">Sus outfits con esta prenda</button>`}`;
   }
-  return `<button type="button" data-kaction="recreate">Recrear con mi armario</button>`;
+  return `
+      <button type="button" data-kaction="details">Ver detalles</button>
+      ${isOwn ? "" : `<button type="button" data-kaction="recreate">Recrear con mi armario</button>`}`;
 }
 
 // Tarjeta de publicación estilo post (avatar+usuario arriba, foto, iconos de
@@ -5609,15 +5712,15 @@ function postCardHTML(entry, isOwn) {
       </header>
       <div class="post-card-media" data-role="open-detail">
         ${img ? `<img src="${img}" alt="" loading="lazy">` : ""}
-        ${isOwn ? "" : `
         <div class="post-card-kebab-wrap">
           <button type="button" class="post-card-kebab" data-role="kebab" title="Más opciones">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
           </button>
-          <div class="post-card-kebab-menu">${postCardKebabItemsHTML(type)}</div>
-        </div>`}
+          <div class="post-card-kebab-menu">${postCardKebabItemsHTML(type, isOwn)}</div>
+        </div>
         <div class="post-card-comments" data-role="comments-panel">
           <div class="post-card-comments-list" data-role="comments-list"></div>
+          <div class="post-card-reply-banner" data-role="reply-banner" style="display:none;"></div>
           <div class="post-card-comment-form">
             <input type="text" class="post-card-comment-input" data-role="comment-input" placeholder="Escribe un comentario…" maxlength="300">
             <button type="button" class="post-card-comment-send" data-role="comment-send">Enviar</button>
@@ -5658,6 +5761,10 @@ async function openSinglePost(type, data, ownerUid, meta, outfitsArr, opts) {
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
   const isOwn = ownerUid === myUid;
   const entry = type === "outfit" ? { outfit: data, meta, uid: ownerUid, outfitsArr } : { garment: data, meta, uid: ownerUid, outfitsArr };
+  if (opts && (opts.focusRootId || opts.focusCommentId)) {
+    entry._focusRootId = opts.focusRootId || null;
+    entry._focusCommentId = opts.focusCommentId || null;
+  }
   const content = document.getElementById("singlePostContent");
   content.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p>`;
   document.getElementById("singlePostBackdrop").classList.add("open");
@@ -5759,9 +5866,8 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
     const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
     const isOwn = uid === myUid;
     const openDetail = () => {
-      if (isOwn) return; // ya estamos viendo el detalle completo de nuestro propio contenido
-      if (type === "outfit") openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
-      else openForeignGarmentDetail(entry.garment, entry.meta, entry.outfitsArr);
+      if (card.closest("#singlePostContent")) return; // ya estamos viendo esta publicación individual
+      openSinglePost(type, type === "outfit" ? entry.outfit : entry.garment, uid, entry.meta, entry.outfitsArr);
     };
     card.querySelector('[data-role="open-detail"]').addEventListener("click", openDetail);
     card.querySelector('[data-role="open-profile"]').addEventListener("click", (e) => {
@@ -5782,6 +5888,16 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
         e.stopPropagation();
         kebabMenu.classList.remove("open");
         const action = item.dataset.kaction;
+        if (action === "details") {
+          if (isOwn) {
+            if (type === "garment") openGarmentDetailsModal(entry.garment);
+            else openOutfitDetail(entry.outfit.id);
+          } else {
+            if (type === "garment") openForeignGarmentDetail(entry.garment, entry.meta, entry.outfitsArr);
+            else openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
+          }
+          return;
+        }
         if (type === "garment") {
           openForeignGarmentDetail(entry.garment, entry.meta, entry.outfitsArr);
           setTimeout(() => {
@@ -5844,21 +5960,68 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
     const commentsPanel = card.querySelector('[data-role="comments-panel"]');
     commentsPanel.addEventListener("click", (e) => e.stopPropagation());
     const commentsList = card.querySelector('[data-role="comments-list"]');
+    const replyBanner = card.querySelector('[data-role="reply-banner"]');
     const commentInput = card.querySelector('[data-role="comment-input"]');
     const commentSendBtn = card.querySelector('[data-role="comment-send"]');
     let commentsLoaded = false;
+    let allComments = [];
+    let replyingTo = null;
 
-    function commentItemHTML(c) {
-      const name = c.fromUsername || "";
-      return `
-        <div class="post-card-comment-item">
-          <div class="post-card-comment-avatar">${c.fromAvatar ? `<img src="${c.fromAvatar}" alt="">` : (name.charAt(0) || "?").toUpperCase()}</div>
-          <div class="post-card-comment-body"><span class="post-card-comment-username">@${name}</span><span class="post-card-comment-text">${c.text || ""}</span></div>
-        </div>`;
+    function setReplyingTo(target) {
+      replyingTo = target;
+      if (!target) { replyBanner.style.display = "none"; replyBanner.innerHTML = ""; return; }
+      replyBanner.style.display = "flex";
+      replyBanner.innerHTML = `<span>Respondiendo a @${target.username}</span><button type="button" data-role="cancel-reply">✕</button>`;
+      replyBanner.querySelector('[data-role="cancel-reply"]').addEventListener("click", (e) => { e.stopPropagation(); setReplyingTo(null); });
+      commentInput.focus();
+    }
+
+    function renderAndWireComments(focusRootId, focusCommentId) {
+      commentsList.innerHTML = renderCommentsThreaded(allComments, focusRootId, focusCommentId);
+      commentsList.querySelectorAll("[data-reply-to]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          setReplyingTo({ id: btn.dataset.replyTo, username: btn.dataset.replyUsername });
+        });
+      });
+      commentsList.querySelectorAll("[data-toggle-replies]").forEach(btn => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const rootId = btn.dataset.toggleReplies;
+          const repliesEl = commentsList.querySelector(`[data-replies-for="${rootId}"]`);
+          if (!repliesEl) return;
+          const nowOpen = repliesEl.style.display !== "block";
+          repliesEl.style.display = nowOpen ? "block" : "none";
+          btn.style.display = nowOpen ? "none" : "block";
+        });
+      });
+      commentsList.querySelectorAll(".post-card-mention").forEach(el => {
+        el.addEventListener("click", async (e) => {
+          e.stopPropagation();
+          const uname = el.dataset.mentionUsername;
+          try {
+            const { doc, getDoc } = window.__drobrFirestoreFns;
+            const usnap = await getDoc(doc(window.__drobrDb, "usernames", uname.toLowerCase()));
+            if (!usnap.exists()) { showAppToast("Ese usuario ya no existe."); return; }
+            const targetUid = usnap.data().uid;
+            const myUid2 = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+            closeSinglePost();
+            if (targetUid === myUid2) switchView("profile"); else openVisitorProfile(targetUid);
+          } catch (err) { console.error(err); }
+        });
+      });
+      if (focusRootId) {
+        const el = commentsList.querySelector(`[data-thread-root="${focusRootId}"]`);
+        if (el) el.scrollIntoView({ block: "nearest" });
+      } else {
+        commentsList.scrollTop = commentsList.scrollHeight;
+      }
     }
 
     // Desplegable cerrado por defecto: se abre/cierra con el propio icono, y
-    // solo pide los comentarios a Firestore la primera vez que se abre.
+    // solo pide los comentarios a Firestore la primera vez que se abre. Si se
+    // llega desde una notificación de respuesta/mención, ese hilo concreto ya
+    // aparece expandido y resaltado (el resto sigue colapsado, no invasivo).
     card.querySelector('[data-role="comment"]').addEventListener("click", async (e) => {
       e.stopPropagation();
       const isOpen = commentsPanel.classList.contains("open");
@@ -5868,11 +6031,8 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
         commentsLoaded = true;
         commentsList.innerHTML = `<p class="post-card-comments-empty">Cargando...</p>`;
         try {
-          const comments = await fetchPostComments(uid, type, id);
-          commentsList.innerHTML = comments.length
-            ? comments.map(commentItemHTML).join("")
-            : `<p class="post-card-comments-empty">Aún no hay comentarios. ¡Sé el primero!</p>`;
-          commentsList.scrollTop = commentsList.scrollHeight;
+          allComments = await fetchPostComments(uid, type, id);
+          renderAndWireComments(entry._focusRootId, entry._focusCommentId);
         } catch (err) {
           console.error(err);
           commentsList.innerHTML = `<p class="post-card-comments-empty">No se pudieron cargar los comentarios.</p>`;
@@ -5886,12 +6046,13 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
       if (!text || commentSendBtn.disabled) return;
       commentSendBtn.disabled = true;
       try {
-        const nuevo = await addPostComment(uid, type, id, text);
+        const parentId = replyingTo ? replyingTo.id : null;
+        const nuevo = await addPostComment(uid, type, id, text, parentId);
         if (nuevo) {
-          if (commentsList.querySelector(".post-card-comments-empty")) commentsList.innerHTML = "";
-          commentsList.insertAdjacentHTML("beforeend", commentItemHTML(nuevo));
-          commentsList.scrollTop = commentsList.scrollHeight;
           commentInput.value = "";
+          setReplyingTo(null);
+          allComments = await fetchPostComments(uid, type, id);
+          renderAndWireComments(parentId || null, nuevo.id);
           entry.social = entry.social || { commentCount: 0 };
           entry.social.commentCount = (entry.social.commentCount || 0) + 1;
           card.querySelector('[data-role="comment-count"]').textContent = entry.social.commentCount;
@@ -6114,6 +6275,8 @@ function activityNotifText(n) {
   if (n.type === "like") return `<b>${name}</b> le dio like a ${cosa}`;
   if (n.type === "save") return `<b>${name}</b> guardó ${cosa}`;
   if (n.type === "comment") return `<b>${name}</b> comentó: “${n.text || ""}”`;
+  if (n.type === "reply") return `<b>${name}</b> respondió a tu comentario: “${n.text || ""}”`;
+  if (n.type === "mention") return `<b>${name}</b> te mencionó en un comentario: “${n.text || ""}”`;
   return `<b>${name}</b> interactuó con ${cosa}`;
 }
 
@@ -6155,19 +6318,46 @@ function renderActivityPanel() {
   });
 }
 
-function openNotificationTarget(n) {
+// Al pulsar una notificación, la publicación puede ser tuya (like/guardado/
+// comentario en tu contenido) o de un tercero (te mencionaron o respondieron
+// a tu comentario en el post de otra persona) — por eso se usa
+// n.postOwnerUid en vez de asumir que siempre es la tuya. Para respuesta o
+// mención, se abre el hilo correspondiente ya expandido (sin tocar los
+// demás hilos: no invasivo).
+async function openNotificationTarget(n) {
   closeFollowRequestsPanel();
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
-  const wantsComments = n.type === "comment";
-  if (n.postType === "outfit") {
-    const o = outfits.find(x => x.id === n.postId);
-    if (!o) { showAppToast("Ese outfit ya no existe."); return; }
-    openSinglePost("outfit", o, myUid, myProfileMeta(), outfits, { openComments: wantsComments });
-  } else {
-    const g = garments.find(x => x.id === n.postId);
-    if (!g) { showAppToast("Esa prenda ya no existe."); return; }
-    openSinglePost("garment", g, myUid, myProfileMeta(), outfits, { openComments: wantsComments });
+  const ownerUid = n.postOwnerUid || myUid;
+  const wantsComments = n.type === "comment" || n.type === "reply" || n.type === "mention";
+  const opts = {
+    openComments: wantsComments,
+    focusRootId: (n.type === "reply" || n.type === "mention") ? (n.parentId || n.commentId || null) : null,
+    focusCommentId: (n.type === "reply" || n.type === "mention") ? (n.commentId || null) : null,
+  };
+  let data, meta, outfitsArr;
+  try {
+    if (ownerUid === myUid) {
+      data = n.postType === "outfit" ? outfits.find(x => x.id === n.postId) : garments.find(x => x.id === n.postId);
+      meta = myProfileMeta();
+      outfitsArr = outfits;
+    } else {
+      const { doc, getDoc } = window.__drobrFirestoreFns;
+      const [metaSnap, dataSnap, outfitsList] = await Promise.all([
+        getDoc(doc(window.__drobrDb, "armarios", ownerUid)),
+        getDoc(doc(window.__drobrDb, "armarios", ownerUid, postSubcollection(n.postType), n.postId)),
+        leerColeccion(ownerUid, "outfits"),
+      ]);
+      meta = metaSnap.exists() ? metaSnap.data() : {};
+      data = dataSnap.exists() ? { id: dataSnap.id, ...dataSnap.data() } : null;
+      outfitsArr = outfitsList;
+    }
+  } catch (err) {
+    console.error(err);
+    showAppToast("No se pudo abrir la publicación.");
+    return;
   }
+  if (!data) { showAppToast(n.postType === "outfit" ? "Ese outfit ya no existe." : "Esa prenda ya no existe."); return; }
+  openSinglePost(n.postType, data, ownerUid, meta, outfitsArr, opts);
 }
 
 async function markActivityAsRead() {
