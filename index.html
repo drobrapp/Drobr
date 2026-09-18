@@ -1158,7 +1158,7 @@
     </div>
 
     <div class="profile-tabs" id="profileTabs">
-      <button class="profile-tab active" data-profile-tab="armario">Armario</button>
+      <button class="profile-tab active" data-profile-tab="armario">Prendas</button>
       <button class="profile-tab" data-profile-tab="outfits">Outfits</button>
       <button class="profile-tab" data-profile-tab="listas">Colecciones</button>
       <button class="profile-tab" data-profile-tab="guardados">Guardados</button>
@@ -1190,7 +1190,7 @@
             </div>
           </div>
         </div>
-        <div class="foreign-gallery-grid" id="profileWardrobeGrid"></div>
+        <div class="home-feed-grid" id="profileWardrobeGrid"></div>
       </div>
     </div>
 
@@ -1219,7 +1219,7 @@
             </div>
           </div>
         </div>
-        <div class="foreign-gallery-grid" id="profileOutfitsTabGrid"></div>
+        <div class="home-feed-grid" id="profileOutfitsTabGrid"></div>
       </div>
     </div>
 
@@ -1369,6 +1369,15 @@
       </label>
       <p class="error-msg" id="editProfileError" style="display:none;"></p>
       <button class="btn btn-primary" id="editProfileSaveBtn" style="width:100%;">Guardar cambios</button>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="singlePostBackdrop">
+    <div class="modal" style="max-width:420px; padding:0; overflow:hidden; max-height:90vh; display:flex; flex-direction:column;">
+      <div style="display:flex; justify-content:flex-end; padding:8px 10px 0; flex-shrink:0;">
+        <button class="modal-close" id="singlePostClose">✕</button>
+      </div>
+      <div id="singlePostContent" style="overflow-y:auto;"></div>
     </div>
   </div>
 
@@ -5435,6 +5444,68 @@ function currentUserSocialMeta() {
   return { fromUid: u ? u.uid : null, fromUsername: (profileData && profileData.username) || "", fromAvatar: (profileData && profileData.avatar) || null };
 }
 
+// Reutilizable tanto por las tarjetas del feed como por el detalle de tu
+// propio contenido (mismo componente visual, misma fuente de datos).
+function commentItemHTML(c) {
+  const name = c.fromUsername || "";
+  return `
+    <div class="post-card-comment-item">
+      <div class="post-card-comment-avatar">${c.fromAvatar ? `<img src="${c.fromAvatar}" alt="">` : (name.charAt(0) || "?").toUpperCase()}</div>
+      <div class="post-card-comment-body"><span class="post-card-comment-username">@${name}</span><span class="post-card-comment-text">${c.text || ""}</span></div>
+    </div>`;
+}
+
+function ownDetailCommentsSectionHTML() {
+  return `
+    <div data-role="own-comments-section" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line); text-align:left;">
+      <p style="font-size:12.5px; font-weight:700; color:var(--ink); margin:0 0 10px;">Comentarios</p>
+      <div class="post-card-comments-list" data-role="own-comments-list" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
+      <div class="post-card-comment-form">
+        <input type="text" class="post-card-comment-input" data-role="own-comment-input" placeholder="Escribe un comentario…" maxlength="300">
+        <button type="button" class="post-card-comment-send" data-role="own-comment-send">Enviar</button>
+      </div>
+    </div>`;
+}
+
+// root: el contenedor del modal donde se acaba de inyectar ownDetailCommentsSectionHTML.
+async function wireOwnDetailComments(root, postType, postId) {
+  const list = root.querySelector('[data-role="own-comments-list"]');
+  const input = root.querySelector('[data-role="own-comment-input"]');
+  const sendBtn = root.querySelector('[data-role="own-comment-send"]');
+  if (!list || !input || !sendBtn) return;
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (!myUid) return;
+  list.innerHTML = `<p class="post-card-comments-empty">Cargando...</p>`;
+  try {
+    const comments = await fetchPostComments(myUid, postType, postId);
+    list.innerHTML = comments.length ? comments.map(commentItemHTML).join("") : `<p class="post-card-comments-empty">Aún no hay comentarios.</p>`;
+  } catch (err) {
+    console.error(err);
+    list.innerHTML = `<p class="post-card-comments-empty">No se pudieron cargar los comentarios.</p>`;
+  }
+  async function submit() {
+    const text = input.value.trim();
+    if (!text || sendBtn.disabled) return;
+    sendBtn.disabled = true;
+    try {
+      const nuevo = await addPostComment(myUid, postType, postId, text);
+      if (nuevo) {
+        if (list.querySelector(".post-card-comments-empty")) list.innerHTML = "";
+        list.insertAdjacentHTML("beforeend", commentItemHTML(nuevo));
+        list.scrollTop = list.scrollHeight;
+        input.value = "";
+      }
+    } catch (err) {
+      console.error(err);
+      showAppToast("No se pudo publicar el comentario.");
+    } finally {
+      sendBtn.disabled = false;
+    }
+  }
+  sendBtn.addEventListener("click", submit);
+  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } });
+}
+
 // Alterna like sobre una prenda/outfit ajeno o propio. Devuelve el nuevo estado (true = dado).
 async function togglePostLike(ownerUid, postType, postId) {
   const me = currentUserSocialMeta();
@@ -5518,7 +5589,7 @@ function postCardKebabItemsHTML(type) {
 // Tarjeta de publicación estilo post (avatar+usuario arriba, foto, iconos de
 // acción debajo, contadores reales de like/guardado/comentarios). Se usa en
 // el feed y está pensada para reutilizarse tal cual en Explorar y en Perfil.
-function postCardHTML(entry) {
+function postCardHTML(entry, isOwn) {
   const type = entry.outfit ? "outfit" : "garment";
   const id = type === "outfit" ? entry.outfit.id : entry.garment.id;
   const img = type === "outfit" ? (entry.outfit.thumbCache || garmentImageForDisplay(entry.outfit.top) || "") : (entry.garment.image || "");
@@ -5538,12 +5609,13 @@ function postCardHTML(entry) {
       </header>
       <div class="post-card-media" data-role="open-detail">
         ${img ? `<img src="${img}" alt="" loading="lazy">` : ""}
+        ${isOwn ? "" : `
         <div class="post-card-kebab-wrap">
           <button type="button" class="post-card-kebab" data-role="kebab" title="Más opciones">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2"/><circle cx="12" cy="12" r="2"/><circle cx="12" cy="19" r="2"/></svg>
           </button>
           <div class="post-card-kebab-menu">${postCardKebabItemsHTML(type)}</div>
-        </div>
+        </div>`}
         <div class="post-card-comments" data-role="comments-panel">
           <div class="post-card-comments-list" data-role="comments-list"></div>
           <div class="post-card-comment-form">
@@ -5564,10 +5636,11 @@ function postCardHTML(entry) {
         <button type="button" class="post-card-action-btn" data-role="share">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
         </button>
+        ${isOwn ? "" : `
         <button type="button" class="post-card-action-btn post-card-save${s.saved ? " saved" : ""}" data-role="save">
           <svg width="18" height="18" viewBox="0 0 24 24" fill="${s.saved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
           <span class="post-card-count" data-role="save-count">${s.saveCount}</span>
-        </button>
+        </button>`}
       </div>
       <div class="post-card-caption"><b>@${entry.meta.username || ""}</b> ${title}</div>
     </article>`;
@@ -5575,6 +5648,35 @@ function postCardHTML(entry) {
 
 function homeFeedEntryCardHTML(entry) {
   return postCardHTML(entry);
+}
+
+// Modal de "publicación individual": la MISMA tarjeta del feed, pero sola y
+// a mayor tamaño — el destino de tocar una notificación, una miniatura del
+// armario/outfits de un perfil (propio o ajeno). Con contenido propio se
+// esconden guardar y el menú "..." (no aplican a lo tuyo).
+async function openSinglePost(type, data, ownerUid, meta, outfitsArr, opts) {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  const isOwn = ownerUid === myUid;
+  const entry = type === "outfit" ? { outfit: data, meta, uid: ownerUid, outfitsArr } : { garment: data, meta, uid: ownerUid, outfitsArr };
+  const content = document.getElementById("singlePostContent");
+  content.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p>`;
+  document.getElementById("singlePostBackdrop").classList.add("open");
+  try {
+    await attachPostSocialMeta([entry]);
+  } catch (err) { console.error(err); }
+  content.innerHTML = postCardHTML(entry, isOwn);
+  wirePostCards(content, type === "outfit" ? [entry] : [], type === "garment" ? [entry] : []);
+  if (opts && opts.openComments) {
+    setTimeout(() => content.querySelector('[data-role="comment"]')?.click(), 60);
+  }
+}
+function closeSinglePost() {
+  document.getElementById("singlePostBackdrop").classList.remove("open");
+}
+document.getElementById("singlePostClose").addEventListener("click", closeSinglePost);
+document.getElementById("singlePostBackdrop").addEventListener("click", (e) => { if (e.target.id === "singlePostBackdrop") closeSinglePost(); });
+function myProfileMeta() {
+  return { username: (profileData && profileData.username) || "", avatar: (profileData && profileData.avatar) || null, name: (profileData && profileData.name) || "" };
 }
 
 function renderHomeFeedGroupsHTML(entries) {
@@ -5596,11 +5698,19 @@ function renderHomeFeedGroupsHTML(entries) {
 // cada entrada antes de pintarla. Nota: esto hace ~5 lecturas por tarjeta
 // (2 getDoc + 3 getCountFromServer); para un feed grande a futuro convendría
 // mover los contadores a Cloud Functions, pero no hay backend propio todavía.
+// Caché en memoria por post (uid:tipo:id): evita repetir ~5 lecturas de
+// Firestore por tarjeta cada vez que se cambia un filtro/orden y se vuelve a
+// pintar la misma rejilla. Los manejadores de like/guardar mutan el objeto
+// .social en el sitio, así que la caché se mantiene al día sola (comparten
+// referencia, no copia).
+const postSocialCache = new Map();
 async function attachPostSocialMeta(entries) {
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
   await Promise.all(entries.map(async (entry) => {
     const type = entry.outfit ? "outfit" : "garment";
     const id = type === "outfit" ? entry.outfit.id : entry.garment.id;
+    const cacheKey = `${entry.uid}:${type}:${id}`;
+    if (postSocialCache.has(cacheKey)) { entry.social = postSocialCache.get(cacheKey); return; }
     try {
       const [liked, saved, likeCount, saveCount, commentCount] = await Promise.all([
         isPostInteracted(entry.uid, type, id, "likes", myUid),
@@ -5610,6 +5720,7 @@ async function attachPostSocialMeta(entries) {
         getCommentCount(entry.uid, type, id),
       ]);
       entry.social = { liked, saved, likeCount, saveCount, commentCount };
+      postSocialCache.set(cacheKey, entry.social);
     } catch (err) {
       console.error("No se pudo cargar la interacción de un post:", err);
       entry.social = { liked: false, saved: false, likeCount: 0, saveCount: 0, commentCount: 0 };
@@ -5645,17 +5756,20 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
       ? outfitEntries.find(e => e.outfit.id === id && e.uid === uid)
       : garmentEntries.find(e => e.garment.id === id && e.uid === uid);
     if (!entry) return;
+    const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+    const isOwn = uid === myUid;
     const openDetail = () => {
+      if (isOwn) return; // ya estamos viendo el detalle completo de nuestro propio contenido
       if (type === "outfit") openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
       else openForeignGarmentDetail(entry.garment, entry.meta, entry.outfitsArr);
     };
     card.querySelector('[data-role="open-detail"]').addEventListener("click", openDetail);
     card.querySelector('[data-role="open-profile"]').addEventListener("click", (e) => {
       e.stopPropagation();
-      const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
       if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
     });
     const kebabBtn = card.querySelector('[data-role="kebab"]');
+    if (kebabBtn) {
     const kebabMenu = card.querySelector(".post-card-kebab-menu");
     kebabBtn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -5682,6 +5796,7 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
         }
       });
     });
+    }
     const likeBtn = card.querySelector('[data-role="like"]');
     likeBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
@@ -5703,6 +5818,7 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
       }
     });
     const saveBtn = card.querySelector('[data-role="save"]');
+    if (saveBtn) {
     saveBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       if (saveBtn.disabled) return;
@@ -5724,6 +5840,7 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
         saveBtn.disabled = false;
       }
     });
+    }
     const commentsPanel = card.querySelector('[data-role="comments-panel"]');
     commentsPanel.addEventListener("click", (e) => e.stopPropagation());
     const commentsList = card.querySelector('[data-role="comments-list"]');
@@ -6040,12 +6157,16 @@ function renderActivityPanel() {
 
 function openNotificationTarget(n) {
   closeFollowRequestsPanel();
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  const wantsComments = n.type === "comment";
   if (n.postType === "outfit") {
-    openOutfitDetail(n.postId);
+    const o = outfits.find(x => x.id === n.postId);
+    if (!o) { showAppToast("Ese outfit ya no existe."); return; }
+    openSinglePost("outfit", o, myUid, myProfileMeta(), outfits, { openComments: wantsComments });
   } else {
     const g = garments.find(x => x.id === n.postId);
-    if (g) openGarmentDetailsModal(g);
-    else showAppToast("Esa prenda ya no existe.");
+    if (!g) { showAppToast("Esa prenda ya no existe."); return; }
+    openSinglePost("garment", g, myUid, myProfileMeta(), outfits, { openComments: wantsComments });
   }
 }
 
@@ -6164,7 +6285,7 @@ function openForeignWardrobe(targetUid, meta, prendas, foreignOutfitsArr) {
           </div>
         </div>
       </div>
-      <div class="foreign-gallery-grid" id="foreignGalleryGrid"></div>
+      <div class="home-feed-grid" id="foreignGalleryGrid"></div>
     </div>`;
   renderForeignFilterChips();
   updateForeignFilterMoreBtn();
@@ -6223,24 +6344,12 @@ function renderForeignGalleryGrid() {
     grid.innerHTML = `<p class="sub foreign-gallery-empty">Ninguna prenda coincide con estos filtros.</p>`;
     return;
   }
-  grid.innerHTML = list.map(g => {
-    const cat = CATEGORIES.find(c => c.id === g.category);
-    const title = g.name ? g.name.charAt(0).toUpperCase() + g.name.slice(1) : (cat ? cat.label : foreignCategoryLabel(g.category, foreignGalleryState.meta));
-    const colorLabel = (colorById[g.color] || {}).label || "";
-    return `
-    <div class="foreign-gallery-item" data-id="${g.id}">
-      <div class="foreign-gallery-img"><img src="${g.image}" alt="${title}" loading="lazy"></div>
-      <div class="foreign-gallery-caption">
-        <p class="foreign-gallery-title">${title}</p>
-        ${colorLabel ? `<p class="foreign-gallery-sub">${colorLabel}</p>` : ""}
-      </div>
-    </div>`;
-  }).join("");
-  grid.querySelectorAll("[data-id]").forEach(card => {
-    card.addEventListener("click", () => {
-      const g = foreignGalleryState.prendas.find(p => p.id === card.dataset.id);
-      if (g) openForeignGarmentDetail(g, foreignGalleryState.meta, foreignGalleryState.foreignOutfitsArr);
-    });
+  grid.innerHTML = `<p class="sub" style="grid-column:1/-1; text-align:center; padding:20px 0;">Cargando...</p>`;
+  const st = foreignGalleryState;
+  const entries = list.map(g => ({ garment: g, meta: st.meta, uid: st.targetUid, outfitsArr: st.foreignOutfitsArr }));
+  attachPostSocialMeta(entries).then(() => {
+    grid.innerHTML = entries.map(e => postCardHTML(e, false)).join("");
+    wirePostCards(grid, [], entries);
   });
 }
 
@@ -6255,7 +6364,7 @@ function updateForeignGridHeader() {
   if (!iconBadge) return;
   const activeSection = st.categoryFilter === "all" ? null : st.sections.find(s => s.id === st.categoryFilter);
   iconBadge.innerHTML = categoryBadgeIcon(st.categoryFilter === "all" ? "all" : st.categoryFilter);
-  titleEl.textContent = st.categoryFilter === "all" ? "Todo el armario" : (activeSection ? activeSection.label : st.categoryFilter);
+  titleEl.textContent = st.categoryFilter === "all" ? "Todas las prendas" : (activeSection ? activeSection.label : st.categoryFilter);
   const count = foreignFilteredSortedGarments().length;
   countEl.textContent = `${count} ${count === 1 ? "prenda" : "prendas"}`;
 }
@@ -6327,8 +6436,8 @@ document.addEventListener("click", (e) => {
 // Outfits de otro usuario, de solo lectura: lista completa de collages (no se
 // agrupan, no tienen categoría).
 let foreignOutfitsGalleryState = null;
-function openForeignOutfits(meta, foreignOutfitsArr) {
-  foreignOutfitsGalleryState = { meta, foreignOutfitsArr, styleFilter: "all", colorFilter: "", seasonFilter: "", sort: "recent" };
+function openForeignOutfits(targetUid, meta, foreignOutfitsArr) {
+  foreignOutfitsGalleryState = { targetUid, meta, foreignOutfitsArr, styleFilter: "all", colorFilter: "", seasonFilter: "", sort: "recent" };
   const content = document.getElementById("visitorOutfitsTabPane");
   content.innerHTML = `
     <div class="foreign-gallery-controls" id="foreignOutfitsStyleChipRow"></div>
@@ -6355,7 +6464,7 @@ function openForeignOutfits(meta, foreignOutfitsArr) {
           </div>
         </div>
       </div>
-      <div class="foreign-gallery-grid" id="foreignOutfitsGrid"></div>
+      <div class="home-feed-grid" id="foreignOutfitsGrid"></div>
     </div>`;
   renderForeignOutfitsStyleChips();
   renderForeignOutfitsGrid();
@@ -6415,19 +6524,11 @@ function renderForeignOutfitsGrid() {
     grid.innerHTML = `<p class="sub foreign-gallery-empty">Ningún outfit coincide con estos filtros.</p>`;
     return;
   }
-  grid.innerHTML = list.map(o => `
-    <div class="foreign-gallery-item" data-outfit-id="${o.id}">
-      <div class="foreign-gallery-img"><img src="${o.thumbCache || (o.top && o.top.image) || ""}" alt="${o.name || ""}" loading="lazy"></div>
-      <div class="foreign-gallery-caption">
-        <p class="foreign-gallery-title">${o.name || "Outfit sin nombre"}</p>
-        ${o.label ? `<p class="foreign-gallery-sub">${o.label}</p>` : ""}
-      </div>
-    </div>`).join("");
-  grid.querySelectorAll("[data-outfit-id]").forEach(card => {
-    card.addEventListener("click", () => {
-      const o = st.foreignOutfitsArr.find(x => x.id === card.dataset.outfitId);
-      if (o) openForeignOutfitDetail(o, st.meta, st.foreignOutfitsArr);
-    });
+  grid.innerHTML = `<p class="sub" style="grid-column:1/-1; text-align:center; padding:20px 0;">Cargando...</p>`;
+  const entries = list.map(o => ({ outfit: o, meta: st.meta, uid: st.targetUid, outfitsArr: st.foreignOutfitsArr }));
+  attachPostSocialMeta(entries).then(() => {
+    grid.innerHTML = entries.map(e => postCardHTML(e, false)).join("");
+    wirePostCards(grid, entries, []);
   });
 }
 
@@ -6866,7 +6967,7 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
 
     ${canSeeContent ? `
     <div class="profile-tabs" id="visitorProfileTabs">
-      <button class="profile-tab active" data-vtab="armario">Armario</button>
+      <button class="profile-tab active" data-vtab="armario">Prendas</button>
       ${foreignOutfits.length ? `<button class="profile-tab" data-vtab="outfits">Outfits</button>` : ""}
       ${publicCollections.length ? `<button class="profile-tab" data-vtab="colecciones">Colecciones</button>` : ""}
     </div>
@@ -6933,7 +7034,7 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
     const collSection = document.getElementById("visitorCollectionsSection");
     if (collSection) collSection.style.display = tab === "colecciones" ? "block" : "none";
     if (tab === "armario") openForeignWardrobe(targetUid, meta, prendas, foreignOutfits);
-    else if (tab === "outfits") openForeignOutfits(meta, foreignOutfits);
+    else if (tab === "outfits") openForeignOutfits(targetUid, meta, foreignOutfits);
   }
   document.querySelectorAll("#visitorProfileTabs [data-vtab]").forEach(btn => {
     btn.addEventListener("click", () => switchVisitorTab(btn.dataset.vtab));
@@ -7436,14 +7537,19 @@ function outfitDetailContentHTML(entry) {
     </div>`;
 }
 
-function openOutfitDetail(outfitId) {
+function openOutfitDetail(outfitId, scrollToComments) {
   const entry = outfits.find(o => o.id === outfitId);
   if (!entry) return;
   document.getElementById("itemDetailTitle").textContent = entry.name || "Outfit sin nombre";
   document.getElementById("itemDetailImages").innerHTML = `<img src="${entry.thumbCache || entry.top?.image || ""}" class="detail-img" alt="">`;
   document.getElementById("itemDetailSubtitle").textContent = entry.label || "";
-  document.getElementById("itemDetailActions").innerHTML = outfitDetailContentHTML(entry);
+  const actionsEl = document.getElementById("itemDetailActions");
+  actionsEl.innerHTML = outfitDetailContentHTML(entry) + ownDetailCommentsSectionHTML();
+  wireOwnDetailComments(actionsEl, "outfit", entry.id);
   document.getElementById("itemDetailBackdrop").classList.add("open");
+  if (scrollToComments) {
+    setTimeout(() => actionsEl.querySelector('[data-role="own-comments-section"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+  }
 }
 
 /* ---------------- Guardados ---------------- */
@@ -7903,34 +8009,24 @@ function renderProfileWardrobeGrid() {
   const list = profileWardrobeFilteredSorted();
   const activeSection = st.categoryFilter === "all" ? null : sections.find(s => s.id === st.categoryFilter);
   document.getElementById("profileWardrobeIconBadge").innerHTML = categoryBadgeIcon(st.categoryFilter === "all" ? "all" : st.categoryFilter);
-  document.getElementById("profileWardrobeTitle").textContent = st.categoryFilter === "all" ? "Todo el armario" : (activeSection ? activeSection.label : categoryLabel(st.categoryFilter));
+  document.getElementById("profileWardrobeTitle").textContent = st.categoryFilter === "all" ? "Todas las prendas" : (activeSection ? activeSection.label : categoryLabel(st.categoryFilter));
   document.getElementById("profileWardrobeCount").textContent = `${list.length} ${list.length === 1 ? "prenda" : "prendas"}`;
   const dot = document.getElementById("profileWardrobeFilterDot");
   if (dot) dot.style.display = (st.colorFilter || st.contextFilter || st.seasonFilter) ? "block" : "none";
   const grid = document.getElementById("profileWardrobeGrid");
   if (!list.length) {
     grid.innerHTML = `<p class="sub foreign-gallery-empty">Ninguna prenda coincide con estos filtros.</p>`;
-  } else {
-    grid.innerHTML = list.map(g => {
-      const cat = CATEGORIES.find(c => c.id === g.category);
-      const title = g.name ? g.name.charAt(0).toUpperCase() + g.name.slice(1) : (cat ? cat.label : categoryLabel(g.category));
-      const colorLabel = (colorById[g.color] || {}).label || "";
-      return `
-      <div class="foreign-gallery-item" data-pg-id="${g.id}">
-        <div class="foreign-gallery-img"><img src="${g.image}" alt="${title}" loading="lazy"></div>
-        <div class="foreign-gallery-caption">
-          <p class="foreign-gallery-title">${title}</p>
-          ${colorLabel ? `<p class="foreign-gallery-sub">${colorLabel}</p>` : ""}
-        </div>
-      </div>`;
-    }).join("");
-    grid.querySelectorAll("[data-pg-id]").forEach(card => {
-      card.addEventListener("click", () => {
-        const g = garments.find(x => x.id === card.dataset.pgId);
-        if (g) openGarmentDetailsModal(g);
-      });
-    });
+    updateProfileWardrobeSortDropdown();
+    return;
   }
+  grid.innerHTML = `<p class="sub" style="grid-column:1/-1; text-align:center; padding:20px 0;">Cargando...</p>`;
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  const meta = myProfileMeta();
+  const entries = list.map(g => ({ garment: g, meta, uid: myUid, outfitsArr: outfits }));
+  attachPostSocialMeta(entries).then(() => {
+    grid.innerHTML = entries.map(e => postCardHTML(e, true)).join("");
+    wirePostCards(grid, [], entries);
+  });
   updateProfileWardrobeSortDropdown();
 }
 
@@ -8015,22 +8111,17 @@ function renderProfileOutfitsTabGrid() {
   const grid = document.getElementById("profileOutfitsTabGrid");
   if (!list.length) {
     grid.innerHTML = `<p class="sub foreign-gallery-empty">Ningún outfit coincide con estos filtros.</p>`;
-  } else {
-    grid.innerHTML = list.map(o => `
-      <div class="foreign-gallery-item" data-po-id="${o.id}">
-        <div class="foreign-gallery-img"><img src="${o.thumbCache || garmentImageForDisplay(o.top)}" alt="${o.name || ""}" loading="lazy"></div>
-        <div class="foreign-gallery-caption">
-          <p class="foreign-gallery-title">${o.name || "Outfit sin nombre"}</p>
-          ${o.label ? `<p class="foreign-gallery-sub">${o.label}</p>` : ""}
-        </div>
-      </div>`).join("");
-    grid.querySelectorAll("[data-po-id]").forEach(card => {
-      card.addEventListener("click", () => {
-        const o = outfits.find(x => x.id === card.dataset.poId);
-        if (o) openOutfitDetail(o.id);
-      });
-    });
+    updateProfileOutfitsTabSortDropdown();
+    return;
   }
+  grid.innerHTML = `<p class="sub" style="grid-column:1/-1; text-align:center; padding:20px 0;">Cargando...</p>`;
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  const meta = myProfileMeta();
+  const entries = list.map(o => ({ outfit: o, meta, uid: myUid, outfitsArr: outfits }));
+  attachPostSocialMeta(entries).then(() => {
+    grid.innerHTML = entries.map(e => postCardHTML(e, true)).join("");
+    wirePostCards(grid, entries, []);
+  });
   updateProfileOutfitsTabSortDropdown();
 }
 
@@ -8152,13 +8243,14 @@ document.getElementById("editProfileSaveBtn").addEventListener("click", async ()
 // Ficha visual de solo lectura: chips en vez de filas de texto, y un acceso
 // directo a los outfits que usan esta prenda (en una vista aparte, para no
 // obligar a hacer scroll dentro de la propia ficha).
-function openGarmentDetailsModal(garment) {
+function openGarmentDetailsModal(garment, scrollToComments) {
   const cat = CATEGORIES.find(c => c.id === garment.category);
   const title = garment.name ? garment.name.charAt(0).toUpperCase() + garment.name.slice(1) : (cat ? cat.label : categoryLabel(garment.category));
   const outfitsConEsta = outfits.filter(o => [o.top, o.bottom, o.shoes, ...entryAccessories(o)].filter(Boolean).some(x => x.id === garment.id));
   document.getElementById("garmentDetailsTitle").textContent = title;
   document.getElementById("garmentDetailsImg").src = garment.image;
-  document.getElementById("garmentDetailsFields").innerHTML = `
+  const fieldsEl = document.getElementById("garmentDetailsFields");
+  fieldsEl.innerHTML = `
     <div style="display:flex; flex-wrap:wrap; gap:7px; justify-content:center; align-items:center; margin-bottom:18px;">
       <span class="mini-chip" style="background:var(--ink);">${categoryLabel(garment.category)}</span>
       ${swatchHTML(garment.color, 16)}
@@ -8167,7 +8259,9 @@ function openGarmentDetailsModal(garment) {
     </div>
     <button class="btn btn-outline ${outfitsConEsta.length ? "" : "btn-disabled"}" id="garmentDetailsOutfitsBtn" style="width:100%; justify-content:center;" ${outfitsConEsta.length ? "" : "disabled"}>
       ${outfitsConEsta.length ? `Aparece en ${outfitsConEsta.length} outfit${outfitsConEsta.length === 1 ? "" : "s"} →` : "No aparece en ningún outfit"}
-    </button>`;
+    </button>
+    ${ownDetailCommentsSectionHTML()}`;
+  wireOwnDetailComments(fieldsEl, "garment", garment.id);
   if (outfitsConEsta.length) {
     document.getElementById("garmentDetailsOutfitsBtn").onclick = () => {
       document.getElementById("garmentDetailsBackdrop").classList.remove("open");
@@ -8181,6 +8275,9 @@ function openGarmentDetailsModal(garment) {
   };
   document.getElementById("garmentOutfitsClose").onclick = () => document.getElementById("garmentOutfitsBackdrop").classList.remove("open");
   document.getElementById("garmentDetailsBackdrop").classList.add("open");
+  if (scrollToComments) {
+    setTimeout(() => fieldsEl.querySelector('[data-role="own-comments-section"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
+  }
 }
 document.getElementById("garmentDetailsClose").addEventListener("click", () => document.getElementById("garmentDetailsBackdrop").classList.remove("open"));
 
