@@ -1149,6 +1149,9 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
           Armario privado
         </p>
+        <button type="button" id="profileIncompleteBanner" style="display:none; width:100%; text-align:left; background:var(--bg); border:1px dashed var(--line-strong); border-radius:var(--radius-sm); padding:9px 12px; margin-top:4px; font-size:12.5px; color:var(--ink); cursor:pointer; font-family:inherit;">
+          ⚠️ Tu perfil está incompleto (sin nombre o usuario reales) — toca para completarlo
+        </button>
       </div>
     </div>
 
@@ -1268,7 +1271,7 @@
           Buscar personas
         </button>
       </div>
-      <div class="category-grid" id="savedGarmentsGrid" style="margin-top:14px;"></div>
+      <div class="home-feed-grid" id="savedGarmentsGrid" style="margin-top:14px;"></div>
     </div>
     </div>
 
@@ -1290,7 +1293,7 @@
           Buscar personas
         </button>
       </div>
-      <div style="display:flex; flex-wrap:wrap; gap:14px; margin-top:14px;" id="savedOutfitsGrid"></div>
+      <div class="home-feed-grid" id="savedOutfitsGrid" style="margin-top:14px;"></div>
     </div>
     </div>
     </div>
@@ -5025,8 +5028,27 @@ document.addEventListener("drobrAuthChecked", (e) => {
 }, { once: true });
 
 document.addEventListener("drobrAuthChecked", (e) => {
-  if (e.detail.user) { watchFollowRequests(e.detail.user.uid); watchActivityNotifications(e.detail.user.uid); renderHomeFeed(); }
+  if (e.detail.user) { syncProfileIdentity(e.detail.user.uid); watchFollowRequests(e.detail.user.uid); watchActivityNotifications(e.detail.user.uid); renderHomeFeed(); openProfileFromUrlParam(); }
 });
+
+// Destino del enlace que genera "Compartir" en el perfil
+// (?perfil=username): abre directamente ese perfil, propio o ajeno.
+async function openProfileFromUrlParam() {
+  if (enFlujoResetPassword) return;
+  const username = new URLSearchParams(location.search).get("perfil");
+  if (!username) return;
+  try {
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const usnap = await getDoc(doc(window.__drobrDb, "usernames", username.toLowerCase()));
+    if (!usnap.exists()) { showAppToast("Ese perfil no existe."); return; }
+    const targetUid = usnap.data().uid;
+    const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+    if (targetUid === myUid) switchView("profile");
+    else openVisitorProfile(targetUid);
+  } catch (err) {
+    console.error("No se pudo abrir el perfil desde el enlace:", err);
+  }
+}
 
 document.getElementById("logoutBtn").addEventListener("click", async () => {
   try {
@@ -5556,59 +5578,6 @@ function renderCommentsThreaded(comments, focusRootId, focusCommentId) {
   }).join("");
 }
 
-function ownDetailCommentsSectionHTML() {
-  return `
-    <div data-role="own-comments-section" style="margin-top:16px; padding-top:14px; border-top:1px solid var(--line); text-align:left;">
-      <p style="font-size:12.5px; font-weight:700; color:var(--ink); margin:0 0 10px;">Comentarios</p>
-      <div class="post-card-comments-list" data-role="own-comments-list" style="max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin-bottom:10px;"></div>
-      <div class="post-card-comment-form">
-        <input type="text" class="post-card-comment-input" data-role="own-comment-input" placeholder="Escribe un comentario…" maxlength="300">
-        <button type="button" class="post-card-comment-send" data-role="own-comment-send" title="Enviar">
-          <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
-        </button>
-      </div>
-    </div>`;
-}
-
-// root: el contenedor del modal donde se acaba de inyectar ownDetailCommentsSectionHTML.
-async function wireOwnDetailComments(root, postType, postId) {
-  const list = root.querySelector('[data-role="own-comments-list"]');
-  const input = root.querySelector('[data-role="own-comment-input"]');
-  const sendBtn = root.querySelector('[data-role="own-comment-send"]');
-  if (!list || !input || !sendBtn) return;
-  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
-  if (!myUid) return;
-  list.innerHTML = `<p class="post-card-comments-empty">Cargando...</p>`;
-  try {
-    const comments = await fetchPostComments(myUid, postType, postId);
-    list.innerHTML = comments.length ? comments.map(commentItemHTML).join("") : `<p class="post-card-comments-empty">Aún no hay comentarios.</p>`;
-  } catch (err) {
-    console.error(err);
-    list.innerHTML = `<p class="post-card-comments-empty">No se pudieron cargar los comentarios.</p>`;
-  }
-  async function submit() {
-    const text = input.value.trim();
-    if (!text || sendBtn.disabled) return;
-    sendBtn.disabled = true;
-    try {
-      const nuevo = await addPostComment(myUid, postType, postId, text);
-      if (nuevo) {
-        if (list.querySelector(".post-card-comments-empty")) list.innerHTML = "";
-        list.insertAdjacentHTML("beforeend", commentItemHTML(nuevo));
-        list.scrollTop = list.scrollHeight;
-        input.value = "";
-      }
-    } catch (err) {
-      console.error(err);
-      showAppToast("No se pudo publicar el comentario.");
-    } finally {
-      sendBtn.disabled = false;
-    }
-  }
-  sendBtn.addEventListener("click", submit);
-  input.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); submit(); } });
-}
-
 // Alterna like sobre una prenda/outfit ajeno o propio. Devuelve el nuevo estado (true = dado).
 async function togglePostLike(ownerUid, postType, postId) {
   const me = currentUserSocialMeta();
@@ -5642,9 +5611,9 @@ async function togglePostSave(ownerUid, postType, postId, postData, ownerUsernam
   try {
     if (postType === "outfit") {
       if (!postData.thumbCache) await generateAndCacheOutfitThumb(postData);
-      saveOutfitToGuardados({ ...postData, savedFrom: { username: ownerUsername || "" } });
+      saveOutfitToGuardados({ ...postData, savedFrom: { username: ownerUsername || "", uid: ownerUid } });
     } else {
-      saveGarmentToGuardados({ ...postData, savedFrom: { username: ownerUsername || "" } });
+      saveGarmentToGuardados({ ...postData, savedFrom: { username: ownerUsername || "", uid: ownerUid } });
     }
   } catch (err) { console.error("No se pudo copiar al armario propio:", err); }
   notifyPostOwner(ownerUid, { type: "save", ...me, postType, postId });
@@ -7256,25 +7225,45 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
   });
 }
 
+// Sincroniza SOLO la identidad (username/nombre/bio/avatar) desde Firestore,
+// sin tocar armario/outfits. Se llama en cada arranque (sesión ya iniciada,
+// sin volver a pasar por el formulario de login) para que un dispositivo
+// nuevo deje de mostrar el placeholder local ("Tu nombre"/"@usuario") en
+// cuanto la sesión esté confirmada, y también la reutiliza el sincronizado
+// completo de después de iniciar sesión.
+async function syncProfileIdentity(uid) {
+  try {
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const metaSnap = await getDoc(doc(window.__drobrDb, "armarios", uid));
+    if (!metaSnap.exists()) return;
+    const metaData = metaSnap.data();
+    if (!metaData.username) return;
+    const changed = metaData.username !== profileData.username
+      || (metaData.name || metaData.username) !== profileData.name
+      || (metaData.bio ?? "") !== (profileData.bio ?? "")
+      || (metaData.avatar ?? null) !== (profileData.avatar ?? null);
+    if (!changed) return;
+    profileData = {
+      ...profileData,
+      username: metaData.username,
+      name: metaData.name || profileData.name,
+      bio: metaData.bio ?? profileData.bio,
+      avatar: metaData.avatar ?? profileData.avatar
+    };
+    saveProfile(profileData);
+    if (currentView === "profile") renderProfile();
+  } catch (err) {
+    console.error("No se pudo sincronizar la identidad del perfil:", err);
+  }
+}
+
 async function sincronizarConFirestore(user) {
   const { doc, getDoc, setDoc } = window.__drobrFirestoreFns;
   const metaRef = doc(window.__drobrDb, "armarios", user.uid);
   const metaSnap = await getDoc(metaRef);
   const local = leerLocalParaSync();
 
-  if (metaSnap.exists()) {
-    const metaData = metaSnap.data();
-    if (metaData.username && !profileData.username) {
-      profileData = {
-        ...profileData,
-        username: metaData.username,
-        name: metaData.name || profileData.name,
-        bio: metaData.bio ?? profileData.bio,
-        avatar: metaData.avatar ?? profileData.avatar
-      };
-      saveProfile(profileData);
-    }
-  }
+  await syncProfileIdentity(user.uid);
 
   const remoto = {
     wardrobe: await leerColeccion(user.uid, "prendas"),
@@ -7530,6 +7519,7 @@ function renderProfile() {
   document.getElementById("profileName").textContent = profileData.name;
   document.getElementById("profileUsername").textContent = "@" + profileData.username;
   document.getElementById("profileBio").textContent = profileData.bio;
+  document.getElementById("profileIncompleteBanner").style.display = (profileData.username === "usuario" && profileData.name === "Tu nombre") ? "block" : "none";
   const linkEl = document.getElementById("profileLink");
   if (profileData.link) {
     const href = /^https?:\/\//i.test(profileData.link) ? profileData.link : `https://${profileData.link}`;
@@ -7733,19 +7723,14 @@ function outfitDetailContentHTML(entry) {
     </div>`;
 }
 
-function openOutfitDetail(outfitId, scrollToComments) {
+function openOutfitDetail(outfitId) {
   const entry = outfits.find(o => o.id === outfitId);
   if (!entry) return;
   document.getElementById("itemDetailTitle").textContent = entry.name || "Outfit sin nombre";
   document.getElementById("itemDetailImages").innerHTML = `<img src="${entry.thumbCache || entry.top?.image || ""}" class="detail-img" alt="">`;
   document.getElementById("itemDetailSubtitle").textContent = entry.label || "";
-  const actionsEl = document.getElementById("itemDetailActions");
-  actionsEl.innerHTML = outfitDetailContentHTML(entry) + ownDetailCommentsSectionHTML();
-  wireOwnDetailComments(actionsEl, "outfit", entry.id);
+  document.getElementById("itemDetailActions").innerHTML = outfitDetailContentHTML(entry);
   document.getElementById("itemDetailBackdrop").classList.add("open");
-  if (scrollToComments) {
-    setTimeout(() => actionsEl.querySelector('[data-role="own-comments-section"]')?.scrollIntoView({ behavior: "smooth", block: "start" }), 150);
-  }
 }
 
 /* ---------------- Guardados ---------------- */
@@ -7780,7 +7765,7 @@ function isGarmentSaved(garment, username) {
   return guardados.prendas.some(g => g.sourceId === garment.id && (g.savedFrom?.username || "") === (username || ""));
 }
 function saveOutfitToGuardados(outfitSnapshot) {
-  guardados.outfits.push({ ...outfitSnapshot, id: `saved-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
+  guardados.outfits.push({ ...outfitSnapshot, sourceId: outfitSnapshot.id, id: `saved-${Date.now()}-${Math.random().toString(36).slice(2, 8)}` });
   saveGuardados(guardados);
   if (currentView === "profile" && profileActiveTab === "guardados") renderSavedOutfits();
 }
@@ -7799,14 +7784,69 @@ document.querySelectorAll("#guardadosTabs [data-gtab]").forEach(btn => {
   btn.addEventListener("click", () => switchGuardadosTab(btn.dataset.gtab));
 });
 
-function renderSavedGarments() {
+// Resuelve el uid del dueño original de un guardado: los guardados nuevos ya
+// lo llevan (savedFrom.uid); los guardados de antes de hoy solo tenían el
+// username, así que se busca una vez en "usernames".
+async function resolveSavedItemUid(item) {
+  if (item.savedFrom?.uid) return item.savedFrom.uid;
+  const username = item.savedFrom?.username;
+  if (!username) return null;
+  try {
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const usnap = await getDoc(doc(window.__drobrDb, "usernames", username));
+    return usnap.exists() ? usnap.data().uid : null;
+  } catch { return null; }
+}
+
+// Añade el botón "✕ Quitar de Guardados" sobre cada tarjeta de post ya
+// pintada (postCardHTML no lo trae, es específico de esta pantalla). Va a la
+// izquierda de la foto para no chocar con el menú "..." de la derecha.
+function wireSavedRemoveButtons(grid, entries, type) {
+  const cards = grid.querySelectorAll(".post-card");
+  cards.forEach((card, i) => {
+    const entry = entries[i];
+    const media = card.querySelector(".post-card-media");
+    if (!media || !entry) return;
+    const btn = document.createElement("button");
+    btn.className = "del-btn";
+    btn.title = "Quitar de Guardados";
+    btn.textContent = "✕";
+    btn.style.left = "6px";
+    btn.style.right = "auto";
+    btn.addEventListener("click", (e) => {
+      e.stopPropagation();
+      if (type === "garment") guardados.prendas = guardados.prendas.filter(g => g.id !== entry._savedLocalId);
+      else guardados.outfits = guardados.outfits.filter(o => o.id !== entry._savedLocalId);
+      saveGuardados(guardados);
+      if (type === "garment") renderSavedGarments(); else renderSavedOutfits();
+    });
+    media.appendChild(btn);
+  });
+}
+
+async function renderSavedGarments() {
   const grid = document.getElementById("savedGarmentsGrid");
   const items = guardados.prendas || [];
   document.getElementById("savedGarmentsEmpty").style.display = items.length ? "none" : "block";
-  grid.innerHTML = items.map(g => {
-    const cat = CATEGORIES.find(c => c.id === g.category);
-    const title = g.name ? g.name.charAt(0).toUpperCase() + g.name.slice(1) : (cat ? cat.label : g.category);
-    return `
+  if (!items.length) { grid.innerHTML = ""; return; }
+  grid.innerHTML = `<p class="sub" style="grid-column:1/-1; text-align:center; padding:20px 0;">Cargando...</p>`;
+  const entries = [];
+  const legacy = [];
+  await Promise.all(items.map(async (g) => {
+    const uid = g.sourceId ? await resolveSavedItemUid(g) : null;
+    if (!uid) { legacy.push(g); return; }
+    entries.push({ garment: { ...g, id: g.sourceId }, meta: { username: g.savedFrom?.username || "", avatar: null }, uid, outfitsArr: [], _savedLocalId: g.id });
+  }));
+  let html = "";
+  if (entries.length) {
+    await attachPostSocialMeta(entries);
+    html += entries.map(e => postCardHTML(e, false)).join("");
+  }
+  if (legacy.length) {
+    html += legacy.map(g => {
+      const cat = CATEGORIES.find(c => c.id === g.category);
+      const title = g.name ? g.name.charAt(0).toUpperCase() + g.name.slice(1) : (cat ? cat.label : g.category);
+      return `
       <div>
         <div class="category-tile" data-saved-garment="${g.id}">
           <div class="category-tile-img"><img src="${g.image}" alt="${title}"></div>
@@ -7814,7 +7854,10 @@ function renderSavedGarments() {
         </div>
         <div class="category-tile-label">${title}</div>
       </div>`;
-  }).join("");
+    }).join("");
+  }
+  grid.innerHTML = html;
+  if (entries.length) { wirePostCards(grid, [], entries); wireSavedRemoveButtons(grid, entries, "garment"); }
   grid.querySelectorAll("[data-remove-saved-garment]").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -7825,23 +7868,46 @@ function renderSavedGarments() {
   });
   grid.querySelectorAll("[data-saved-garment]").forEach(tile => {
     tile.addEventListener("click", () => {
-      const g = items.find(g => g.id === tile.dataset.savedGarment);
+      const g = legacy.find(x => x.id === tile.dataset.savedGarment);
       if (g) openSavedGarmentDetail(g);
     });
   });
 }
 
-function renderSavedOutfits() {
+async function renderSavedOutfits() {
   const grid = document.getElementById("savedOutfitsGrid");
   const items = guardados.outfits || [];
   document.getElementById("savedOutfitsEmpty").style.display = items.length ? "none" : "block";
-  grid.innerHTML = items.map(entry => `
-    <div class="outfit-mini-card" data-saved-outfit="${entry.id}">
-      <button class="del-btn" data-remove-saved-outfit="${entry.id}" title="Quitar de Guardados">✕</button>
-      <div class="outfit-mini-collage">${entry.thumbCache ? `<img src="${entry.thumbCache}" alt="">` : `<div class="outfit-mini-collage-loading"></div>`}</div>
-      <p class="outfit-mini-name">${entry.name || "Outfit sin nombre"}</p>
-      <p class="outfit-mini-sub">${entry.label || ""}</p>
-    </div>`).join("");
+  if (!items.length) { grid.innerHTML = ""; return; }
+  grid.innerHTML = `<p class="sub" style="grid-column:1/-1; text-align:center; padding:20px 0;">Cargando...</p>`;
+  // Los guardados de antes de este cambio no tienen sourceId (el id real del
+  // outfit original se perdió al copiarlo) — esos se quedan con la tarjeta
+  // sencilla de antes, sin poder reconectarlos a la publicación real.
+  const legacy = [];
+  const entries = [];
+  await Promise.all(items.map(async (o) => {
+    if (!o.sourceId) { legacy.push(o); return; }
+    const uid = await resolveSavedItemUid(o);
+    if (!uid) { legacy.push(o); return; }
+    entries.push({ outfit: { ...o, id: o.sourceId }, meta: { username: o.savedFrom?.username || "", avatar: null }, uid, outfitsArr: [], _savedLocalId: o.id });
+  }));
+  let html = "";
+  if (entries.length) {
+    await attachPostSocialMeta(entries);
+    html += entries.map(e => postCardHTML(e, false)).join("");
+  }
+  if (legacy.length) {
+    html += legacy.map(entry => `
+      <div class="outfit-mini-card" data-saved-outfit="${entry.id}">
+        <button class="del-btn" data-remove-saved-outfit="${entry.id}" title="Quitar de Guardados">✕</button>
+        <div class="outfit-mini-collage">${entry.thumbCache ? `<img src="${entry.thumbCache}" alt="">` : `<div class="outfit-mini-collage-loading"></div>`}</div>
+        <p class="outfit-mini-name">${entry.name || "Outfit sin nombre"}</p>
+        <p class="outfit-mini-sub">${entry.label || ""}</p>
+      </div>`).join("");
+  }
+  grid.innerHTML = html;
+  if (entries.length) wirePostCards(grid, entries, []);
+  if (entries.length) wireSavedRemoveButtons(grid, entries, "outfit");
   grid.querySelectorAll("[data-remove-saved-outfit]").forEach(btn => {
     btn.addEventListener("click", (e) => {
       e.stopPropagation();
@@ -7852,7 +7918,7 @@ function renderSavedOutfits() {
   });
   grid.querySelectorAll("[data-saved-outfit]").forEach(card => {
     card.addEventListener("click", () => {
-      const entry = items.find(o => o.id === card.dataset.savedOutfit);
+      const entry = legacy.find(o => o.id === card.dataset.savedOutfit);
       if (entry) openSavedOutfitDetail(entry);
     });
   });
@@ -8142,6 +8208,7 @@ function openEditProfileModal() {
   document.getElementById("editProfileBackdrop").classList.add("open");
 }
 document.getElementById("profileEditBtn").addEventListener("click", openEditProfileModal);
+document.getElementById("profileIncompleteBanner").addEventListener("click", openEditProfileModal);
 
 // ---- Pestañas del perfil propio: el contenido se muestra debajo, sin salir
 // de la pantalla de perfil (misma cabecera/estadísticas siempre visibles). ----
@@ -8385,8 +8452,21 @@ document.addEventListener("click", (e) => {
   const dd2 = document.getElementById("profileOutfitsTabSortDropdown");
   if (dd2 && dd2.style.display === "block" && !dd2.contains(e.target) && e.target.closest("#profileOutfitsTabSortBtn") == null) dd2.style.display = "none";
 });
-document.getElementById("profileShareBtn").addEventListener("click", () => {
-  showAppToast("Muy pronto podrás compartir tu perfil.");
+document.getElementById("profileShareBtn").addEventListener("click", async () => {
+  const url = `https://drobrapp.github.io/Drobr/?perfil=${encodeURIComponent(profileData.username)}`;
+  const shareData = { title: `${profileData.name} en DROBR`, text: `Mira el armario de @${profileData.username} en DROBR`, url };
+  try {
+    if (navigator.share) {
+      await navigator.share(shareData);
+    } else if (navigator.clipboard) {
+      await navigator.clipboard.writeText(url);
+      showAppToast("Enlace copiado al portapapeles.");
+    } else {
+      showAppToast("No se pudo compartir en este dispositivo.");
+    }
+  } catch (err) {
+    // El usuario canceló el diálogo nativo de compartir: no hacer nada.
+  }
 });
 document.getElementById("editProfileClose").addEventListener("click", () => document.getElementById("editProfileBackdrop").classList.remove("open"));
 document.getElementById("editProfileAvatarBtn").addEventListener("click", () => document.getElementById("editProfileAvatarInput").click());
@@ -8439,7 +8519,7 @@ document.getElementById("editProfileSaveBtn").addEventListener("click", async ()
 // Ficha visual de solo lectura: chips en vez de filas de texto, y un acceso
 // directo a los outfits que usan esta prenda (en una vista aparte, para no
 // obligar a hacer scroll dentro de la propia ficha).
-function openGarmentDetailsModal(garment, scrollToComments) {
+function openGarmentDetailsModal(garment) {
   const cat = CATEGORIES.find(c => c.id === garment.category);
   const title = garment.name ? garment.name.charAt(0).toUpperCase() + garment.name.slice(1) : (cat ? cat.label : categoryLabel(garment.category));
   const outfitsConEsta = outfits.filter(o => [o.top, o.bottom, o.shoes, ...entryAccessories(o)].filter(Boolean).some(x => x.id === garment.id));
@@ -8455,9 +8535,7 @@ function openGarmentDetailsModal(garment, scrollToComments) {
     </div>
     <button class="btn btn-outline ${outfitsConEsta.length ? "" : "btn-disabled"}" id="garmentDetailsOutfitsBtn" style="width:100%; justify-content:center;" ${outfitsConEsta.length ? "" : "disabled"}>
       ${outfitsConEsta.length ? `Aparece en ${outfitsConEsta.length} outfit${outfitsConEsta.length === 1 ? "" : "s"} →` : "No aparece en ningún outfit"}
-    </button>
-    ${ownDetailCommentsSectionHTML()}`;
-  wireOwnDetailComments(fieldsEl, "garment", garment.id);
+    </button>`;
   if (outfitsConEsta.length) {
     document.getElementById("garmentDetailsOutfitsBtn").onclick = () => {
       document.getElementById("garmentDetailsBackdrop").classList.remove("open");
