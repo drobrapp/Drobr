@@ -614,6 +614,10 @@
   .post-card-comment-send { position:absolute; right:3px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:50%; background:var(--ink); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; flex-shrink:0; }
   .post-card-comment-send svg { width:12px; height:12px; }
   .post-card-comment-send:disabled { background:var(--line-strong); cursor:default; }
+  .chat-bubble-row { display:flex; justify-content:flex-start; }
+  .chat-bubble-row.mine { justify-content:flex-end; }
+  .chat-bubble { max-width:75%; padding:8px 12px; border-radius:16px; background:var(--bg); color:var(--ink); font-size:13px; line-height:1.35; word-break:break-word; }
+  .chat-bubble-row.mine .chat-bubble { background:var(--ink); color:#fff; }
   .post-card-comment-thread { margin-bottom:2px; }
   .post-card-comment-item.is-reply { margin-left:26px; margin-top:6px; }
   .post-card-comment-item.is-highlighted { background:rgba(47,72,88,0.08); border-radius:8px; padding:5px 6px; margin-left:-6px; margin-right:-6px; }
@@ -1141,9 +1145,9 @@
           <span class="stat-divider"></span>
           <div class="profile-stat"><b id="profileHeaderOutfitCount">0</b><span id="profileHeaderOutfitLabel">outfits</span></div>
           <span class="stat-divider"></span>
-          <div class="profile-stat"><b id="profileFollowers">0</b><span>seguidores</span></div>
+          <div class="profile-stat" id="profileFollowersStat" style="cursor:pointer;"><b id="profileFollowers">0</b><span>seguidores</span></div>
           <span class="stat-divider"></span>
-          <div class="profile-stat"><b id="profileFollowing">0</b><span>seguidos</span></div>
+          <div class="profile-stat" id="profileFollowingStat" style="cursor:pointer;"><b id="profileFollowing">0</b><span>seguidos</span></div>
         </div>
         <p class="profile-privacy-line" id="profilePrivacyBadge" style="display:none;">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>
@@ -1241,7 +1245,7 @@
         <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></div>
         <div class="section-header-text">
           <h2>Mis colecciones</h2>
-          <p class="section-header-sub">Guarda y organiza tus looks y prendas favoritas.</p>
+          <p class="section-header-sub" id="profileCollectionsCount">Guarda y organiza tus looks y prendas favoritas.</p>
         </div>
       </div>
       <div class="collection-grid" id="profileCollectionsGrid"></div>
@@ -1595,6 +1599,32 @@
       <button class="btn btn-primary" id="userSearchGoBtn" style="white-space:nowrap;">Buscar</button>
     </div>
     <p id="userSearchError" class="sub" style="color:var(--danger); display:none; margin-bottom:0;"></p>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="chatBackdrop">
+  <div class="modal" style="max-width:420px; padding:0; overflow:hidden; max-height:85vh; display:flex; flex-direction:column;">
+    <div class="modal-head" style="padding:14px 16px; margin-bottom:0; border-bottom:1px solid var(--line);">
+      <h2 style="font-size:15px;" id="chatTitle">Mensaje</h2>
+      <button class="modal-close" id="chatClose">✕</button>
+    </div>
+    <div id="chatMessages" style="flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:8px;"></div>
+    <div style="position:relative; padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0;">
+      <input type="text" id="chatInput" placeholder="Escribe un mensaje…" maxlength="500" style="width:100%; border:1px solid var(--line-strong); border-radius:999px; padding:9px 40px 9px 14px; font-size:13px; font-family:inherit; background:var(--bg); color:var(--ink); box-sizing:border-box;">
+      <button type="button" id="chatSendBtn" title="Enviar" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; background:var(--ink); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+      </button>
+    </div>
+  </div>
+</div>
+
+<div class="modal-backdrop" id="followListBackdrop">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-head">
+      <h2 style="font-size:16px;" id="followListTitle">Seguidores</h2>
+      <button class="modal-close" id="followListClose">✕</button>
+    </div>
+    <div id="followListContent" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -5398,6 +5428,140 @@ async function getFollowingUids(myUid) {
   return snap.docs.map(d => d.ref.parent.parent.id);
 }
 
+async function getFollowerUids(targetUid) {
+  const { collection, query, where, getDocs } = window.__drobrFirestoreFns;
+  const q = query(collection(window.__drobrDb, "armarios", targetUid, "followers"), where("status", "==", "accepted"));
+  const snap = await getDocs(q);
+  return snap.docs.map(d => d.id);
+}
+
+/* ---------------- Mensajes privados ----------------
+   Colección nueva, fuera de "armarios": conversations/{id}, id = los dos uids
+   ordenados y unidos con "_" (así nunca se crean dos conversaciones para el
+   mismo par de personas). Sin bandeja global en esta v1: se entra siempre
+   desde el botón "Mensaje" del perfil de esa persona. */
+function conversationIdFor(uidA, uidB) {
+  return [uidA, uidB].sort().join("_");
+}
+
+let currentChatUnsub = null;
+let currentChatWithUid = null;
+
+async function openChat(targetUid, targetMeta) {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (!myUid || myUid === targetUid) return;
+  currentChatWithUid = targetUid;
+  const convId = conversationIdFor(myUid, targetUid);
+  document.getElementById("chatTitle").textContent = "@" + (targetMeta.username || "usuario");
+  document.getElementById("chatMessages").innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Cargando...</p>`;
+  document.getElementById("chatBackdrop").classList.add("open");
+  const { doc, setDoc, collection, query, orderBy, onSnapshot, serverTimestamp } = window.__drobrFirestoreFns;
+  try {
+    await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, targetUid].sort(), updatedAt: serverTimestamp() }, { merge: true });
+  } catch (err) { console.error(err); }
+  if (currentChatUnsub) { currentChatUnsub(); currentChatUnsub = null; }
+  const q = query(collection(window.__drobrDb, "conversations", convId, "messages"), orderBy("createdAt", "asc"));
+  currentChatUnsub = onSnapshot(q, (snap) => {
+    renderChatMessages(snap.docs.map(d => d.data()), myUid);
+  }, (err) => {
+    console.error(err);
+    document.getElementById("chatMessages").innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">No se pudieron cargar los mensajes.</p>`;
+  });
+}
+
+function renderChatMessages(msgs, myUid) {
+  const el = document.getElementById("chatMessages");
+  if (!msgs.length) {
+    el.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Aún no hay mensajes. ¡Escribe el primero!</p>`;
+    return;
+  }
+  el.innerHTML = msgs.map(m => `
+    <div class="chat-bubble-row${m.fromUid === myUid ? " mine" : ""}">
+      <div class="chat-bubble">${(m.text || "").replace(/</g, "&lt;")}</div>
+    </div>`).join("");
+  el.scrollTop = el.scrollHeight;
+}
+
+function closeChat() {
+  document.getElementById("chatBackdrop").classList.remove("open");
+  if (currentChatUnsub) { currentChatUnsub(); currentChatUnsub = null; }
+  currentChatWithUid = null;
+}
+
+async function sendChatMessage() {
+  const input = document.getElementById("chatInput");
+  const text = input.value.trim();
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (!text || !myUid || !currentChatWithUid) return;
+  const convId = conversationIdFor(myUid, currentChatWithUid);
+  input.value = "";
+  const { doc, setDoc, collection, serverTimestamp } = window.__drobrFirestoreFns;
+  try {
+    const msgRef = doc(collection(window.__drobrDb, "conversations", convId, "messages"));
+    await setDoc(msgRef, { fromUid: myUid, text, createdAt: serverTimestamp() });
+    await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, currentChatWithUid].sort(), lastMessage: { text, fromUid: myUid }, updatedAt: serverTimestamp() }, { merge: true });
+  } catch (err) {
+    console.error(err);
+    showAppToast("No se pudo enviar el mensaje.");
+  }
+}
+document.getElementById("chatSendBtn").addEventListener("click", sendChatMessage);
+document.getElementById("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendChatMessage(); } });
+document.getElementById("chatClose").addEventListener("click", closeChat);
+document.getElementById("chatBackdrop").addEventListener("click", (e) => { if (e.target.id === "chatBackdrop") closeChat(); });
+
+// Lista de seguidores/seguidos navegable (antes solo eran números sueltos).
+// Reutiliza el mismo patrón de fila que ya usan las solicitudes de seguimiento.
+async function openFollowList(targetUid, kind) {
+  document.getElementById("followListTitle").textContent = kind === "followers" ? "Seguidores" : "Seguidos";
+  const content = document.getElementById("followListContent");
+  content.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Cargando...</p>`;
+  document.getElementById("followListBackdrop").classList.add("open");
+  try {
+    const uids = kind === "followers" ? await getFollowerUids(targetUid) : await getFollowingUids(targetUid);
+    if (!uids.length) {
+      content.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">${kind === "followers" ? "Todavía no tiene seguidores." : "Todavía no sigue a nadie."}</p>`;
+      return;
+    }
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const rows = await Promise.all(uids.map(async (uid) => {
+      let meta = {};
+      try {
+        const snap = await getDoc(doc(window.__drobrDb, "armarios", uid));
+        meta = snap.exists() ? snap.data() : {};
+      } catch {}
+      const name = meta.name || meta.username || "Usuario";
+      const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
+      return `
+        <div class="collection-item-row" data-follow-list-uid="${uid}" style="cursor:pointer;">
+          <div style="width:40px; height:40px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
+          <span>${name}${meta.username ? ` <span style="color:var(--ink-soft);">@${meta.username}</span>` : ""}</span>
+        </div>`;
+    }));
+    content.innerHTML = rows.join("");
+    content.querySelectorAll("[data-follow-list-uid]").forEach(row => {
+      row.addEventListener("click", () => {
+        const uid = row.dataset.followListUid;
+        document.getElementById("followListBackdrop").classList.remove("open");
+        const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+        if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    content.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">No se pudo cargar la lista.</p>`;
+  }
+}
+document.getElementById("followListClose").addEventListener("click", () => document.getElementById("followListBackdrop").classList.remove("open"));
+document.getElementById("profileFollowersStat").addEventListener("click", () => {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (myUid) openFollowList(myUid, "followers");
+});
+document.getElementById("profileFollowingStat").addEventListener("click", () => {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (myUid) openFollowList(myUid, "following");
+});
+
 /* ---------------- Likes / Guardados / Notificaciones ----------------
    Mismo criterio que "followers": el documento vive en la subcolección del
    DUEÑO del contenido (armarios/{ownerUid}/prendas|outfits/{postId}/likes|saves/{miUid}),
@@ -5732,7 +5896,9 @@ function homeFeedEntryCardHTML(entry) {
 // a mayor tamaño — el destino de tocar una notificación, una miniatura del
 // armario/outfits de un perfil (propio o ajeno). Con contenido propio se
 // esconden guardar y el menú "..." (no aplican a lo tuyo).
+let singlePostScrollY = 0;
 async function openSinglePost(type, data, ownerUid, meta, outfitsArr, opts) {
+  singlePostScrollY = window.scrollY;
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
   const isOwn = ownerUid === myUid;
   const entry = type === "outfit" ? { outfit: data, meta, uid: ownerUid, outfitsArr } : { garment: data, meta, uid: ownerUid, outfitsArr };
@@ -5752,8 +5918,11 @@ async function openSinglePost(type, data, ownerUid, meta, outfitsArr, opts) {
     setTimeout(() => content.querySelector('[data-role="comment"]')?.click(), 60);
   }
 }
+// Cerrar restaura el scroll exacto de donde venías (feed o perfil) — antes
+// solo destruía el modal y se perdía la posición si habías bajado mucho.
 function closeSinglePost() {
   document.getElementById("singlePostBackdrop").classList.remove("open");
+  window.scrollTo({ top: singlePostScrollY, behavior: "instant" });
 }
 document.getElementById("singlePostClose").addEventListener("click", closeSinglePost);
 document.getElementById("singlePostBackdrop").addEventListener("click", (e) => { if (e.target.id === "singlePostBackdrop") closeSinglePost(); });
@@ -7041,7 +7210,7 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
   const followState = followStatus === "accepted" ? "accepted" : followStatus === "pending" ? "pending" : (meta.isPrivate ? "request" : "none");
   const FOLLOW_BTN_PRIMARY_STATES = new Set(["none", "request"]);
   const followBtnClass = FOLLOW_BTN_PRIMARY_STATES.has(followState) ? "btn-primary" : "btn-outline";
-  const followBtnHTML = followStatus === "self" ? "" : `<button class="btn ${followBtnClass} profile-action-compact" id="visitorFollowBtn" data-follow-state="${followState}">${FOLLOW_BTN_LABELS[followState]}</button>`;
+  const followBtnHTML = followStatus === "self" ? "" : `<button class="btn ${followBtnClass} profile-action-compact" id="visitorFollowBtn" data-follow-state="${followState}">${FOLLOW_BTN_LABELS[followState]}</button><button class="btn btn-outline profile-action-compact" id="visitorMessageBtn">Mensaje</button>`;
 
   const lockedContentHTML = `
     <div class="section" style="margin-bottom:0;">
@@ -7103,9 +7272,9 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
           <span class="stat-divider"></span>
           <div class="profile-stat"><b>${canSeeContent ? foreignOutfits.length : "–"}</b><span>${!canSeeContent ? "outfits" : (foreignOutfits.length === 1 ? "outfit" : "outfits")}</span></div>
           <span class="stat-divider"></span>
-          <div class="profile-stat"><b id="visitorFollowerCount">…</b><span>seguidores</span></div>
+          <div class="profile-stat" data-follow-list="followers" style="cursor:pointer;"><b id="visitorFollowerCount">…</b><span>seguidores</span></div>
           <span class="stat-divider"></span>
-          <div class="profile-stat"><b id="visitorFollowingCount">…</b><span>seguidos</span></div>
+          <div class="profile-stat" data-follow-list="following" style="cursor:pointer;"><b id="visitorFollowingCount">…</b><span>seguidos</span></div>
         </div>
         ${lockBadge}
       </div>
@@ -7192,6 +7361,11 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
       }
     });
   }
+  document.querySelectorAll('#viewVisitorProfile [data-follow-list]').forEach(el => {
+    el.addEventListener("click", () => openFollowList(targetUid, el.dataset.followList));
+  });
+  const messageBtn = document.getElementById("visitorMessageBtn");
+  if (messageBtn) messageBtn.addEventListener("click", () => openChat(targetUid, meta));
   function switchVisitorTab(tab) {
     document.querySelectorAll("#visitorProfileTabs [data-vtab]").forEach(b => b.classList.toggle("active", b.dataset.vtab === tab));
     document.getElementById("visitorArmarioTabPane").style.display = tab === "armario" ? "block" : "none";
@@ -8077,6 +8251,7 @@ document.getElementById("outfitSelectClose").addEventListener("click", () => doc
 
 function renderProfileCollections() {
   const grid = document.getElementById("profileCollectionsGrid");
+  document.getElementById("profileCollectionsCount").textContent = collections.length ? `${collections.length} colección${collections.length === 1 ? "" : "es"}` : "Guarda y organiza tus looks y prendas favoritas.";
   const lockIcon = `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 8 0v4"/></svg>`;
   const tiles = collections.map(c => {
     const coverOutfit = c.coverOutfitId ? outfits.find(o => o.id === c.coverOutfitId) : null;
