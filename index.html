@@ -618,6 +618,13 @@
   .chat-bubble-row.mine { justify-content:flex-end; }
   .chat-bubble { max-width:75%; padding:8px 12px; border-radius:16px; background:var(--bg); color:var(--ink); font-size:13px; line-height:1.35; word-break:break-word; }
   .chat-bubble-row.mine .chat-bubble { background:var(--ink); color:#fff; }
+  .chat-quote { font-size:11px; opacity:0.75; border-left:2px solid currentColor; padding-left:6px; margin-bottom:4px; }
+  .chat-shared-post { display:flex; align-items:center; gap:8px; background:var(--paper); border:1px solid var(--line-strong); border-radius:12px; padding:6px; cursor:pointer; max-width:220px; }
+  .chat-shared-post-img { width:40px; height:52px; border-radius:6px; overflow:hidden; background:#EFEFEC; flex-shrink:0; }
+  .chat-shared-post-img img { width:100%; height:100%; object-fit:cover; }
+  .chat-shared-post-info { display:flex; flex-direction:column; font-size:11.5px; min-width:0; }
+  .chat-shared-post-info b { font-size:11px; }
+  .chat-shared-post-info span { color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .post-card-comment-thread { margin-bottom:2px; }
   .post-card-comment-item.is-reply { margin-left:26px; margin-top:6px; }
   .post-card-comment-item.is-highlighted { background:rgba(47,72,88,0.08); border-radius:8px; padding:5px 6px; margin-left:-6px; margin-right:-6px; }
@@ -792,6 +799,9 @@
     <button class="topbar-shop-btn" id="topbarShopBtn" aria-label="¿Me lo compro?">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4.5a1 1 0 0 0-1 1.11l1 9A2 2 0 0 0 6.48 17H16.5a2 2 0 0 0 2-1.83l.85-9.06A1 1 0 0 0 18.35 5H9Z"/><path d="M9 5a3 3 0 0 1 6 0"/><circle cx="9" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".6" fill="currentColor" stroke="none"/></svg>
     </button>
+    <button class="topbar-shop-btn" id="topbarMessagesBtn" aria-label="Mensajes">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5c-1.35 0-2.62-.34-3.73-.94L3 21l1.94-5.77A8.38 8.38 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg>
+    </button>
     <button class="topbar-bell-btn" id="topbarBellBtn" aria-label="Solicitudes de seguimiento">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
       <span class="notif-dot"></span>
@@ -827,6 +837,10 @@
           <span class="notif-dot" style="top:-2px; right:-2px;"></span>
         </span>
         Notificaciones
+      </button>
+      <button class="nav-item" id="viewTabMessages">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5c-1.35 0-2.62-.34-3.73-.94L3 21l1.94-5.77A8.38 8.38 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg>
+        Mensajes
       </button>
       <div class="nav-divider"></div>
       <button class="nav-item" id="viewTabProfile">
@@ -1053,6 +1067,38 @@
       <button class="btn btn-primary" id="shopUploadBtn" style="margin: 0 auto;"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg> Subir foto de la prenda</button>
     </div>
     <div id="shopResult"></div>
+  </div>
+
+  <div id="viewMessages" style="display:none;">
+    <div id="messagesInboxPane">
+      <div class="section">
+        <div class="section-header">
+          <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5c-1.35 0-2.62-.34-3.73-.94L3 21l1.94-5.77A8.38 8.38 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg></div>
+          <div class="section-header-text">
+            <h2>Mensajes</h2>
+            <p class="section-header-sub" id="messagesInboxCount">Tus conversaciones.</p>
+          </div>
+        </div>
+        <div id="messagesInboxList" style="display:flex; flex-direction:column; gap:10px;"></div>
+      </div>
+    </div>
+    <div id="messagesThreadPane" style="display:none;">
+      <button class="back-chip" id="messagesThreadBackBtn" style="margin-bottom:14px;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
+        Mensajes
+      </button>
+      <div class="section" style="display:flex; flex-direction:column; height:min(70vh, 560px); padding-bottom:12px;">
+        <div id="messagesThreadHeader" style="display:flex; align-items:center; gap:10px; padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:12px; flex-shrink:0;"></div>
+        <div id="messagesThreadList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
+        <div id="messagesThreadReplyBanner" class="post-card-reply-banner" style="display:none; margin-top:10px;"></div>
+        <div class="post-card-comment-form" style="margin-top:10px; flex-shrink:0;">
+          <input type="text" id="messagesThreadInput" class="post-card-comment-input" placeholder="Escribe un mensaje…" maxlength="500">
+          <button type="button" id="messagesThreadSendBtn" class="post-card-comment-send" title="Enviar">
+            <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
+          </button>
+        </div>
+      </div>
+    </div>
   </div>
 
   <div id="viewSettings" style="display:none;">
@@ -1602,19 +1648,14 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="chatBackdrop">
-  <div class="modal" style="max-width:420px; padding:0; overflow:hidden; max-height:85vh; display:flex; flex-direction:column;">
-    <div class="modal-head" style="padding:14px 16px; margin-bottom:0; border-bottom:1px solid var(--line);">
-      <h2 style="font-size:15px;" id="chatTitle">Mensaje</h2>
-      <button class="modal-close" id="chatClose">✕</button>
+<div class="modal-backdrop" id="sharePickerBackdrop">
+  <div class="modal" style="max-width:380px;">
+    <div class="modal-head">
+      <h2 style="font-size:16px;">Enviar por mensaje</h2>
+      <button class="modal-close" id="sharePickerClose">✕</button>
     </div>
-    <div id="chatMessages" style="flex:1; overflow-y:auto; padding:14px 16px; display:flex; flex-direction:column; gap:8px;"></div>
-    <div style="position:relative; padding:10px 14px; border-top:1px solid var(--line); flex-shrink:0;">
-      <input type="text" id="chatInput" placeholder="Escribe un mensaje…" maxlength="500" style="width:100%; border:1px solid var(--line-strong); border-radius:999px; padding:9px 40px 9px 14px; font-size:13px; font-family:inherit; background:var(--bg); color:var(--ink); box-sizing:border-box;">
-      <button type="button" id="chatSendBtn" title="Enviar" style="position:absolute; right:20px; top:50%; transform:translateY(-50%); width:26px; height:26px; border-radius:50%; background:var(--ink); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0;">
-        <svg viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2.3" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5"/><path d="m5 12 7-7 7 7"/></svg>
-      </button>
-    </div>
+    <input type="text" id="sharePickerSearchInput" placeholder="Buscar por @usuario…" style="width:100%; margin-bottom:12px; box-sizing:border-box;">
+    <div id="sharePickerList" style="display:flex; flex-direction:column; gap:10px; max-height:320px; overflow-y:auto;"></div>
   </div>
 </div>
 
@@ -4763,6 +4804,7 @@ const PAGE_META = {
   shop: { title: "¿Me lo compro?", subtitle: "¿Dudas si esa prenda combinaría con lo que ya tienes? ¡Compruébalo antes de comprarla!", action: false },
   profile: { title: "Perfil", subtitle: "DROBR no muestra quién eres. Muestra cómo utilizas lo que tienes.", action: false },
   settings: { title: "Configuración", subtitle: "Copia de seguridad de tu armario.", action: false },
+  messages: { title: "Mensajes", subtitle: "Tus conversaciones privadas.", action: false },
 };
 
 function switchView(view) {
@@ -4773,6 +4815,7 @@ function switchView(view) {
   document.getElementById("viewShop").style.display = view === "shop" ? "block" : "none";
   document.getElementById("viewProfile").style.display = view === "profile" ? "block" : "none";
   document.getElementById("viewSettings").style.display = view === "settings" ? "block" : "none";
+  document.getElementById("viewMessages").style.display = view === "messages" ? "block" : "none";
   if (view === "settings") populateAccountSettings();
   document.getElementById("topbarSettingsBtn").style.display = view === "profile" ? "flex" : "none";
   if (view !== "wardrobe") {
@@ -4787,8 +4830,9 @@ function switchView(view) {
   const shTab = document.getElementById("viewTabShop");
   const pTab = document.getElementById("viewTabProfile");
   const sTab = document.getElementById("viewTabSettings");
-  [hTab, wTab, shTab, pTab, sTab].forEach(t => t.classList.remove("nav-active"));
-  ({ home: hTab, wardrobe: wTab, shop: shTab, profile: pTab, settings: sTab }[view]).classList.add("nav-active");
+  const mTab = document.getElementById("viewTabMessages");
+  [hTab, wTab, shTab, pTab, sTab, mTab].forEach(t => t.classList.remove("nav-active"));
+  ({ home: hTab, wardrobe: wTab, shop: shTab, profile: pTab, settings: sTab, messages: mTab }[view])?.classList.add("nav-active");
   if (view === "home") renderHomeFeed();
   if (view === "wardrobe") switchWardrobeTab("armario");
   if (view === "shop") renderShopView();
@@ -5444,71 +5488,317 @@ function conversationIdFor(uidA, uidB) {
   return [uidA, uidB].sort().join("_");
 }
 
-let currentChatUnsub = null;
-let currentChatWithUid = null;
-
-async function openChat(targetUid, targetMeta) {
+// Resuelve los datos de una publicación (propia o ajena) para poder
+// mostrarla, sin asumir de quién es — la reutilizan tanto las notificaciones
+// como abrir una publicación compartida por mensaje.
+async function resolvePostForViewing(ownerUid, postType, postId) {
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
-  if (!myUid || myUid === targetUid) return;
-  currentChatWithUid = targetUid;
-  const convId = conversationIdFor(myUid, targetUid);
-  document.getElementById("chatTitle").textContent = "@" + (targetMeta.username || "usuario");
-  document.getElementById("chatMessages").innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Cargando...</p>`;
-  document.getElementById("chatBackdrop").classList.add("open");
-  const { doc, setDoc, collection, query, orderBy, onSnapshot, serverTimestamp } = window.__drobrFirestoreFns;
-  try {
-    await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, targetUid].sort(), updatedAt: serverTimestamp() }, { merge: true });
-  } catch (err) { console.error(err); }
-  if (currentChatUnsub) { currentChatUnsub(); currentChatUnsub = null; }
-  const q = query(collection(window.__drobrDb, "conversations", convId, "messages"), orderBy("createdAt", "asc"));
-  currentChatUnsub = onSnapshot(q, (snap) => {
-    renderChatMessages(snap.docs.map(d => d.data()), myUid);
+  if (ownerUid === myUid) {
+    const data = postType === "outfit" ? outfits.find(x => x.id === postId) : garments.find(x => x.id === postId);
+    return { data, meta: myProfileMeta(), outfitsArr: outfits };
+  }
+  const { doc, getDoc } = window.__drobrFirestoreFns;
+  const [metaSnap, dataSnap, outfitsList] = await Promise.all([
+    getDoc(doc(window.__drobrDb, "armarios", ownerUid)),
+    getDoc(doc(window.__drobrDb, "armarios", ownerUid, postSubcollection(postType), postId)),
+    leerColeccion(ownerUid, "outfits"),
+  ]);
+  const meta = metaSnap.exists() ? metaSnap.data() : {};
+  const data = dataSnap.exists() ? { id: dataSnap.id, ...dataSnap.data() } : null;
+  return { data, meta, outfitsArr: outfitsList };
+}
+
+/* ---------------- Mensajes privados ----------------
+   Pantalla propia (bandeja + hilo), no un modal: se accede desde el icono
+   "Mensajes" del menú (o desde el botón "Mensaje" de un perfil, o al
+   compartir una publicación por mensaje). Los mensajes admiten "Responder"
+   a uno concreto (cita, un solo nivel, igual que los comentarios) y
+   @menciones pulsables. La colección "conversations" está fuera de
+   "armarios": id = los dos uids ordenados y unidos con "_", así nunca hay
+   dos conversaciones para el mismo par de personas. */
+let messagesInboxUnsub = null;
+let currentThreadUnsub = null;
+let currentThreadWithUid = null;
+let currentThreadMessages = [];
+let threadReplyingTo = null;
+
+function showMessagesInbox() {
+  document.getElementById("messagesThreadPane").style.display = "none";
+  document.getElementById("messagesInboxPane").style.display = "block";
+  if (currentThreadUnsub) { currentThreadUnsub(); currentThreadUnsub = null; }
+  currentThreadWithUid = null;
+  threadReplyingTo = null;
+  renderMessagesInbox();
+}
+
+async function renderMessagesInbox() {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (!myUid) return;
+  const list = document.getElementById("messagesInboxList");
+  list.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Cargando...</p>`;
+  const { collection, query, where, orderBy, onSnapshot, doc, getDoc } = window.__drobrFirestoreFns;
+  if (messagesInboxUnsub) { messagesInboxUnsub(); messagesInboxUnsub = null; }
+  const q = query(collection(window.__drobrDb, "conversations"), where("participants", "array-contains", myUid), orderBy("updatedAt", "desc"));
+  messagesInboxUnsub = onSnapshot(q, async (snap) => {
+    const convs = snap.docs.map(d => d.data());
+    document.getElementById("messagesInboxCount").textContent = convs.length ? `${convs.length} conversaci${convs.length === 1 ? "ón" : "ones"}` : "Tus conversaciones.";
+    if (!convs.length) {
+      list.innerHTML = `<p class="sub foreign-gallery-empty">Todavía no tienes conversaciones. Escribe a alguien desde su perfil.</p>`;
+      return;
+    }
+    const rows = await Promise.all(convs.map(async (c) => {
+      const otherUid = c.participants.find(p => p !== myUid);
+      let meta = {};
+      try {
+        const snap2 = await getDoc(doc(window.__drobrDb, "armarios", otherUid));
+        meta = snap2.exists() ? snap2.data() : {};
+      } catch {}
+      const name = meta.name || meta.username || "Usuario";
+      const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="" style="width:100%; height:100%; object-fit:cover;">` : name.charAt(0).toUpperCase();
+      const lm = c.lastMessage;
+      const preview = lm ? (lm.type === "shared_post" ? "📎 Publicación compartida" : (lm.fromUid === myUid ? "Tú: " : "") + (lm.text || "")) : "";
+      return `
+        <div class="collection-item-row" data-conv-uid="${otherUid}" style="cursor:pointer;">
+          <div style="width:44px; height:44px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
+          <div style="min-width:0;">
+            <p style="margin:0; font-weight:600; font-size:13.5px;">${name}</p>
+            <p style="margin:2px 0 0; font-size:12px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${preview}</p>
+          </div>
+        </div>`;
+    }));
+    list.innerHTML = rows.join("");
+    list.querySelectorAll("[data-conv-uid]").forEach(row => {
+      row.addEventListener("click", () => openMessageThread(row.dataset.convUid));
+    });
   }, (err) => {
     console.error(err);
-    document.getElementById("chatMessages").innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">No se pudieron cargar los mensajes.</p>`;
+    list.innerHTML = `<p class="sub foreign-gallery-empty">No se pudieron cargar las conversaciones.</p>`;
   });
 }
 
-function renderChatMessages(msgs, myUid) {
-  const el = document.getElementById("chatMessages");
-  if (!msgs.length) {
+async function openMessageThread(targetUid) {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (!myUid || myUid === targetUid) return;
+  currentThreadWithUid = targetUid;
+  threadReplyingTo = null;
+  document.getElementById("messagesThreadReplyBanner").style.display = "none";
+  switchView("messages");
+  document.getElementById("messagesInboxPane").style.display = "none";
+  document.getElementById("messagesThreadPane").style.display = "block";
+  const { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, serverTimestamp } = window.__drobrFirestoreFns;
+  let meta = {};
+  try {
+    const snap = await getDoc(doc(window.__drobrDb, "armarios", targetUid));
+    meta = snap.exists() ? snap.data() : {};
+  } catch {}
+  const name = meta.name || meta.username || "Usuario";
+  document.getElementById("messagesThreadHeader").innerHTML = `
+    <div style="width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; overflow:hidden;">${meta.avatar ? `<img src="${meta.avatar}" alt="" style="width:100%; height:100%; object-fit:cover;">` : name.charAt(0).toUpperCase()}</div>
+    <span style="font-weight:600; font-size:14px;">@${meta.username || name}</span>`;
+  document.getElementById("messagesThreadList").innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Cargando...</p>`;
+  const convId = conversationIdFor(myUid, targetUid);
+  try {
+    await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, targetUid].sort(), updatedAt: serverTimestamp() }, { merge: true });
+  } catch (err) { console.error(err); }
+  if (currentThreadUnsub) { currentThreadUnsub(); currentThreadUnsub = null; }
+  const q = query(collection(window.__drobrDb, "conversations", convId, "messages"), orderBy("createdAt", "asc"));
+  currentThreadUnsub = onSnapshot(q, (snap) => {
+    currentThreadMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+    renderThreadMessages(myUid);
+  }, (err) => {
+    console.error(err);
+    document.getElementById("messagesThreadList").innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">No se pudieron cargar los mensajes.</p>`;
+  });
+}
+
+function threadMessageBubbleHTML(m, myUid) {
+  const mine = m.fromUid === myUid;
+  const quoted = m.replyToText ? `<div class="chat-quote">${(m.replyToText || "").slice(0, 80).replace(/</g, "&lt;")}</div>` : "";
+  let body;
+  if (m.type === "shared_post") {
+    body = `
+      <div class="chat-shared-post" data-open-shared-post="${m.id}">
+        <div class="chat-shared-post-img">${m.postPreview?.image ? `<img src="${m.postPreview.image}" alt="">` : ""}</div>
+        <div class="chat-shared-post-info"><b>@${m.postPreview?.ownerUsername || ""}</b><span>${m.postPreview?.title || "Publicación"}</span></div>
+      </div>${quoted ? `<div class="chat-bubble" style="margin-top:4px; padding:6px 10px;">${quoted}</div>` : ""}`;
+  } else {
+    body = `<div class="chat-bubble">${quoted}${linkifyMentions((m.text || "").replace(/</g, "&lt;"))}</div>`;
+  }
+  return `
+    <div class="chat-bubble-row${mine ? " mine" : ""}" data-message-id="${m.id}">
+      <div>
+        ${body}
+        <button type="button" class="post-card-comment-reply-btn" data-reply-msg="${m.id}" style="margin:2px 4px;">Responder</button>
+      </div>
+    </div>`;
+}
+
+function renderThreadMessages(myUid) {
+  const el = document.getElementById("messagesThreadList");
+  if (!currentThreadMessages.length) {
     el.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Aún no hay mensajes. ¡Escribe el primero!</p>`;
     return;
   }
-  el.innerHTML = msgs.map(m => `
-    <div class="chat-bubble-row${m.fromUid === myUid ? " mine" : ""}">
-      <div class="chat-bubble">${(m.text || "").replace(/</g, "&lt;")}</div>
-    </div>`).join("");
+  el.innerHTML = currentThreadMessages.map(m => threadMessageBubbleHTML(m, myUid)).join("");
+  el.querySelectorAll("[data-reply-msg]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const msg = currentThreadMessages.find(x => x.id === btn.dataset.replyMsg);
+      if (msg) setThreadReplyingTo(msg);
+    });
+  });
+  el.querySelectorAll(".post-card-mention").forEach(span => {
+    span.addEventListener("click", async () => {
+      const uname = span.dataset.mentionUsername;
+      try {
+        const { doc, getDoc } = window.__drobrFirestoreFns;
+        const usnap = await getDoc(doc(window.__drobrDb, "usernames", uname.toLowerCase()));
+        if (!usnap.exists()) return;
+        const targetUid = usnap.data().uid;
+        const myUid2 = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+        if (targetUid === myUid2) switchView("profile"); else openVisitorProfile(targetUid);
+      } catch (err) { console.error(err); }
+    });
+  });
+  el.querySelectorAll("[data-open-shared-post]").forEach(card => {
+    card.addEventListener("click", async () => {
+      const msg = currentThreadMessages.find(x => x.id === card.dataset.openSharedPost);
+      if (!msg || !msg.postPreview) return;
+      try {
+        const { data, meta, outfitsArr } = await resolvePostForViewing(msg.postOwnerUid, msg.postType, msg.postId);
+        if (!data) { showAppToast("Esa publicación ya no existe."); return; }
+        openSinglePost(msg.postType, data, msg.postOwnerUid, meta, outfitsArr);
+      } catch (err) { console.error(err); showAppToast("No se pudo abrir la publicación."); }
+    });
+  });
   el.scrollTop = el.scrollHeight;
 }
 
-function closeChat() {
-  document.getElementById("chatBackdrop").classList.remove("open");
-  if (currentChatUnsub) { currentChatUnsub(); currentChatUnsub = null; }
-  currentChatWithUid = null;
+function setThreadReplyingTo(msg) {
+  threadReplyingTo = msg;
+  const banner = document.getElementById("messagesThreadReplyBanner");
+  const preview = msg.type === "shared_post" ? "una publicación" : (msg.text || "").slice(0, 60);
+  banner.style.display = "flex";
+  banner.innerHTML = `<span>Respondiendo: “${preview}”</span><button type="button" id="cancelThreadReply">✕</button>`;
+  document.getElementById("cancelThreadReply").addEventListener("click", (e) => { e.stopPropagation(); threadReplyingTo = null; banner.style.display = "none"; banner.innerHTML = ""; });
+  document.getElementById("messagesThreadInput").focus();
 }
 
-async function sendChatMessage() {
-  const input = document.getElementById("chatInput");
+async function sendThreadMessage() {
+  const input = document.getElementById("messagesThreadInput");
   const text = input.value.trim();
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
-  if (!text || !myUid || !currentChatWithUid) return;
-  const convId = conversationIdFor(myUid, currentChatWithUid);
+  if (!text || !myUid || !currentThreadWithUid) return;
   input.value = "";
+  const replyToId = threadReplyingTo ? threadReplyingTo.id : null;
+  const replyToText = threadReplyingTo ? (threadReplyingTo.type === "shared_post" ? "Publicación compartida" : threadReplyingTo.text) : null;
+  threadReplyingTo = null;
+  document.getElementById("messagesThreadReplyBanner").style.display = "none";
+  const convId = conversationIdFor(myUid, currentThreadWithUid);
   const { doc, setDoc, collection, serverTimestamp } = window.__drobrFirestoreFns;
   try {
     const msgRef = doc(collection(window.__drobrDb, "conversations", convId, "messages"));
-    await setDoc(msgRef, { fromUid: myUid, text, createdAt: serverTimestamp() });
-    await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, currentChatWithUid].sort(), lastMessage: { text, fromUid: myUid }, updatedAt: serverTimestamp() }, { merge: true });
+    const data = { fromUid: myUid, text, createdAt: serverTimestamp() };
+    if (replyToId) { data.replyToId = replyToId; data.replyToText = replyToText; }
+    await setDoc(msgRef, data);
+    await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, currentThreadWithUid].sort(), lastMessage: { text, fromUid: myUid }, updatedAt: serverTimestamp() }, { merge: true });
   } catch (err) {
     console.error(err);
     showAppToast("No se pudo enviar el mensaje.");
   }
 }
-document.getElementById("chatSendBtn").addEventListener("click", sendChatMessage);
-document.getElementById("chatInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendChatMessage(); } });
-document.getElementById("chatClose").addEventListener("click", closeChat);
-document.getElementById("chatBackdrop").addEventListener("click", (e) => { if (e.target.id === "chatBackdrop") closeChat(); });
+document.getElementById("messagesThreadSendBtn").addEventListener("click", sendThreadMessage);
+document.getElementById("messagesThreadInput").addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); sendThreadMessage(); } });
+document.getElementById("messagesThreadBackBtn").addEventListener("click", showMessagesInbox);
+document.getElementById("viewTabMessages").addEventListener("click", () => { switchView("messages"); showMessagesInbox(); });
+document.getElementById("topbarMessagesBtn").addEventListener("click", () => { switchView("messages"); showMessagesInbox(); });
+
+/* ---------------- Enviar una publicación por mensaje ----------------
+   Se abre desde el menú "..." de cualquier tarjeta ("Enviar por mensaje"),
+   propia o ajena. Lista tus conversaciones existentes para elegir rápido, y
+   permite buscar a alguien nuevo por @usuario. */
+let sharePickerEntry = null;
+let sharePickerType = null;
+
+async function openSharePicker(entry, type) {
+  sharePickerEntry = entry;
+  sharePickerType = type;
+  document.getElementById("sharePickerBackdrop").classList.add("open");
+  document.getElementById("sharePickerSearchInput").value = "";
+  await renderSharePickerConversations();
+}
+
+async function renderSharePickerConversations() {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  const list = document.getElementById("sharePickerList");
+  list.innerHTML = `<p class="sub" style="text-align:center; padding:14px 0;">Cargando...</p>`;
+  try {
+    const { collection, query, where, orderBy, getDocs, doc, getDoc } = window.__drobrFirestoreFns;
+    const q = query(collection(window.__drobrDb, "conversations"), where("participants", "array-contains", myUid), orderBy("updatedAt", "desc"));
+    const snap = await getDocs(q);
+    const convs = snap.docs.map(d => d.data());
+    if (!convs.length) {
+      list.innerHTML = `<p class="sub" style="text-align:center; padding:14px 0;">Busca a alguien arriba para enviárselo.</p>`;
+      return;
+    }
+    const rows = await Promise.all(convs.map(async (c) => {
+      const otherUid = c.participants.find(p => p !== myUid);
+      const snap2 = await getDoc(doc(window.__drobrDb, "armarios", otherUid));
+      const meta = snap2.exists() ? snap2.data() : {};
+      const name = meta.name || meta.username || "Usuario";
+      return `<div class="collection-item-row" data-share-target="${otherUid}" style="cursor:pointer;">
+        <div style="width:36px; height:36px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; overflow:hidden;">${meta.avatar ? `<img src="${meta.avatar}" style="width:100%;height:100%;object-fit:cover;">` : name.charAt(0).toUpperCase()}</div>
+        <span>${name}</span>
+      </div>`;
+    }));
+    list.innerHTML = rows.join("");
+    document.querySelectorAll("#sharePickerList [data-share-target]").forEach(row => {
+      row.addEventListener("click", () => sendSharedPost(row.dataset.shareTarget));
+    });
+  } catch (err) {
+    console.error(err);
+    list.innerHTML = `<p class="sub" style="text-align:center; padding:14px 0;">No se pudieron cargar tus conversaciones.</p>`;
+  }
+}
+
+document.getElementById("sharePickerSearchInput").addEventListener("keydown", async (e) => {
+  if (e.key !== "Enter") return;
+  const uname = e.target.value.trim().replace(/^@/, "").toLowerCase();
+  if (!uname) return;
+  try {
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const usnap = await getDoc(doc(window.__drobrDb, "usernames", uname));
+    if (!usnap.exists()) { showAppToast("Ese usuario no existe."); return; }
+    sendSharedPost(usnap.data().uid);
+  } catch (err) { console.error(err); }
+});
+
+async function sendSharedPost(targetUid) {
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  if (!myUid || !sharePickerEntry || targetUid === myUid) return;
+  const entry = sharePickerEntry;
+  const type = sharePickerType;
+  const data = type === "outfit" ? entry.outfit : entry.garment;
+  const img = type === "outfit" ? (data.thumbCache || garmentImageForDisplay(data.top) || "") : (data.image || "");
+  const title = type === "outfit" ? (data.name || "Outfit") : (data.name || categoryLabel(data.category));
+  const convId = conversationIdFor(myUid, targetUid);
+  const { doc, setDoc, collection, serverTimestamp } = window.__drobrFirestoreFns;
+  try {
+    await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, targetUid].sort(), updatedAt: serverTimestamp() }, { merge: true });
+    const msgRef = doc(collection(window.__drobrDb, "conversations", convId, "messages"));
+    await setDoc(msgRef, {
+      fromUid: myUid, type: "shared_post", createdAt: serverTimestamp(),
+      postType: type, postId: data.id, postOwnerUid: entry.uid,
+      postPreview: { image: img, title, ownerUsername: entry.meta.username || "" },
+    });
+    await setDoc(doc(window.__drobrDb, "conversations", convId), { lastMessage: { type: "shared_post", fromUid: myUid }, updatedAt: serverTimestamp() }, { merge: true });
+    document.getElementById("sharePickerBackdrop").classList.remove("open");
+    showAppToast("Enviado.");
+  } catch (err) {
+    console.error(err);
+    showAppToast("No se pudo enviar.");
+  }
+}
+document.getElementById("sharePickerClose").addEventListener("click", () => document.getElementById("sharePickerBackdrop").classList.remove("open"));
 
 // Lista de seguidores/seguidos navegable (antes solo eran números sueltos).
 // Reutiliza el mismo patrón de fila que ya usan las solicitudes de seguimiento.
@@ -5814,15 +6104,18 @@ function homeFeedEntryDate(entry) {
 // del detalle y ahora se agrupan en el menú "..." de la propia tarjeta,
 // dejando like/comentarios/compartir/guardar como acciones principales.
 function postCardKebabItemsHTML(type, isOwn) {
+  const dmItem = `<button type="button" data-kaction="dm">Enviar por mensaje</button>`;
   if (type === "garment") {
     return `
       <button type="button" data-kaction="details">Ver detalles</button>
+      ${dmItem}
       ${isOwn ? "" : `
       <button type="button" data-kaction="check">Comprobar combinaciones</button>
       <button type="button" data-kaction="outfits">Sus outfits con esta prenda</button>`}`;
   }
   return `
       <button type="button" data-kaction="details">Ver detalles</button>
+      ${dmItem}
       ${isOwn ? "" : `<button type="button" data-kaction="recreate">Recrear con mi armario</button>`}`;
 }
 
@@ -6040,6 +6333,10 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
             if (type === "garment") openForeignGarmentDetail(entry.garment, entry.meta, entry.outfitsArr);
             else openForeignOutfitDetail(entry.outfit, entry.meta, entry.outfitsArr);
           }
+          return;
+        }
+        if (action === "dm") {
+          openSharePicker(entry, type);
           return;
         }
         if (type === "garment") {
@@ -6480,21 +6777,7 @@ async function openNotificationTarget(n) {
   };
   let data, meta, outfitsArr;
   try {
-    if (ownerUid === myUid) {
-      data = n.postType === "outfit" ? outfits.find(x => x.id === n.postId) : garments.find(x => x.id === n.postId);
-      meta = myProfileMeta();
-      outfitsArr = outfits;
-    } else {
-      const { doc, getDoc } = window.__drobrFirestoreFns;
-      const [metaSnap, dataSnap, outfitsList] = await Promise.all([
-        getDoc(doc(window.__drobrDb, "armarios", ownerUid)),
-        getDoc(doc(window.__drobrDb, "armarios", ownerUid, postSubcollection(n.postType), n.postId)),
-        leerColeccion(ownerUid, "outfits"),
-      ]);
-      meta = metaSnap.exists() ? metaSnap.data() : {};
-      data = dataSnap.exists() ? { id: dataSnap.id, ...dataSnap.data() } : null;
-      outfitsArr = outfitsList;
-    }
+    ({ data, meta, outfitsArr } = await resolvePostForViewing(ownerUid, n.postType, n.postId));
   } catch (err) {
     console.error(err);
     showAppToast("No se pudo abrir la publicación.");
@@ -7365,7 +7648,7 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
     el.addEventListener("click", () => openFollowList(targetUid, el.dataset.followList));
   });
   const messageBtn = document.getElementById("visitorMessageBtn");
-  if (messageBtn) messageBtn.addEventListener("click", () => openChat(targetUid, meta));
+  if (messageBtn) messageBtn.addEventListener("click", () => openMessageThread(targetUid));
   function switchVisitorTab(tab) {
     document.querySelectorAll("#visitorProfileTabs [data-vtab]").forEach(b => b.classList.toggle("active", b.dataset.vtab === tab));
     document.getElementById("visitorArmarioTabPane").style.display = tab === "armario" ? "block" : "none";
