@@ -483,7 +483,7 @@
   .stat-divider { width:1px; height:19px; background:var(--line-strong); margin:2px 16px 0; }
   .profile-stat b { display:block; font-size:16px; font-weight:700; font-family:"Poppins",sans-serif; color:var(--ink); }
   .profile-stat span { display:block; font-size:11px; color:var(--ink-soft); margin-top:2px; }
-  .profile-actions-row { order:3; display:flex; gap:8px; margin-left:auto; flex-shrink:0; }
+  .profile-actions-row { order:3; display:flex; align-items:center; gap:8px; margin-left:auto; flex-shrink:0; }
   .profile-action-half { justify-content:center; padding:9px 18px; font-size:13px; white-space:nowrap; }
   .profile-action-compact { padding:8px 18px; font-size:12.5px; }
   .profile-avatar { order:1; width:68px; height:68px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:23px; font-weight:600; flex-shrink:0; font-family:"Poppins",sans-serif; overflow:hidden; }
@@ -5102,7 +5102,10 @@ document.addEventListener("drobrAuthChecked", (e) => {
 }, { once: true });
 
 document.addEventListener("drobrAuthChecked", (e) => {
-  if (e.detail.user) { syncProfileIdentity(e.detail.user.uid); watchFollowRequests(e.detail.user.uid); watchActivityNotifications(e.detail.user.uid); renderHomeFeed(); openProfileFromUrlParam(); }
+  // switchView("home") en vez de renderHomeFeed() directo: así también oculta
+  // el buscador/"Añadir prenda" de Mi armario (pageAction/pageHead), que sin
+  // esto se quedaba visible encima de Inicio porque nada lo ocultaba al cargar.
+  if (e.detail.user) { syncProfileIdentity(e.detail.user.uid); watchFollowRequests(e.detail.user.uid); watchActivityNotifications(e.detail.user.uid); switchView("home"); openProfileFromUrlParam(); }
 });
 
 // Destino del enlace que genera "Compartir" en el perfil
@@ -5443,6 +5446,21 @@ async function acceptFollowRequest(myUid, followerUid) {
 
 async function rejectFollowRequest(myUid, followerUid) {
   await cancelFollow(myUid, followerUid);
+}
+
+// "Favorito" es un simple booleano sobre el propio documento de seguimiento
+// (armarios/{targetUid}/followers/{myUid}), así que solo tiene sentido si ya
+// sigo a esa cuenta; no crea ninguna colección nueva.
+async function getFollowIsFavorite(targetUid, myUid) {
+  if (!myUid || targetUid === myUid) return false;
+  const { getDoc } = window.__drobrFirestoreFns;
+  const snap = await getDoc(followerDocRef(targetUid, myUid));
+  return snap.exists() && snap.data().status === "accepted" ? !!snap.data().isFavorite : false;
+}
+
+async function setFollowFavorite(targetUid, myUid, isFavorite) {
+  const { updateDoc } = window.__drobrFirestoreFns;
+  await updateDoc(followerDocRef(targetUid, myUid), { isFavorite });
 }
 
 // Contadores exactos vía consulta de agregación (getCountFromServer): no hay
@@ -6532,16 +6550,27 @@ function homeFeedEmptyHTML(kind) {
         </button>
       </div>`;
   }
+  if (kind === "no-favorites") {
+    return `
+      <div class="empty">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="var(--line-strong)" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round" style="margin-bottom:14px;"><path d="m12 2.5 3 6.5 7 .6-5.3 4.6 1.6 6.8-6.3-3.7-6.3 3.7 1.6-6.8L2 9.6l7-.6Z"/></svg>
+        <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Todavía no tienes favoritos</p>
+        <p class="sub" style="margin:0 auto; text-align:center;">Entra al perfil de alguien que ya sigas y márcala como favorita para verla aquí.</p>
+      </div>`;
+  }
   return `
     <div class="empty">
       <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Nada nuevo por aquí todavía</p>
-      <p class="sub" style="margin:0 auto; text-align:center;">Las personas que sigues aún no han subido ninguna prenda ni outfit.</p>
+      <p class="sub" style="margin:0 auto; text-align:center;">${homeFeedScope === "favoritos" ? "Tus favoritos" : "Las personas que sigues"} aún no han subido ninguna prenda ni outfit.</p>
     </div>`;
 }
 
 let homeFeedOutfitEntries = [];
 let homeFeedGarmentEntries = [];
 let homeFeedActiveTab = "todo";
+let homeFeedScope = "siguiendo";
+let homeFeedFollowingUids = [];
+let homeFeedFavoriteUids = [];
 
 async function renderHomeFeed() {
   const container = document.getElementById("homeFeedContent");
@@ -6550,49 +6579,87 @@ async function renderHomeFeed() {
   if (!myUid) return;
   container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p>`;
   try {
-    // El feed incluye tanto a la gente que sigo como mis propias publicaciones.
-    const followingUids = await getFollowingUids(myUid);
-    const uids = Array.from(new Set([myUid, ...followingUids]));
-    const { doc, getDoc } = window.__drobrFirestoreFns;
+    // El feed solo muestra a la gente que sigo (nunca mis propias publicaciones,
+    // que ya están en "Mi armario"). Favoritos es un subconjunto de a quién sigo,
+    // marcado con "isFavorite" en el mismo documento de seguimiento.
+    const { collectionGroup, query, where, getDocs, doc, getDoc } = window.__drobrFirestoreFns;
+    const followQ = query(collectionGroup(window.__drobrDb, "followers"), where("followerUid", "==", myUid), where("status", "==", "accepted"));
+    const followSnap = await getDocs(followQ);
+    const followingUids = [];
+    const favoriteUids = [];
+    followSnap.docs.forEach(d => {
+      const uid = d.ref.parent.parent.id;
+      followingUids.push(uid);
+      if (d.data().isFavorite) favoriteUids.push(uid);
+    });
+    homeFeedFollowingUids = followingUids;
+    homeFeedFavoriteUids = favoriteUids;
     const outfitEntries = [];
     const garmentEntries = [];
-    await Promise.all(uids.map(async (uid) => {
+    await Promise.all(followingUids.map(async (uid) => {
       const [metaSnap, outfitsArr, prendasArr] = await Promise.all([
-        uid === myUid ? null : getDoc(doc(window.__drobrDb, "armarios", uid)),
+        getDoc(doc(window.__drobrDb, "armarios", uid)),
         leerColeccion(uid, "outfits"),
         leerColeccion(uid, "prendas"),
       ]);
-      const meta = uid === myUid ? profileData : (metaSnap && metaSnap.exists() ? metaSnap.data() : {});
+      const meta = metaSnap.exists() ? metaSnap.data() : {};
       outfitsArr.forEach(o => outfitEntries.push({ outfit: o, meta, uid, outfitsArr }));
       prendasArr.forEach(g => garmentEntries.push({ garment: g, meta, uid, outfitsArr }));
     }));
-    if (!outfitEntries.length && !garmentEntries.length) {
-      homeFeedOutfitEntries = [];
-      homeFeedGarmentEntries = [];
-      container.innerHTML = homeFeedEmptyHTML(followingUids.length ? "no-posts" : "no-follows");
-      const btn = document.getElementById("homeFeedSearchBtn");
-      if (btn) btn.addEventListener("click", openUserSearchModal);
-      return;
-    }
-    await attachPostSocialMeta([...outfitEntries, ...garmentEntries]);
+    if (outfitEntries.length || garmentEntries.length) await attachPostSocialMeta([...outfitEntries, ...garmentEntries]);
     homeFeedOutfitEntries = outfitEntries;
     homeFeedGarmentEntries = garmentEntries;
     container.innerHTML = `
-      <div class="profile-tabs" id="homeFeedTabs">
-        <button class="profile-tab active" data-hftab="todo">Todo</button>
-        <button class="profile-tab" data-hftab="prendas">Prendas</button>
-        <button class="profile-tab" data-hftab="outfits">Outfits</button>
+      <div class="profile-tabs" id="homeFeedScopeTabs">
+        <button class="profile-tab active" data-hfscope="siguiendo">Siguiendo</button>
+        <button class="profile-tab" data-hfscope="favoritos">Favoritos</button>
       </div>
-      <div id="homeFeedGroupsPane"></div>`;
-    document.querySelectorAll("#homeFeedTabs [data-hftab]").forEach(btn => {
-      btn.addEventListener("click", () => switchHomeFeedTab(btn.dataset.hftab));
+      <div id="homeFeedScopedContent"></div>`;
+    document.querySelectorAll("#homeFeedScopeTabs [data-hfscope]").forEach(btn => {
+      btn.addEventListener("click", () => switchHomeFeedScope(btn.dataset.hfscope));
     });
-    homeFeedActiveTab = "todo";
-    renderHomeFeedActiveTab();
+    homeFeedScope = "siguiendo";
+    renderHomeFeedScopedContent();
   } catch (err) {
     console.error(err);
     container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">No se pudo cargar el inicio.</p>`;
   }
+}
+
+function switchHomeFeedScope(scope) {
+  homeFeedScope = scope;
+  document.querySelectorAll("#homeFeedScopeTabs [data-hfscope]").forEach(b => b.classList.toggle("active", b.dataset.hfscope === scope));
+  renderHomeFeedScopedContent();
+}
+
+// Aplica el filtro "quién" (Siguiendo/Favoritos) y decide si hay algo que
+// enseñar; si lo hay, monta las sub-pestañas Todo/Prendas/Outfits de siempre.
+function renderHomeFeedScopedContent() {
+  const pane = document.getElementById("homeFeedScopedContent");
+  if (!pane) return;
+  const scopeUids = new Set(homeFeedScope === "favoritos" ? homeFeedFavoriteUids : homeFeedFollowingUids);
+  const hasContent = homeFeedOutfitEntries.some(e => scopeUids.has(e.uid)) || homeFeedGarmentEntries.some(e => scopeUids.has(e.uid));
+  if (!hasContent) {
+    let kind = "no-posts";
+    if (homeFeedScope === "siguiendo" && !homeFeedFollowingUids.length) kind = "no-follows";
+    else if (homeFeedScope === "favoritos" && !homeFeedFavoriteUids.length) kind = "no-favorites";
+    pane.innerHTML = homeFeedEmptyHTML(kind);
+    const btn = document.getElementById("homeFeedSearchBtn");
+    if (btn) btn.addEventListener("click", openUserSearchModal);
+    return;
+  }
+  pane.innerHTML = `
+    <div class="profile-tabs" id="homeFeedTabs">
+      <button class="profile-tab active" data-hftab="todo">Todo</button>
+      <button class="profile-tab" data-hftab="prendas">Prendas</button>
+      <button class="profile-tab" data-hftab="outfits">Outfits</button>
+    </div>
+    <div id="homeFeedGroupsPane"></div>`;
+  document.querySelectorAll("#homeFeedTabs [data-hftab]").forEach(btn => {
+    btn.addEventListener("click", () => switchHomeFeedTab(btn.dataset.hftab));
+  });
+  homeFeedActiveTab = "todo";
+  renderHomeFeedActiveTab();
 }
 
 function switchHomeFeedTab(tab) {
@@ -6604,10 +6671,11 @@ function switchHomeFeedTab(tab) {
 function renderHomeFeedActiveTab() {
   const pane = document.getElementById("homeFeedGroupsPane");
   if (!pane) return;
+  const scopeUids = new Set(homeFeedScope === "favoritos" ? homeFeedFavoriteUids : homeFeedFollowingUids);
   let list;
-  if (homeFeedActiveTab === "prendas") list = homeFeedGarmentEntries.slice();
-  else if (homeFeedActiveTab === "outfits") list = homeFeedOutfitEntries.slice();
-  else list = [...homeFeedOutfitEntries, ...homeFeedGarmentEntries];
+  if (homeFeedActiveTab === "prendas") list = homeFeedGarmentEntries.filter(e => scopeUids.has(e.uid));
+  else if (homeFeedActiveTab === "outfits") list = homeFeedOutfitEntries.filter(e => scopeUids.has(e.uid));
+  else list = [...homeFeedOutfitEntries, ...homeFeedGarmentEntries].filter(e => scopeUids.has(e.uid));
   list.sort((a, b) => new Date(homeFeedEntryDate(b) || 0) - new Date(homeFeedEntryDate(a) || 0));
   if (!list.length) {
     pane.innerHTML = `<p class="sub" style="text-align:center; padding:24px 0;">Nada que mostrar en esta pestaña todavía.</p>`;
@@ -6839,6 +6907,7 @@ async function openVisitorProfile(targetUid) {
     const meta = metaSnap.exists() ? metaSnap.data() : {};
     const followStatus = await getFollowStatus(targetUid, myUid);
     const canSeeContent = followStatus === "self" || !meta.isPrivate || followStatus === "accepted";
+    const isFavorite = followStatus === "accepted" ? await getFollowIsFavorite(targetUid, myUid) : false;
     let prendas = [], foreignOutfits = [], publicCollections = [];
     if (canSeeContent) {
       [prendas, foreignOutfits, publicCollections] = await Promise.all([
@@ -6847,7 +6916,7 @@ async function openVisitorProfile(targetUid) {
         leerColeccion(targetUid, "collections", { onlyPublic: true })
       ]);
     }
-    renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCollections, followStatus, canSeeContent);
+    renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCollections, followStatus, canSeeContent, isFavorite);
     visitorProfilePreviousView = currentView;
     showForeignSubView("viewVisitorProfile");
   } catch (err) {
@@ -7475,7 +7544,7 @@ function openForeignCollectionDetail(collection, meta, foreignOutfitsArr) {
 // lectura. Sin "Editar perfil" ni "Ver análisis" (es información personal del
 // dueño); con botón Seguir (stub, el sistema real de seguidores es el punto 4,
 // aún sin diseñar). Colecciones: solo las públicas.
-function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCollections, followStatus, canSeeContent) {
+function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCollections, followStatus, canSeeContent, isFavorite) {
   const name = meta.name || meta.username || "Usuario";
   const username = meta.username || "";
   const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
@@ -7493,7 +7562,11 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
   const followState = followStatus === "accepted" ? "accepted" : followStatus === "pending" ? "pending" : (meta.isPrivate ? "request" : "none");
   const FOLLOW_BTN_PRIMARY_STATES = new Set(["none", "request"]);
   const followBtnClass = FOLLOW_BTN_PRIMARY_STATES.has(followState) ? "btn-primary" : "btn-outline";
-  const followBtnHTML = followStatus === "self" ? "" : `<button class="btn ${followBtnClass} profile-action-compact" id="visitorFollowBtn" data-follow-state="${followState}">${FOLLOW_BTN_LABELS[followState]}</button><button class="btn btn-outline profile-action-compact" id="visitorMessageBtn">Mensaje</button>`;
+  // El botón de favorito solo tiene sentido si ya se sigue a la cuenta (ver
+  // getFollowIsFavorite/setFollowFavorite): favoritos es un subconjunto de a
+  // quién se sigue, no una lista independiente.
+  const favBtnHTML = followState === "accepted" ? `<button class="fav-filter-circle${isFavorite ? " active" : ""}" id="visitorFavoriteBtn" data-favorite="${isFavorite ? "1" : "0"}" title="${isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}" aria-label="${isFavorite ? "Quitar de favoritos" : "Marcar como favorito"}">★</button>` : "";
+  const followBtnHTML = followStatus === "self" ? "" : `<button class="btn ${followBtnClass} profile-action-compact" id="visitorFollowBtn" data-follow-state="${followState}">${FOLLOW_BTN_LABELS[followState]}</button>${favBtnHTML}<button class="btn btn-outline profile-action-compact" id="visitorMessageBtn">Mensaje</button>`;
 
   const lockedContentHTML = `
     <div class="section" style="margin-bottom:0;">
@@ -7622,6 +7695,12 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
           followBtn.dataset.followState = "accepted";
           followBtn.classList.remove("btn-primary");
           followBtn.classList.add("btn-outline");
+          // Cuenta pública: el seguimiento se acepta al instante, así que ya
+          // se puede marcar como favorita sin salir del perfil.
+          if (!document.getElementById("visitorFavoriteBtn")) {
+            followBtn.insertAdjacentHTML("afterend", `<button class="fav-filter-circle" id="visitorFavoriteBtn" data-favorite="0" title="Marcar como favorito" aria-label="Marcar como favorito">★</button>`);
+            wireFavoriteBtn();
+          }
         } else if (state === "request") {
           await sendFollowRequest(targetUid, myUid, true);
           followBtn.textContent = "Solicitado";
@@ -7634,6 +7713,10 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
           followBtn.dataset.followState = meta.isPrivate ? "request" : "none";
           followBtn.classList.remove("btn-outline");
           followBtn.classList.add("btn-primary");
+          // Al dejar de seguir, "favorito" deja de tener sentido (ver
+          // getFollowIsFavorite): se quita el botón en vez de dejarlo huérfano.
+          const favBtn = document.getElementById("visitorFavoriteBtn");
+          if (favBtn) favBtn.remove();
         }
         getFollowerCount(targetUid).then(n => { const el = document.getElementById("visitorFollowerCount"); if (el) el.textContent = n; }).catch(() => {});
       } catch (err) {
@@ -7644,6 +7727,28 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
       }
     });
   }
+  function wireFavoriteBtn() {
+    const favoriteBtn = document.getElementById("visitorFavoriteBtn");
+    if (!favoriteBtn) return;
+    favoriteBtn.addEventListener("click", async () => {
+      const myUid = window.__drobrAuth.currentUser.uid;
+      const makeFavorite = favoriteBtn.dataset.favorite !== "1";
+      favoriteBtn.disabled = true;
+      try {
+        await setFollowFavorite(targetUid, myUid, makeFavorite);
+        favoriteBtn.dataset.favorite = makeFavorite ? "1" : "0";
+        favoriteBtn.classList.toggle("active", makeFavorite);
+        favoriteBtn.title = makeFavorite ? "Quitar de favoritos" : "Marcar como favorito";
+        favoriteBtn.setAttribute("aria-label", favoriteBtn.title);
+      } catch (err) {
+        console.error(err);
+        showAppToast("No se pudo actualizar. Inténtalo de nuevo.");
+      } finally {
+        favoriteBtn.disabled = false;
+      }
+    });
+  }
+  wireFavoriteBtn();
   document.querySelectorAll('#viewVisitorProfile [data-follow-list]').forEach(el => {
     el.addEventListener("click", () => openFollowList(targetUid, el.dataset.followList));
   });
