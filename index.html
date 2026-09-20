@@ -1078,6 +1078,9 @@
             <h2>Mensajes</h2>
             <p class="section-header-sub" id="messagesInboxCount">Tus conversaciones.</p>
           </div>
+          <button class="foreign-sort-btn" id="newMessageBtn" title="Nuevo mensaje" aria-label="Nuevo mensaje">
+            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M12 5v14M5 12h14"/></svg>
+          </button>
         </div>
         <div id="messagesInboxList" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
@@ -1641,10 +1644,11 @@
       <button class="modal-close" id="userSearchClose">✕</button>
     </div>
     <div class="row" style="gap:8px; margin-bottom:4px;">
-      <input type="text" id="userSearchInput" placeholder="@usuario" style="flex:1;">
+      <input type="text" id="userSearchInput" placeholder="@usuario" style="flex:1;" autocomplete="off">
       <button class="btn btn-primary" id="userSearchGoBtn" style="white-space:nowrap;">Buscar</button>
     </div>
     <p id="userSearchError" class="sub" style="color:var(--danger); display:none; margin-bottom:0;"></p>
+    <div id="userSearchSuggestions" style="display:none; flex-direction:column; gap:2px; max-height:280px; overflow-y:auto; margin-top:8px;"></div>
   </div>
 </div>
 
@@ -1665,6 +1669,7 @@
       <h2 style="font-size:16px;" id="followListTitle">Seguidores</h2>
       <button class="modal-close" id="followListClose">✕</button>
     </div>
+    <input type="text" id="followListSearchInput" placeholder="Buscar por nombre…" style="margin-top:0; margin-bottom:12px; display:none;">
     <div id="followListContent" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
   </div>
 </div>
@@ -1805,7 +1810,7 @@
     signInWithEmailAndPassword, createUserWithEmailAndPassword, sendPasswordResetEmail, onAuthStateChanged, signOut,
     verifyPasswordResetCode, confirmPasswordReset, EmailAuthProvider, reauthenticateWithCredential, deleteUser
   } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-auth.js";
-  import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, limit, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
+  import { getFirestore, doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, limit, documentId, serverTimestamp } from "https://www.gstatic.com/firebasejs/12.18.0/firebase-firestore.js";
 
   const firebaseConfig = {
     apiKey: "AIzaSyBnPDPZRPbWWd-6V8idGQVFFtNBImS5tNk",
@@ -1823,7 +1828,7 @@
 
   window.__drobrAuth = auth;
   window.__drobrDb = db;
-  window.__drobrFirestoreFns = { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, limit, serverTimestamp };
+  window.__drobrFirestoreFns = { doc, getDoc, setDoc, updateDoc, deleteDoc, collection, collectionGroup, getDocs, getCountFromServer, onSnapshot, writeBatch, query, where, orderBy, limit, documentId, serverTimestamp };
   window.__drobrSignIn = (email, password) => signInWithEmailAndPassword(auth, email, password);
   window.__drobrSignUp = (email, password) => createUserWithEmailAndPassword(auth, email, password);
   window.__drobrSignOut = () => signOut(auth);
@@ -4864,6 +4869,7 @@ document.querySelectorAll("#wardrobeMainTabs [data-wtab]").forEach(btn => {
 document.getElementById("viewTabSearchUser").addEventListener("click", openUserSearchModal);
 document.getElementById("savedGarmentsSearchBtn")?.addEventListener("click", openUserSearchModal);
 document.getElementById("savedOutfitsSearchBtn")?.addEventListener("click", openUserSearchModal);
+document.getElementById("newMessageBtn")?.addEventListener("click", () => openUserSearchModal("message"));
 document.getElementById("userSearchClose").addEventListener("click", closeUserSearchModal);
 document.getElementById("userSearchBackdrop").addEventListener("click", (e) => { if (e.target.id === "userSearchBackdrop") closeUserSearchModal(); });
 document.getElementById("topbarBellBtn").addEventListener("click", openFollowRequestsPanel);
@@ -4872,6 +4878,10 @@ document.getElementById("followRequestsClose").addEventListener("click", closeFo
 document.getElementById("followRequestsBackdrop").addEventListener("click", (e) => { if (e.target.id === "followRequestsBackdrop") closeFollowRequestsPanel(); });
 document.getElementById("userSearchGoBtn").addEventListener("click", performUserSearch);
 document.getElementById("userSearchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") performUserSearch(); });
+document.getElementById("userSearchInput").addEventListener("input", () => {
+  clearTimeout(userSearchDebounceTimer);
+  userSearchDebounceTimer = setTimeout(renderUserSearchSuggestions, 250);
+});
 document.getElementById("visitorProfileBackBtn").addEventListener("click", closeVisitorProfile);
 document.getElementById("viewTabSettings").addEventListener("click", () => switchView("settings"));
 document.getElementById("topbarSettingsBtn").addEventListener("click", () => switchView("settings"));
@@ -5337,9 +5347,18 @@ async function leerColeccion(uid, sub, opts) {
   return snap.docs.map(d => d.data());
 }
 
-function openUserSearchModal() {
+// Qué hacer al encontrar a la persona buscada: "profile" (por defecto, abre su
+// perfil) o "message" (la abre directamente en un hilo de mensajes). Así el
+// mismo modal de búsqueda sirve tanto para descubrir cuentas como para
+// arrancar una conversación nueva desde Mensajes, sin duplicar el buscador.
+let userSearchOnFound = "profile";
+function openUserSearchModal(onFound) {
+  userSearchOnFound = onFound === "message" ? "message" : "profile";
   document.getElementById("userSearchInput").value = "";
   document.getElementById("userSearchError").style.display = "none";
+  const suggestBox = document.getElementById("userSearchSuggestions");
+  suggestBox.style.display = "none";
+  suggestBox.innerHTML = "";
   document.getElementById("userSearchBackdrop").classList.add("open");
   setTimeout(() => document.getElementById("userSearchInput").focus(), 50);
 }
@@ -5375,7 +5394,8 @@ async function performUserSearch() {
     }
     const targetUid = usernameSnap.data().uid;
     closeUserSearchModal();
-    await openVisitorProfile(targetUid);
+    if (userSearchOnFound === "message") await openMessageThread(targetUid);
+    else await openVisitorProfile(targetUid);
   } catch (err) {
     console.error(err);
     errorEl.textContent = "Error al buscar. Inténtalo de nuevo.";
@@ -5383,6 +5403,81 @@ async function performUserSearch() {
   } finally {
     goBtn.disabled = false;
     goBtn.textContent = "Buscar";
+  }
+}
+
+// Búsqueda parcial mientras se escribe: como el id del documento en
+// "usernames" ES el @usuario en minúsculas, un rango [prefijo, prefijo+""]
+// sobre documentId() encuentra a todo el que EMPIEZA por lo escrito, sin
+// necesidad de ningún índice ni campo adicional. No busca por nombre mostrado,
+// solo por @usuario (igual que la búsqueda exacta de siempre).
+async function searchUsersByPrefix(prefixLower) {
+  const { collection, query, where, orderBy, limit, documentId, getDocs } = window.__drobrFirestoreFns;
+  const usersRef = collection(window.__drobrDb, "usernames");
+  const q = query(
+    usersRef,
+    orderBy(documentId()),
+    where(documentId(), ">=", prefixLower),
+    where(documentId(), "<=", prefixLower + ""),
+    limit(8)
+  );
+  const snap = await getDocs(q);
+  return snap.docs.map(d => ({ username: d.id, uid: d.data().uid }));
+}
+
+// Token creciente: si el usuario sigue escribiendo, una respuesta anterior que
+// llega tarde no debe pisar la lista de lo que se ve ahora mismo.
+let userSearchToken = 0;
+let userSearchDebounceTimer = null;
+
+async function renderUserSearchSuggestions() {
+  const input = document.getElementById("userSearchInput");
+  const box = document.getElementById("userSearchSuggestions");
+  let raw = input.value.trim().toLowerCase();
+  if (raw.startsWith("@")) raw = raw.slice(1);
+  const myToken = ++userSearchToken;
+  if (!raw) { box.style.display = "none"; box.innerHTML = ""; return; }
+  try {
+    const results = await searchUsersByPrefix(raw);
+    if (myToken !== userSearchToken) return;
+    const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+    const filtered = results.filter(r => r.uid !== myUid);
+    if (!filtered.length) {
+      box.style.display = "flex";
+      box.innerHTML = `<p class="sub" style="margin:4px 0; text-align:center;">Sin coincidencias.</p>`;
+      return;
+    }
+    const { doc, getDoc } = window.__drobrFirestoreFns;
+    const rows = await Promise.all(filtered.map(async (r) => {
+      let meta = {};
+      try {
+        const metaSnap = await getDoc(doc(window.__drobrDb, "armarios", r.uid));
+        meta = metaSnap.exists() ? metaSnap.data() : {};
+      } catch {}
+      const name = meta.name || r.username;
+      const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="" style="width:100%; height:100%; object-fit:cover;">` : name.charAt(0).toUpperCase();
+      return `
+        <div class="collection-item-row" data-suggest-uid="${r.uid}" style="cursor:pointer;">
+          <div style="width:36px; height:36px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
+          <span>${name} <span style="color:var(--ink-soft);">@${r.username}</span></span>
+        </div>`;
+    }));
+    if (myToken !== userSearchToken) return;
+    box.style.display = "flex";
+    box.innerHTML = rows.join("");
+    box.querySelectorAll("[data-suggest-uid]").forEach(row => {
+      row.addEventListener("click", async () => {
+        const uid = row.dataset.suggestUid;
+        closeUserSearchModal();
+        if (userSearchOnFound === "message") await openMessageThread(uid);
+        else await openVisitorProfile(uid);
+      });
+    });
+  } catch (err) {
+    console.error(err);
+    if (myToken !== userSearchToken) return;
+    box.style.display = "none";
+    box.innerHTML = "";
   }
 }
 
@@ -5561,7 +5656,7 @@ async function renderMessagesInbox() {
     const convs = snap.docs.map(d => d.data());
     document.getElementById("messagesInboxCount").textContent = convs.length ? `${convs.length} conversaci${convs.length === 1 ? "ón" : "ones"}` : "Tus conversaciones.";
     if (!convs.length) {
-      list.innerHTML = `<p class="sub foreign-gallery-empty">Todavía no tienes conversaciones. Escribe a alguien desde su perfil.</p>`;
+      list.innerHTML = `<p class="sub foreign-gallery-empty">Todavía no tienes conversaciones. Usa el botón "+" para buscar a alguien y escribirle.</p>`;
       return;
     }
     const rows = await Promise.all(convs.map(async (c) => {
@@ -5823,6 +5918,9 @@ document.getElementById("sharePickerClose").addEventListener("click", () => docu
 async function openFollowList(targetUid, kind) {
   document.getElementById("followListTitle").textContent = kind === "followers" ? "Seguidores" : "Seguidos";
   const content = document.getElementById("followListContent");
+  const searchInput = document.getElementById("followListSearchInput");
+  searchInput.value = "";
+  searchInput.style.display = "none";
   content.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Cargando...</p>`;
   document.getElementById("followListBackdrop").classList.add("open");
   try {
@@ -5841,7 +5939,7 @@ async function openFollowList(targetUid, kind) {
       const name = meta.name || meta.username || "Usuario";
       const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
       return `
-        <div class="collection-item-row" data-follow-list-uid="${uid}" style="cursor:pointer;">
+        <div class="collection-item-row" data-follow-list-uid="${uid}" data-follow-list-search="${(name + " " + (meta.username || "")).toLowerCase()}" style="cursor:pointer;">
           <div style="width:40px; height:40px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
           <span>${name}${meta.username ? ` <span style="color:var(--ink-soft);">@${meta.username}</span>` : ""}</span>
         </div>`;
@@ -5855,6 +5953,19 @@ async function openFollowList(targetUid, kind) {
         if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
       });
     });
+    // El buscador de esta lista solo tiene sentido si hay bastante gente que
+    // repasar; con pocas entradas, escribir para filtrar no ahorra nada.
+    if (uids.length > 8) {
+      searchInput.style.display = "block";
+      searchInput.oninput = () => {
+        const q = searchInput.value.trim().toLowerCase();
+        content.querySelectorAll("[data-follow-list-uid]").forEach(row => {
+          row.style.display = !q || row.dataset.followListSearch.includes(q) ? "flex" : "none";
+        });
+      };
+    } else {
+      searchInput.oninput = null;
+    }
   } catch (err) {
     console.error(err);
     content.innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">No se pudo cargar la lista.</p>`;
