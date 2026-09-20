@@ -2192,6 +2192,7 @@ function loadGarments() {
 function saveGarments(list) {
   try { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
   catch (e) { console.error("No se pudo guardar (¿demasiadas imágenes para localStorage?)", e); }
+  syncColeccionEnBackground("wardrobe");
 }
 
 const CUSTOM_CATEGORIES_KEY = "armario_customCategories_v1";
@@ -2204,6 +2205,7 @@ function loadCustomCategories() {
 function saveCustomCategories(list) {
   try { localStorage.setItem(CUSTOM_CATEGORIES_KEY, JSON.stringify(list)); }
   catch (e) { console.error("No se pudieron guardar las categorías", e); }
+  syncMetaEnBackground({ customCategories: list });
 }
 let customCategories = loadCustomCategories();
 
@@ -2217,6 +2219,7 @@ function loadCategoryLabelOverrides() {
 function saveCategoryLabelOverrides(obj) {
   try { localStorage.setItem(CATEGORY_LABELS_KEY, JSON.stringify(obj)); }
   catch (e) { console.error("No se pudieron guardar los nombres de categoría", e); }
+  syncMetaEnBackground({ categoryLabels: obj });
 }
 let categoryLabelOverrides = loadCategoryLabelOverrides();
 
@@ -2248,6 +2251,7 @@ function loadOutfits() {
 function saveOutfits(list) {
   try { localStorage.setItem(OUTFITS_KEY, JSON.stringify(list)); }
   catch (e) { console.error("No se pudieron guardar los outfits", e); }
+  syncColeccionEnBackground("outfits");
 }
 // Genera una copia pequeña (miniatura) de una imagen ya cargada, para
 // guardar dentro de un outfit en vez de la foto completa.
@@ -5095,7 +5099,18 @@ const PAGE_META = {
   messages: { title: "Mensajes", subtitle: "Tus conversaciones privadas.", action: false },
 };
 
+// Oyentes en vivo (onSnapshot) del feed de inicio y de perfiles ajenos: para
+// que las prendas/outfits de la gente que sigues aparezcan casi al instante,
+// sin tener que refrescar. Se cancelan siempre al cambiar de vista, para no
+// dejar oyentes de fondo cuando ya no hacen falta.
+let liveListenerUnsubs = [];
+function stopLiveListeners() {
+  liveListenerUnsubs.forEach(u => { try { u(); } catch {} });
+  liveListenerUnsubs = [];
+}
+
 function switchView(view) {
+  stopLiveListeners();
   currentView = view;
   document.getElementById("viewVisitorProfile").style.display = "none";
   document.getElementById("viewHome").style.display = view === "home" ? "block" : "none";
@@ -5421,10 +5436,17 @@ async function openProfileFromUrlParam() {
 }
 
 document.getElementById("logoutBtn").addEventListener("click", async () => {
+  const logoutBtn = document.getElementById("logoutBtn");
+  const textoOriginal = logoutBtn.textContent;
   try {
+    logoutBtn.disabled = true;
+    logoutBtn.textContent = "Guardando cambios...";
+    await flushPendingSyncs();
     await window.__drobrSignOut();
     location.reload();
   } catch (err) {
+    logoutBtn.disabled = false;
+    logoutBtn.textContent = textoOriginal;
     alert("No se pudo cerrar sesión. Inténtalo de nuevo.");
   }
 });
@@ -5617,6 +5639,83 @@ async function subirListaATandas(uid, sub, lista) {
     }
     await batch.commit();
   }
+}
+
+// FIX: antes, prendas/outfits/colecciones solo se guardaban en localStorage y la
+// única subida a Firestore ocurría al iniciar sesión (y encima solo si la cuenta
+// estaba vacía) — así que algo añadido en una sesión ya iniciada se perdía en
+// cuanto se cerraba sesión y se volvía a entrar (la nube "ganaba" y sobrescribía
+// lo local). Ahora cada cambio se sube a Firestore en segundo plano, con debounce
+// para no escribir en cada toque.
+const _syncColeccionTimers = {};
+const _syncColeccionPending = {}; // campo -> true mientras haya una subida programada sin ejecutar
+async function syncSingleColeccion(uid, sub, localList) {
+  const { doc, collection, getDocs, writeBatch } = window.__drobrFirestoreFns;
+  const localIds = new Set((localList || []).filter(i => i && i.id).map(i => String(i.id)));
+  // Primero borramos en Firestore lo que ya no está en local (prendas/outfits eliminados).
+  const snap = await getDocs(collection(window.__drobrDb, "armarios", uid, sub));
+  const aBorrar = snap.docs.filter(d => !localIds.has(d.id));
+  for (let i = 0; i < aBorrar.length; i += 400) {
+    const batch = writeBatch(window.__drobrDb);
+    aBorrar.slice(i, i + 400).forEach(d => batch.delete(d.ref));
+    await batch.commit();
+  }
+  await subirListaATandas(uid, sub, localList || []);
+}
+function _runColeccionSync(campo, uid) {
+  delete _syncColeccionPending[campo];
+  const { key, sub } = SYNC_COLECCIONES[campo];
+  let list;
+  try { list = JSON.parse(localStorage.getItem(key) || "[]"); } catch { return Promise.resolve(); }
+  return syncSingleColeccion(uid, sub, list).catch(err => console.error(`No se pudo sincronizar ${sub} con la nube:`, err));
+}
+function syncColeccionEnBackground(campo) {
+  const user = window.__drobrAuth && window.__drobrAuth.currentUser;
+  if (!user) return;
+  _syncColeccionPending[campo] = true;
+  clearTimeout(_syncColeccionTimers[campo]);
+  _syncColeccionTimers[campo] = setTimeout(() => _runColeccionSync(campo, user.uid), 1500);
+}
+
+// Mismo problema para customCategories/categoryLabels, que viven en el doc
+// armarios/{uid} (no en una subcolección): se fusionan los cambios en segundo plano.
+let _metaSyncTimer = null;
+let _metaPendingPatch = null;
+function _runMetaSync(uid) {
+  const patchToSend = _metaPendingPatch;
+  _metaPendingPatch = null;
+  if (!patchToSend) return Promise.resolve();
+  const { doc, setDoc } = window.__drobrFirestoreFns;
+  return setDoc(doc(window.__drobrDb, "armarios", uid), patchToSend, { merge: true })
+    .catch(err => console.error("No se pudieron sincronizar las categorías con la nube:", err));
+}
+function syncMetaEnBackground(patch) {
+  const user = window.__drobrAuth && window.__drobrAuth.currentUser;
+  if (!user) return;
+  _metaPendingPatch = Object.assign(_metaPendingPatch || {}, patch);
+  clearTimeout(_metaSyncTimer);
+  _metaSyncTimer = setTimeout(() => _runMetaSync(user.uid), 1500);
+}
+
+// IMPORTANTE: como las subidas de arriba llevan un pequeño retraso (debounce) para no
+// escribir en cada toque, si el usuario añade algo y justo después cierra sesión, el
+// cierre de sesión puede llegar ANTES de que salte el temporizador — y esa subida se
+// pierde para siempre (por eso "subo algo, cierro sesión con otra cuenta y no está").
+// flushPendingSyncs() cancela los temporizadores y ejecuta esas subidas ya mismo,
+// esperando a que terminen. Se llama justo antes de cerrar sesión.
+async function flushPendingSyncs() {
+  const user = window.__drobrAuth && window.__drobrAuth.currentUser;
+  if (!user) return;
+  const tareas = [];
+  for (const campo of Object.keys(_syncColeccionPending)) {
+    clearTimeout(_syncColeccionTimers[campo]);
+    tareas.push(_runColeccionSync(campo, user.uid));
+  }
+  if (_metaPendingPatch) {
+    clearTimeout(_metaSyncTimer);
+    tareas.push(_runMetaSync(user.uid));
+  }
+  await Promise.all(tareas);
 }
 
 async function leerColeccion(uid, sub, opts) {
@@ -6934,12 +7033,13 @@ async function renderHomeFeed() {
   if (!container) return;
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
   if (!myUid) return;
+  stopLiveListeners();
   container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p>`;
   try {
     // El feed solo muestra a la gente que sigo (nunca mis propias publicaciones,
     // que ya están en "Mi armario"). Favoritos es un subconjunto de a quién sigo,
     // marcado con "isFavorite" en el mismo documento de seguimiento.
-    const { collectionGroup, query, where, getDocs, doc, getDoc } = window.__drobrFirestoreFns;
+    const { collectionGroup, query, where, getDocs, doc, getDoc, collection, onSnapshot } = window.__drobrFirestoreFns;
     const followQ = query(collectionGroup(window.__drobrDb, "followers"), where("followerUid", "==", myUid), where("status", "==", "accepted"));
     const followSnap = await getDocs(followQ);
     const followingUids = [];
@@ -6951,32 +7051,63 @@ async function renderHomeFeed() {
     });
     homeFeedFollowingUids = followingUids;
     homeFeedFavoriteUids = favoriteUids;
-    const outfitEntries = [];
-    const garmentEntries = [];
-    await Promise.all(followingUids.map(async (uid) => {
-      const [metaSnap, outfitsArr, prendasArr] = await Promise.all([
-        getDoc(doc(window.__drobrDb, "armarios", uid)),
-        leerColeccion(uid, "outfits"),
-        leerColeccion(uid, "prendas"),
-      ]);
-      const meta = metaSnap.exists() ? metaSnap.data() : {};
-      outfitsArr.forEach(o => outfitEntries.push({ outfit: o, meta, uid, outfitsArr }));
-      prendasArr.forEach(g => garmentEntries.push({ garment: g, meta, uid, outfitsArr }));
-    }));
-    if (outfitEntries.length || garmentEntries.length) await attachPostSocialMeta([...outfitEntries, ...garmentEntries]);
-    homeFeedOutfitEntries = outfitEntries;
-    homeFeedGarmentEntries = garmentEntries;
+
     container.innerHTML = `
       <div class="profile-tabs" id="homeFeedScopeTabs">
         <button class="profile-tab active" data-hfscope="siguiendo">Siguiendo</button>
         <button class="profile-tab" data-hfscope="favoritos">Favoritos</button>
       </div>
-      <div id="homeFeedScopedContent"></div>`;
+      <div id="homeFeedScopedContent"><p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p></div>`;
     document.querySelectorAll("#homeFeedScopeTabs [data-hfscope]").forEach(btn => {
       btn.addEventListener("click", () => switchHomeFeedScope(btn.dataset.hfscope));
     });
     homeFeedScope = "siguiendo";
-    renderHomeFeedScopedContent();
+
+    // Caché en vivo por persona seguida: cada oyente (prendas/outfits) actualiza
+    // solo su parte y se recompone el feed entero con lo último que hay en caché.
+    // Así, en cuanto alguien que sigues sube algo, Firestore avisa al instante y
+    // aparece aquí sin recargar ni esperar a la próxima vez que abras Inicio.
+    const liveCache = {};
+    followingUids.forEach(uid => { liveCache[uid] = { meta: {}, outfits: [], prendas: [] }; });
+    let rerenderQueued = false;
+    const rebuildAndRender = () => {
+      if (rerenderQueued) return;
+      rerenderQueued = true;
+      Promise.resolve().then(async () => {
+        rerenderQueued = false;
+        const outfitEntries = [];
+        const garmentEntries = [];
+        followingUids.forEach(uid => {
+          const c = liveCache[uid];
+          if (!c) return;
+          c.outfits.forEach(o => outfitEntries.push({ outfit: o, meta: c.meta, uid, outfitsArr: c.outfits }));
+          c.prendas.forEach(g => garmentEntries.push({ garment: g, meta: c.meta, uid, outfitsArr: c.outfits }));
+        });
+        if (outfitEntries.length || garmentEntries.length) await attachPostSocialMeta([...outfitEntries, ...garmentEntries]);
+        homeFeedOutfitEntries = outfitEntries;
+        homeFeedGarmentEntries = garmentEntries;
+        renderHomeFeedScopedContent();
+      });
+    };
+
+    await Promise.all(followingUids.map(async (uid) => {
+      const metaSnap = await getDoc(doc(window.__drobrDb, "armarios", uid));
+      liveCache[uid].meta = metaSnap.exists() ? metaSnap.data() : {};
+    }));
+
+    followingUids.forEach(uid => {
+      const unsubOutfits = onSnapshot(collection(window.__drobrDb, "armarios", uid, "outfits"), (snap) => {
+        liveCache[uid].outfits = snap.docs.map(d => d.data());
+        rebuildAndRender();
+      }, (err) => console.error("No se pudieron escuchar los outfits de", uid, err));
+      const unsubPrendas = onSnapshot(collection(window.__drobrDb, "armarios", uid, "prendas"), (snap) => {
+        liveCache[uid].prendas = snap.docs.map(d => d.data());
+        rebuildAndRender();
+      }, (err) => console.error("No se pudieron escuchar las prendas de", uid, err));
+      liveListenerUnsubs.push(unsubOutfits, unsubPrendas);
+    });
+
+    rebuildAndRender();
   } catch (err) {
     console.error(err);
     container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">No se pudo cargar el inicio.</p>`;
@@ -7261,22 +7392,36 @@ function showForeignSubView(id) {
 
 async function openVisitorProfile(targetUid) {
   try {
-    const { doc, getDoc } = window.__drobrFirestoreFns;
+    stopLiveListeners();
+    const { doc, getDoc, collection, onSnapshot } = window.__drobrFirestoreFns;
     const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
     const metaSnap = await getDoc(doc(window.__drobrDb, "armarios", targetUid));
     const meta = metaSnap.exists() ? metaSnap.data() : {};
     const followStatus = await getFollowStatus(targetUid, myUid);
     const canSeeContent = followStatus === "self" || !meta.isPrivate || followStatus === "accepted";
     const isFavorite = followStatus === "accepted" ? await getFollowIsFavorite(targetUid, myUid) : false;
-    let prendas = [], foreignOutfits = [], publicCollections = [];
+    let publicCollections = [];
     if (canSeeContent) {
-      [prendas, foreignOutfits, publicCollections] = await Promise.all([
-        leerColeccion(targetUid, "prendas"),
-        leerColeccion(targetUid, "outfits"),
-        leerColeccion(targetUid, "collections", { onlyPublic: true })
-      ]);
+      publicCollections = await leerColeccion(targetUid, "collections", { onlyPublic: true });
+      // Prendas y outfits del perfil visitado, en vivo: si esta persona sube o
+      // borra algo mientras estás mirando su perfil, se actualiza al instante.
+      const live = { prendas: null, outfits: null };
+      const rerenderVisitor = () => {
+        if (live.prendas === null || live.outfits === null) return; // esperar a tener ambas partes
+        renderVisitorProfile(targetUid, meta, live.prendas, live.outfits, publicCollections, followStatus, canSeeContent, isFavorite);
+      };
+      const unsubPrendas = onSnapshot(collection(window.__drobrDb, "armarios", targetUid, "prendas"), (snap) => {
+        live.prendas = snap.docs.map(d => d.data());
+        rerenderVisitor();
+      }, (err) => console.error("No se pudieron escuchar las prendas de este perfil:", err));
+      const unsubOutfits = onSnapshot(collection(window.__drobrDb, "armarios", targetUid, "outfits"), (snap) => {
+        live.outfits = snap.docs.map(d => d.data());
+        rerenderVisitor();
+      }, (err) => console.error("No se pudieron escuchar los outfits de este perfil:", err));
+      liveListenerUnsubs.push(unsubPrendas, unsubOutfits);
+    } else {
+      renderVisitorProfile(targetUid, meta, [], [], [], followStatus, canSeeContent, isFavorite);
     }
-    renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCollections, followStatus, canSeeContent, isFavorite);
     visitorProfilePreviousView = currentView;
     showForeignSubView("viewVisitorProfile");
   } catch (err) {
@@ -8498,7 +8643,7 @@ const COLLECTIONS_KEY = "armario_collections_v1";
 function loadCollections() {
   try { const raw = localStorage.getItem(COLLECTIONS_KEY); return raw ? JSON.parse(raw) : []; } catch { return []; }
 }
-function saveCollections(list) { try { localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(list)); } catch {} }
+function saveCollections(list) { try { localStorage.setItem(COLLECTIONS_KEY, JSON.stringify(list)); } catch {} syncColeccionEnBackground("collections"); }
 let collections = loadCollections();
 
 function showAppToast(msg) {
