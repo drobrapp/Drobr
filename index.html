@@ -597,6 +597,9 @@
   .post-card-caption { padding:5px 9px 10px; font-size:11px; color:var(--ink); line-height:1.3; }
   .post-card-caption b { font-weight:700; }
   .post-card-kebab-wrap { position:static; }
+  .post-card-buy-banner { position:absolute; left:8px; right:8px; bottom:8px; display:flex; align-items:center; justify-content:center; gap:7px; padding:9px 12px; border-radius:999px; background:rgba(20,20,20,0.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); color:#fff; font-size:12px; font-weight:600; text-decoration:none; z-index:6; }
+  .post-card-buy-banner svg { flex-shrink:0; }
+  .post-card-buy-banner:active { transform:scale(0.97); }
   .post-card-kebab-menu { position:absolute; top:32px; right:6px; background:var(--paper); border:1px solid var(--line-strong); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; z-index:5; min-width:180px; display:none; }
   .post-card-kebab-menu.open { display:block; }
   .post-card-kebab-menu button { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:none; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
@@ -6577,11 +6580,17 @@ function homeFeedEntryDate(entry) {
 // Opciones específicas de prenda/outfit que antes vivían sueltas como botones
 // del detalle y ahora se agrupan en el menú "..." de la propia tarjeta,
 // dejando like/comentarios/compartir/guardar como acciones principales.
+//
+// "Ver detalles" solo tiene sentido en OUTFITS: un outfit son varias prendas
+// juntas, así que desglosarlo aporta algo. Una prenda ya ES el detalle — no
+// hay nada que "ver detalles" revele que la propia tarjeta no muestre ya. Por
+// eso desaparece del menú de prenda (decisión tomada tras consultar al
+// consejo de IA, 2026-09-20): sus dos acciones ("Comprobar combinaciones",
+// "Sus outfits con esta prenda") se quedan donde ya vivían, en el "···".
 function postCardKebabItemsHTML(type, isOwn) {
   const dmItem = `<button type="button" data-kaction="dm">Enviar por mensaje</button>`;
   if (type === "garment") {
     return `
-      <button type="button" data-kaction="details">Ver detalles</button>
       ${dmItem}
       ${isOwn ? "" : `
       <button type="button" data-kaction="check">Comprobar combinaciones</button>
@@ -6608,6 +6617,16 @@ function postCardHTML(entry, isOwn) {
     title = entry.garment.name ? entry.garment.name.charAt(0).toUpperCase() + entry.garment.name.slice(1) : (cat ? cat.label : foreignCategoryLabel(entry.garment.category, entry.meta));
   }
   const s = entry.social || { liked: false, saved: false, likeCount: 0, saveCount: 0, commentCount: 0 };
+  // Aviso de compra: una franja traslúcida sobre el borde inferior de la
+  // foto, solo en prendas ajenas con enlace de compra puesto. No compite por
+  // espacio con like/comentar/compartir/guardar (no es un icono más en esa
+  // fila) y solo aparece cuando de verdad hay algo que comprar, así que nunca
+  // deja huecos vacíos ni cambia la fila de acciones entre publicaciones.
+  const buyBannerHTML = (type === "garment" && !isOwn && entry.garment.buyLink) ? `
+        <a class="post-card-buy-banner" data-buy-banner="1" href="${resolveBuyLink(entry.garment.buyLink)}" target="_blank" rel="nofollow sponsored noopener">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg>
+          <span>Ver dónde comprarla</span>
+        </a>` : "";
   return `
     <article class="post-card" data-feed-type="${type}" data-feed-id="${id}" data-feed-uid="${entry.uid}">
       <header class="post-card-header" data-role="open-profile">
@@ -6622,6 +6641,7 @@ function postCardHTML(entry, isOwn) {
           </button>
           <div class="post-card-kebab-menu">${postCardKebabItemsHTML(type, isOwn)}</div>
         </div>
+        ${buyBannerHTML}
         <div class="post-card-comments" data-role="comments-panel">
           <div class="post-card-comments-list" data-role="comments-list"></div>
           <div class="post-card-reply-banner" data-role="reply-banner" style="display:none;"></div>
@@ -6785,6 +6805,13 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
       e.stopPropagation();
       if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
     });
+    const buyBanner = card.querySelector('[data-buy-banner]');
+    if (buyBanner) {
+      buyBanner.addEventListener("click", (e) => {
+        e.stopPropagation(); // que no dispare también "abrir publicación"
+        logAffiliateClick(entry.garment);
+      });
+    }
     const kebabBtn = card.querySelector('[data-role="kebab"]');
     if (kebabBtn) {
     const kebabMenu = card.querySelector(".post-card-kebab-menu");
@@ -9333,6 +9360,19 @@ function countOutfitsWithGarment(garmentId) {
 // Modal informativo de una prenda (vista Perfil): imagen, nombre, chips de
 // formalidad/color/temporada y en cuántos outfits aparece. Sin acciones de
 // edición — esas viven solo en la pestaña Armario.
+// El botón "Comprar" solo tiene sentido cuando OTRA persona ve la prenda (ver
+// openForeignGarmentDetail) — nunca en tu propio armario, no te vas a comprar
+// tu propia ropa. Por eso aquí, en vez de un botón, se muestra si el enlace
+// está puesto o no: así se ve de un vistazo si la prenda ya está lista para
+// que quien la vea pueda comprarla, sin tener que abrir el modal de editar.
+function ownBuyLinkStatusHTML(garment) {
+  if (!garment.buyLink) {
+    return `<div class="fallback-note" style="text-align:center; margin-top:10px;">Sin enlace de compra puesto. Edítala (···) y añade uno en "¿Dónde comprarla?" para que se vea un botón Comprar cuando otras personas la vean.</div>`;
+  }
+  let host = "";
+  try { host = new URL(garment.buyLink).hostname.replace(/^www\./, ""); } catch {}
+  return `<div class="fallback-note" style="text-align:center; margin-top:10px;">Enlace de compra puesto${host ? ` (${host})` : ""} — quien vea esta prenda verá un botón "Comprar".</div>`;
+}
 function openGarmentDetail(garment) {
   const cat = CATEGORIES.find(c => c.id === garment.category);
   const title = garment.name ? garment.name.charAt(0).toUpperCase() + garment.name.slice(1) : (cat ? cat.label : garment.category);
@@ -9346,7 +9386,8 @@ function openGarmentDetail(garment) {
     <div style="display:flex; gap:6px; justify-content:center; align-items:center; flex-wrap:wrap; margin-top:4px;">
       ${swatchHTML(garment.color, 16)}
       ${metaChipsHTML(garment)}
-    </div>`;
+    </div>
+    ${ownBuyLinkStatusHTML(garment)}`;
   document.getElementById("itemDetailBackdrop").classList.add("open");
 }
 document.getElementById("itemDetailClose").addEventListener("click", () => document.getElementById("itemDetailBackdrop").classList.remove("open"));
