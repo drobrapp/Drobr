@@ -600,10 +600,31 @@
   .post-card-buy-banner { position:absolute; left:8px; right:8px; bottom:8px; display:flex; align-items:center; justify-content:center; gap:7px; padding:9px 12px; border-radius:999px; background:rgba(20,20,20,0.6); backdrop-filter:blur(6px); -webkit-backdrop-filter:blur(6px); color:#fff; font-size:12px; font-weight:600; text-decoration:none; z-index:6; }
   .post-card-buy-banner svg { flex-shrink:0; }
   .post-card-buy-banner:active { transform:scale(0.97); }
-  .post-card-kebab-menu { position:absolute; top:32px; right:6px; background:var(--paper); border:1px solid var(--line-strong); border-radius:10px; box-shadow:var(--shadow); overflow:hidden; z-index:5; min-width:180px; display:none; }
+  .post-card-kebab-menu { position:absolute; top:32px; right:6px; background:var(--paper); border:1px solid var(--line-strong); border-radius:var(--radius); box-shadow:var(--shadow); overflow:hidden; z-index:5; min-width:206px; padding:4px; display:none; }
   .post-card-kebab-menu.open { display:block; }
-  .post-card-kebab-menu button { display:block; width:100%; text-align:left; padding:10px 12px; border:none; background:none; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
+  .post-card-kebab-menu button { display:flex; align-items:center; gap:10px; width:100%; text-align:left; padding:10px; border:none; border-radius:calc(var(--radius) - 6px); background:none; font-family:inherit; font-size:12.5px; color:var(--ink); cursor:pointer; }
+  .post-card-kebab-menu button svg { flex-shrink:0; }
+  .post-card-kebab-menu button span { flex:1; min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
   .post-card-kebab-menu button:hover { background:var(--bg); }
+  .post-card-kebab-menu button:active { background:var(--line); }
+  @media (max-width:720px) {
+    .post-card-kebab-menu {
+      position:fixed; top:auto; left:0; right:0; bottom:0; width:100%; z-index:55;
+      min-width:0; border-radius:18px 18px 0 0; padding:6px 8px calc(12px + env(safe-area-inset-bottom));
+      transform:translateY(100%); opacity:0; pointer-events:none; display:block;
+      transition:transform 0.2s cubic-bezier(0.22,1,0.36,1), opacity 0.18s ease;
+      box-shadow:0 -6px 24px rgba(20,20,15,0.18);
+    }
+    .post-card-kebab-menu.open { transform:translateY(0); opacity:1; pointer-events:auto; }
+    .post-card-kebab-menu::before {
+      content:""; display:block; width:36px; height:4px; border-radius:999px;
+      background:var(--line-strong); margin:8px auto 10px;
+    }
+    .post-card-kebab-menu::after {
+      content:""; position:fixed; inset:0; background:rgba(20,20,15,0.32); z-index:-1;
+    }
+    .post-card-kebab-menu button { padding:13px 10px; font-size:14px; }
+  }
   .post-card-comments { position:absolute; inset:0; background:rgba(255,255,255,0.82); z-index:8; padding:10px; display:flex; flex-direction:column; transform:translateY(100%); opacity:0; pointer-events:none; transition:transform 0.28s cubic-bezier(0.22,1,0.36,1), opacity 0.22s ease; }
   .post-card-comments.open { transform:translateY(0); opacity:1; pointer-events:auto; }
   .post-card-comments-list { flex:1; min-height:0; overflow-y:auto; display:flex; flex-direction:column; gap:8px; margin:0 0 8px; }
@@ -6587,19 +6608,27 @@ function homeFeedEntryDate(entry) {
 // eso desaparece del menú de prenda (decisión tomada tras consultar al
 // consejo de IA, 2026-09-20): sus dos acciones ("Comprobar combinaciones",
 // "Sus outfits con esta prenda") se quedan donde ya vivían, en el "···".
+const POST_CARD_KEBAB_ICONS = {
+  details: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8Z"/><circle cx="12" cy="12" r="3"/></svg>',
+  dm: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>',
+  check: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><polyline points="8 12 11 15 16 9"/></svg>',
+  outfits: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>',
+  recreate: '<svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>',
+};
 function postCardKebabItemsHTML(type, isOwn) {
-  const dmItem = `<button type="button" data-kaction="dm">Enviar por mensaje</button>`;
+  const ic = POST_CARD_KEBAB_ICONS;
+  const dmItem = `<button type="button" data-kaction="dm">${ic.dm}<span>Enviar por mensaje</span></button>`;
   if (type === "garment") {
     return `
       ${dmItem}
       ${isOwn ? "" : `
-      <button type="button" data-kaction="check">Comprobar combinaciones</button>
-      <button type="button" data-kaction="outfits">Sus outfits con esta prenda</button>`}`;
+      <button type="button" data-kaction="check">${ic.check}<span>Comprobar combinaciones</span></button>
+      <button type="button" data-kaction="outfits">${ic.outfits}<span>Sus outfits con esta prenda</span></button>`}`;
   }
   return `
-      <button type="button" data-kaction="details">Ver detalles</button>
+      <button type="button" data-kaction="details">${ic.details}<span>Ver detalles</span></button>
       ${dmItem}
-      ${isOwn ? "" : `<button type="button" data-kaction="recreate">Recrear con mi armario</button>`}`;
+      ${isOwn ? "" : `<button type="button" data-kaction="recreate">${ic.recreate}<span>Recrear con mi armario</span></button>`}`;
 }
 
 // Tarjeta de publicación estilo post (avatar+usuario arriba, foto, iconos de
