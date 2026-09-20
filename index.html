@@ -510,6 +510,7 @@
   .detail-img-multi { flex:1; min-width:0; max-width:150px; aspect-ratio:1; object-fit:contain; background:#EFEFEC; border-radius:var(--radius-sm); border:1px solid var(--line); }
   .detail-quick-actions { display:flex; justify-content:space-around; border-top:1px solid var(--line); padding-top:14px; margin-top:16px; }
   .detail-quick-btn { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; width:64px; background:none; border:none; font-family:inherit; padding:0; }
+  a.detail-quick-btn { text-decoration:none; color:inherit; }
   .detail-quick-btn:disabled { cursor:default; }
   .detail-quick-icon { width:40px; height:40px; border-radius:50%; background:#fff; border:1px solid var(--line-strong); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; color:var(--ink); flex-shrink:0; }
   .detail-quick-icon.accent { background:var(--accent); border-color:var(--accent); color:#fff; }
@@ -1800,6 +1801,10 @@
     <label class="field-eyebrow" id="modalNameField">Nombre
       <input type="text" id="modalName" placeholder="p. ej. camiseta lino blanca">
     </label>
+    <label class="field-eyebrow" id="modalBuyLinkField">¿Dónde comprarla? (opcional)
+      <input type="url" id="modalBuyLink" placeholder="Pega tu enlace (de afiliado o donde la compraste)">
+      <span style="display:block; font-size:11px; color:var(--ink-soft); margin-top:4px;">Si otra persona la compra desde aquí, la comisión (si la hay) es tuya — es tu enlace.</span>
+    </label>
     <button class="btn btn-primary" id="modalConfirm" style="width:100%;">Añadir al armario</button>
   </div>
 </div>
@@ -1867,65 +1872,65 @@ const CATEGORIES = [
 // complementos que ya existe en el motor de combinación.
 const SUBTYPES = {
   top: [
-    { id: "camiseta", label: "Camiseta", formality: 2, versatile: false },
-    { id: "top_tirantes", label: "Top / camiseta de tirantes", formality: 2, versatile: false },
-    { id: "polo", label: "Polo", formality: 2, versatile: false },
-    { id: "camisa", label: "Camisa", formality: 2, versatile: true },
-    { id: "camisa_vestir", label: "Camisa de vestir / elegante", formality: 3, versatile: false },
-    { id: "blusa", label: "Blusa", formality: 2, versatile: true },
-    { id: "jersey", label: "Jersey / suéter", formality: 2, versatile: false },
-    { id: "cardigan", label: "Chaqueta de punto / cárdigan", formality: 2, versatile: true },
-    { id: "sudadera", label: "Sudadera", formality: 1, versatile: false },
-    { id: "camiseta_tecnica", label: "Camiseta técnica / deportiva", formality: 1, versatile: false },
+    { id: "camiseta", label: "Camiseta", formality: 2, versatile: false, season: "verano" },
+    { id: "top_tirantes", label: "Top / camiseta de tirantes", formality: 2, versatile: false, season: "verano" },
+    { id: "polo", label: "Polo", formality: 2, versatile: false, season: "verano" },
+    { id: "camisa", label: "Camisa", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "camisa_vestir", label: "Camisa de vestir / elegante", formality: 3, versatile: false, season: "entretiempo" },
+    { id: "blusa", label: "Blusa", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "jersey", label: "Jersey / suéter", formality: 2, versatile: false, season: "invierno" },
+    { id: "cardigan", label: "Chaqueta de punto / cárdigan", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "sudadera", label: "Sudadera", formality: 1, versatile: false, season: "invierno" },
+    { id: "camiseta_tecnica", label: "Camiseta técnica / deportiva", formality: 1, versatile: false, season: "verano" },
   ],
   bottom: [
-    { id: "vaqueros", label: "Vaqueros", formality: 2, versatile: false },
-    { id: "chinos", label: "Chinos", formality: 2, versatile: true },
-    { id: "jogger", label: "Pantalón deportivo / jogger", formality: 1, versatile: false },
-    { id: "shorts", label: "Shorts / bermuda", formality: 2, versatile: false },
-    { id: "falda", label: "Falda", formality: 2, versatile: true },
-    { id: "falda_tubo", label: "Falda de tubo / lápiz", formality: 3, versatile: false },
-    { id: "pantalon_vestir", label: "Pantalón de vestir / traje", formality: 3, versatile: false },
-    { id: "leggings", label: "Leggings", formality: 1, versatile: false },
+    { id: "vaqueros", label: "Vaqueros", formality: 2, versatile: false, season: "entretiempo" },
+    { id: "chinos", label: "Chinos", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "jogger", label: "Pantalón deportivo / jogger", formality: 1, versatile: false, season: "entretiempo" },
+    { id: "shorts", label: "Shorts / bermuda", formality: 2, versatile: false, season: "verano" },
+    { id: "falda", label: "Falda", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "falda_tubo", label: "Falda de tubo / lápiz", formality: 3, versatile: false, season: "entretiempo" },
+    { id: "pantalon_vestir", label: "Pantalón de vestir / traje", formality: 3, versatile: false, season: "entretiempo" },
+    { id: "leggings", label: "Leggings", formality: 1, versatile: false, season: "entretiempo" },
   ],
   onepiece: [
-    { id: "vestido_casual", label: "Vestido casual", formality: 2, versatile: false },
-    { id: "vestido_fiesta", label: "Vestido de fiesta / elegante", formality: 3, versatile: false },
-    { id: "mono_casual", label: "Mono / jumpsuit casual", formality: 2, versatile: false },
-    { id: "mono_fiesta", label: "Mono de fiesta", formality: 3, versatile: false },
-    { id: "peto", label: "Peto (overol)", formality: 2, versatile: false },
+    { id: "vestido_casual", label: "Vestido casual", formality: 2, versatile: false, season: "verano" },
+    { id: "vestido_fiesta", label: "Vestido de fiesta / elegante", formality: 3, versatile: false, season: "entretiempo" },
+    { id: "mono_casual", label: "Mono / jumpsuit casual", formality: 2, versatile: false, season: "verano" },
+    { id: "mono_fiesta", label: "Mono de fiesta", formality: 3, versatile: false, season: "entretiempo" },
+    { id: "peto", label: "Peto (overol)", formality: 2, versatile: false, season: "entretiempo" },
   ],
   shoes: [
-    { id: "zapatillas_deporte", label: "Zapatillas deportivas", formality: 1, versatile: false },
-    { id: "sneakers", label: "Zapatillas casual / sneakers", formality: 2, versatile: true },
-    { id: "botas", label: "Botas", formality: 2, versatile: false },
-    { id: "bailarinas", label: "Bailarinas / mocasín", formality: 2, versatile: true },
-    { id: "sandalias", label: "Sandalias", formality: 2, versatile: false },
-    { id: "zapato_vestir", label: "Zapato de vestir (Oxford/derby)", formality: 3, versatile: false },
-    { id: "tacones", label: "Tacones", formality: 3, versatile: false },
+    { id: "zapatillas_deporte", label: "Zapatillas deportivas", formality: 1, versatile: false, season: "entretiempo" },
+    { id: "sneakers", label: "Zapatillas casual / sneakers", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "botas", label: "Botas", formality: 2, versatile: false, season: "invierno" },
+    { id: "bailarinas", label: "Bailarinas / mocasín", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "sandalias", label: "Sandalias", formality: 2, versatile: false, season: "verano" },
+    { id: "zapato_vestir", label: "Zapato de vestir (Oxford/derby)", formality: 3, versatile: false, season: "entretiempo" },
+    { id: "tacones", label: "Tacones", formality: 3, versatile: false, season: "entretiempo" },
   ],
   outer: [
-    { id: "cortavientos", label: "Cortavientos / técnica deportiva", formality: 1, versatile: false },
-    { id: "plumifero", label: "Plumífero / parka", formality: 2, versatile: false },
-    { id: "cazadora", label: "Chaqueta / cazadora casual", formality: 2, versatile: false },
-    { id: "trench", label: "Gabardina / trench", formality: 2, versatile: true },
-    { id: "blazer", label: "Blazer", formality: 3, versatile: true },
-    { id: "abrigo_vestir", label: "Abrigo de vestir / paño", formality: 3, versatile: false },
+    { id: "cortavientos", label: "Cortavientos / técnica deportiva", formality: 1, versatile: false, season: "entretiempo" },
+    { id: "plumifero", label: "Plumífero / parka", formality: 2, versatile: false, season: "invierno" },
+    { id: "cazadora", label: "Chaqueta / cazadora casual", formality: 2, versatile: false, season: "entretiempo" },
+    { id: "trench", label: "Gabardina / trench", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "blazer", label: "Blazer", formality: 3, versatile: true, season: "entretiempo" },
+    { id: "abrigo_vestir", label: "Abrigo de vestir / paño", formality: 3, versatile: false, season: "invierno" },
   ],
   accessory: [
-    { id: "gorra", label: "Gorro / gorra", formality: 1, versatile: false },
-    { id: "cinturon", label: "Cinturón", formality: 2, versatile: true },
-    { id: "bufanda", label: "Bufanda / pañuelo", formality: 2, versatile: false },
-    { id: "gafas_sol", label: "Gafas de sol", formality: 2, versatile: true },
-    { id: "joyeria", label: "Joyería / bisutería", formality: 2, versatile: true },
-    { id: "guantes", label: "Guantes", formality: 2, versatile: false },
-    { id: "sombrero", label: "Sombrero", formality: 3, versatile: false },
-    { id: "corbata", label: "Corbata / pajarita", formality: 3, versatile: false },
-    { id: "mochila", label: "Mochila", formality: 1, versatile: false },
-    { id: "rinonera", label: "Riñonera", formality: 1, versatile: false },
-    { id: "bolso_casual", label: "Bolso de mano / tote casual", formality: 2, versatile: false },
-    { id: "maletin", label: "Maletín / bolso de trabajo", formality: 3, versatile: true },
-    { id: "bolso_fiesta", label: "Bolso de fiesta / clutch", formality: 3, versatile: false },
+    { id: "gorra", label: "Gorro / gorra", formality: 1, versatile: false, season: "verano" },
+    { id: "cinturon", label: "Cinturón", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "bufanda", label: "Bufanda / pañuelo", formality: 2, versatile: false, season: "invierno" },
+    { id: "gafas_sol", label: "Gafas de sol", formality: 2, versatile: true, season: "verano" },
+    { id: "joyeria", label: "Joyería / bisutería", formality: 2, versatile: true, season: "entretiempo" },
+    { id: "guantes", label: "Guantes", formality: 2, versatile: false, season: "invierno" },
+    { id: "sombrero", label: "Sombrero", formality: 3, versatile: false, season: "verano" },
+    { id: "corbata", label: "Corbata / pajarita", formality: 3, versatile: false, season: "entretiempo" },
+    { id: "mochila", label: "Mochila", formality: 1, versatile: false, season: "entretiempo" },
+    { id: "rinonera", label: "Riñonera", formality: 1, versatile: false, season: "entretiempo" },
+    { id: "bolso_casual", label: "Bolso de mano / tote casual", formality: 2, versatile: false, season: "entretiempo" },
+    { id: "maletin", label: "Maletín / bolso de trabajo", formality: 3, versatile: true, season: "entretiempo" },
+    { id: "bolso_fiesta", label: "Bolso de fiesta / clutch", formality: 3, versatile: false, season: "entretiempo" },
   ],
 };
 const COLORS = [
@@ -2350,6 +2355,12 @@ let contextFilterValue = "";
 let seasonFilterValue = "";
 let favoritesOnlyFilter = false;
 let uploadQueue = [];
+// Recuerda la última categoría usada al catalogar, para que una subida en
+// batch de prendas parecidas no obligue a re-elegir categoría cada vez.
+let lastUsedCategory = "top";
+// Monetización por afiliación (fase 1, sin backend propio — ver resolveBuyLink
+// más abajo). Se rellena una vez, al iniciar sesión, desde Firestore.
+let affiliateMerchantsCache = [];
 /* ---------------- Image resize ---------------- */
 function resizeImage(file, maxDim = 480, quality = 0.75) {
   return new Promise((resolve, reject) => {
@@ -3034,6 +3045,10 @@ function buildOutfit(contextId, seasonId, locked = {}, colorTargets = null) {
   // Modo "Recrear": exige el color exacto de cada prenda original. Si falta
   // alguna, no se completa el outfit con otro color — se informa de qué pieza
   // falta para que el usuario sepa exactamente qué le falta comprar/subir.
+  // Si la prenda original era de una sola pieza (vestido/mono), colorTargets
+  // trae "onepiece" en vez de "top"/"bottom" — ver recreateOutfitFromMyWardrobe.
+  const recreatingOnePiece = !!(colorTargets && colorTargets.onepiece);
+  const recreatingTwoPiece = !!(colorTargets && (colorTargets.top || colorTargets.bottom));
   if (colorTargets) {
     const missing = [];
     ["top", "bottom", "shoes"].forEach(cat => {
@@ -3041,6 +3056,10 @@ function buildOutfit(contextId, seasonId, locked = {}, colorTargets = null) {
       const hasMatch = pool.some(g => g.category === cat && g.color === colorTargets[cat]);
       if (!hasMatch) missing.push({ cat, color: colorTargets[cat] });
     });
+    if (recreatingOnePiece && !locked.top && !locked.bottom) {
+      const hasOnePieceMatch = pool.some(g => g.category === "onepiece" && g.color === colorTargets.onepiece);
+      if (!hasOnePieceMatch) missing.push({ cat: "onepiece", color: colorTargets.onepiece });
+    }
     if (missing.length) return { outfit: null, missing };
   }
   const poolFor = (cat) => {
@@ -3058,7 +3077,9 @@ function buildOutfit(contextId, seasonId, locked = {}, colorTargets = null) {
   if (!(tops.length && bottoms.length) && !onepieces.length) return { outfit: null };
 
   const combos = [];
-  if (tops.length && bottoms.length) {
+  // Al recrear una prenda de una sola pieza no tiene sentido colar combos de
+  // top+bottom sueltos (no serían del color/estilo que se está recreando).
+  if (tops.length && bottoms.length && !recreatingOnePiece) {
     tops.forEach(t => bottoms.forEach(b => shoesList.forEach(s => {
       const evalRes = evaluateOutfit(t, b, s);
       combos.push({ top: t, bottom: b, shoes: s, evalRes });
@@ -3067,7 +3088,8 @@ function buildOutfit(contextId, seasonId, locked = {}, colorTargets = null) {
   // Un vestido/mono ocupa el hueco de top y bottom a la vez (misma prenda en ambos).
   // Si el usuario ha bloqueado un superior o inferior concreto, respetamos esa
   // intención y no mezclamos sugerencias de cuerpo entero con esa selección.
-  if (!locked.top && !locked.bottom) {
+  // Tampoco las mezclamos si se está recreando un outfit de top+bottom sueltos.
+  if (!locked.top && !locked.bottom && !recreatingTwoPiece) {
     onepieces.forEach(op => shoesList.forEach(s => {
       const evalRes = evaluateOutfit(op, op, s);
       combos.push({ top: op, bottom: op, shoes: s, evalRes });
@@ -3660,7 +3682,7 @@ async function handleSuggest(contextId, seasonId) {
     saveBtn.style.display = "none";
     shareBtnEl.style.display = "none";
     hintEl.style.display = "block";
-    const catLabels = { top: "superior", bottom: "inferior", shoes: "de calzado" };
+    const catLabels = { top: "superior", bottom: "inferior", shoes: "de calzado", onepiece: "de una pieza (vestido/mono)" };
     const missingMsg = missing && missing.length
       ? (missing.length === 1
         ? `Te falta una prenda ${catLabels[missing[0].cat]} en <b>${(colorById[missing[0].color] || {}).label || missing[0].color}</b> para recrear este outfit.`
@@ -4085,6 +4107,7 @@ let outfitsExpanded = false;
 const OUTFITS_ROW_MAX = 5;
 
 function outfitAvgFormality(o) {
+  if (o.top && o.bottom && o.top.id === o.bottom.id) return Math.round(((o.top.formality||2) + (o.shoes.formality||2)) / 2);
   return Math.round(((o.top.formality||2) + (o.bottom.formality||2) + (o.shoes.formality||2)) / 3);
 }
 function outfitMatchesSearch(o) {
@@ -4412,8 +4435,10 @@ function renderModalSubtype() {
       pending.subtype = t.id;
       pending.formality = t.formality;
       pending.versatile = t.versatile;
+      if (t.season) pending.season = t.season;
       renderModalSubtype();
       renderModalFormality();
+      renderModalSeason();
       document.getElementById("modalVersatile").checked = pending.versatile;
     });
   });
@@ -4450,7 +4475,7 @@ function openModal(image, rawFile, opts = {}) {
   editingId = null;
   candidateMode = !!opts.candidate;
   shopFinalizeMode = false;
-  pending = { image, category: "top", subtype: null, color: "blanco", name: "", rawFile, formality: 2, versatile: false, season: "entretiempo" };
+  pending = { image, category: lastUsedCategory, subtype: null, color: "blanco", name: "", rawFile, formality: 2, versatile: false, season: "entretiempo", buyLink: "" };
   const queueNote = (!candidateMode && opts.queueRemaining) ? ` (quedan ${opts.queueRemaining} más)` : "";
   document.getElementById("modalTitle").textContent = (candidateMode ? "Evaluar prenda" : "Nueva prenda") + queueNote;
   document.getElementById("modalConfirm").textContent = candidateMode ? "Ver compatibilidad" : "Añadir al armario";
@@ -4460,14 +4485,16 @@ function openModal(image, rawFile, opts = {}) {
   document.getElementById("modalSeasonField").style.display = "block";
   document.getElementById("modalColorField").style.display = "block";
   // En modo candidato ("¿Me lo compro?") solo hace falta lo necesario para comprobar compatibilidad;
-  // nombrar la prenda y quitar el fondo se hace después, solo si decide añadirla al armario.
+  // nombrar la prenda, el enlace de compra y quitar el fondo se hace después, solo si decide añadirla al armario.
   document.getElementById("modalNameField").style.display = candidateMode ? "none" : "block";
+  document.getElementById("modalBuyLinkField").style.display = candidateMode ? "none" : "block";
   document.getElementById("modalBgRemoveField").style.display = candidateMode ? "none" : "block";
   document.getElementById("modalBgRemove").checked = false;
   const bgStatus = document.getElementById("modalBgStatus");
   bgStatus.style.display = "none"; bgStatus.textContent = "";
   document.getElementById("modalPreview").src = image;
   document.getElementById("modalName").value = "";
+  document.getElementById("modalBuyLink").value = "";
   document.getElementById("modalVersatile").checked = false;
   document.getElementById("modalSubtypeSearch").value = "";
   renderModalCategory();
@@ -4487,7 +4514,7 @@ function openEditModal(garment) {
   editingId = garment.id;
   candidateMode = false;
   shopFinalizeMode = false;
-  pending = { image: garment.image, category: garment.category, subtype: garment.subtype || null, color: garment.color, name: garment.name || "", rawFile: null, formality: garment.formality || 2, versatile: !!garment.versatile, season: garment.season || "entretiempo" };
+  pending = { image: garment.image, category: garment.category, subtype: garment.subtype || null, color: garment.color, name: garment.name || "", rawFile: null, formality: garment.formality || 2, versatile: !!garment.versatile, season: garment.season || "entretiempo", buyLink: garment.buyLink || "" };
   document.getElementById("modalTitle").textContent = "Editar prenda";
   document.getElementById("modalConfirm").textContent = "Guardar cambios";
   document.getElementById("modalCategoryField").style.display = "block";
@@ -4496,9 +4523,11 @@ function openEditModal(garment) {
   document.getElementById("modalSeasonField").style.display = "block";
   document.getElementById("modalColorField").style.display = "block";
   document.getElementById("modalNameField").style.display = "block";
+  document.getElementById("modalBuyLinkField").style.display = "block";
   document.getElementById("modalBgRemoveField").style.display = "none";
   document.getElementById("modalPreview").src = garment.image;
   document.getElementById("modalName").value = garment.name || "";
+  document.getElementById("modalBuyLink").value = garment.buyLink || "";
   document.getElementById("modalVersatile").checked = !!garment.versatile;
   document.getElementById("modalSubtypeSearch").value = "";
   renderModalCategory();
@@ -4514,7 +4543,7 @@ function openShopFinalizeModal() {
   editingId = null;
   candidateMode = false;
   shopFinalizeMode = true;
-  pending = { image: shopCandidate.image, category: shopCandidate.category, subtype: shopCandidate.subtype || null, color: shopCandidate.color, name: shopCandidate.name || "", rawFile: shopCandidate.rawFile || null, formality: shopCandidate.formality, versatile: !!shopCandidate.versatile, season: shopCandidate.season || "entretiempo" };
+  pending = { image: shopCandidate.image, category: shopCandidate.category, subtype: shopCandidate.subtype || null, color: shopCandidate.color, name: shopCandidate.name || "", rawFile: shopCandidate.rawFile || null, formality: shopCandidate.formality, versatile: !!shopCandidate.versatile, season: shopCandidate.season || "entretiempo", buyLink: shopCandidate.buyLink || "" };
   document.getElementById("modalTitle").textContent = "Añadir a mi armario";
   document.getElementById("modalConfirm").textContent = "Añadir al armario";
   document.getElementById("modalCategoryField").style.display = "none";
@@ -4524,9 +4553,11 @@ function openShopFinalizeModal() {
   document.getElementById("modalSeasonField").style.display = "none";
   document.getElementById("modalColorField").style.display = "none";
   document.getElementById("modalNameField").style.display = "block";
+  document.getElementById("modalBuyLinkField").style.display = "block";
   document.getElementById("modalBgRemoveField").style.display = "block";
   document.getElementById("modalPreview").src = pending.image;
   document.getElementById("modalName").value = pending.name;
+  document.getElementById("modalBuyLink").value = pending.buyLink;
   document.getElementById("modalVersatile").checked = pending.versatile;
   document.getElementById("modalBgRemove").checked = false;
   const bgStatus = document.getElementById("modalBgStatus");
@@ -4595,8 +4626,17 @@ document.getElementById("modalBackdrop").addEventListener("click", (e) => { if (
 document.getElementById("suggestionOverlayClose").addEventListener("click", closeSuggestionOverlay);
 document.getElementById("suggestionOverlayBackdrop").addEventListener("click", (e) => { if (e.target.id === "suggestionOverlayBackdrop") closeSuggestionOverlay(); });
 document.getElementById("modalName").addEventListener("input", (e) => { pending.name = e.target.value; });
+document.getElementById("modalBuyLink").addEventListener("input", (e) => { pending.buyLink = e.target.value; });
 document.getElementById("modalConfirm").addEventListener("click", () => {
   if (!pending) return;
+  lastUsedCategory = pending.category;
+  // Enlace de compra: opcional, siempre del propio usuario. Si escribe algo sin
+  // protocolo (p. ej. "amazon.es/..."), lo damos por bueno y anteponemos https://
+  // en vez de bloquear el guardado por un detalle así.
+  if (pending.buyLink) {
+    pending.buyLink = pending.buyLink.trim();
+    if (pending.buyLink && !/^https?:\/\//i.test(pending.buyLink)) pending.buyLink = `https://${pending.buyLink}`;
+  }
   const { rawFile, ...garmentData } = pending;
   if (candidateMode) {
     shopCandidate = { id: `candidate-${Date.now()}`, ...pending };
@@ -5358,7 +5398,7 @@ document.addEventListener("drobrAuthChecked", (e) => {
   // switchView("home") en vez de renderHomeFeed() directo: así también oculta
   // el buscador/"Añadir prenda" de Mi armario (pageAction/pageHead), que sin
   // esto se quedaba visible encima de Inicio porque nada lo ocultaba al cargar.
-  if (e.detail.user) { syncProfileIdentity(e.detail.user.uid); watchFollowRequests(e.detail.user.uid); watchActivityNotifications(e.detail.user.uid); switchView("home"); openProfileFromUrlParam(); }
+  if (e.detail.user) { syncProfileIdentity(e.detail.user.uid); watchFollowRequests(e.detail.user.uid); watchActivityNotifications(e.detail.user.uid); loadAffiliateMerchants(); switchView("home"); openProfileFromUrlParam(); }
 });
 
 // Destino del enlace que genera "Compartir" en el perfil
@@ -7587,6 +7627,90 @@ document.addEventListener("click", (e) => {
 // Detalle de una prenda ajena: imagen grande, chips informativos y una fila
 // compacta de acciones rápidas (Comprobar con mi armario, Sus outfits,
 // Compartir, Guardar) pensada para caber sin scroll en pantallas pequeñas.
+// ---- Monetización por afiliación (fase 1, sin backend propio) ----
+// DROBR no tiene servidor propio (solo Firebase en el plan gratuito Spark),
+// así que en vez del endpoint /go/garment/:id con redirección server-side,
+// la resolución y el registro del clic se hacen aquí, en el cliente, contra
+// Firestore directamente. Funciona igual de bien para el objetivo real (que
+// la cookie de afiliado de la tienda se plante al llegar allí) — lo único que
+// no tenemos es ocultar la URL final ni un registro de clics 100% a prueba de
+// manipulación, cosas que no hacen falta para el primer euro.
+//
+// Colección "affiliate_merchants" (pública de lectura, solo Aitor escribe
+// desde la consola de Firebase): { domains:[...], tagParam, tagValue, active }.
+// Mientras no exista o "active" sea false, resolveBuyLink no toca nada y el
+// enlace del usuario se abre tal cual (comportamiento de hoy).
+async function loadAffiliateMerchants() {
+  try {
+    const { collection, getDocs } = window.__drobrFirestoreFns;
+    const snap = await getDocs(collection(window.__drobrDb, "affiliate_merchants"));
+    affiliateMerchantsCache = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+  } catch (e) {
+    // Sin permisos, sin colección todavía, o sin red: no pasa nada, se sigue
+    // sirviendo el enlace en bruto del usuario.
+    affiliateMerchantsCache = [];
+  }
+}
+function matchAffiliateMerchant(rawUrl) {
+  if (!rawUrl) return null;
+  let host;
+  try { host = new URL(rawUrl).hostname.replace(/^www\./, ""); } catch { return null; }
+  return affiliateMerchantsCache.find(m =>
+    m.active && m.tagValue && Array.isArray(m.domains) && m.domains.some(d => host === d || host.endsWith(`.${d}`))
+  ) || null;
+}
+// Punto único por el que pasa cualquier enlace de compra antes de mostrarse.
+// Si la tienda del enlace tiene programa de afiliación activo, sustituye (o
+// añade) el parámetro de seguimiento de DROBR. Si no, lo devuelve tal cual —
+// la comisión, si la hay, es entonces del propio usuario que lo pegó.
+function resolveBuyLink(rawUrl) {
+  const merchant = matchAffiliateMerchant(rawUrl);
+  if (!merchant) return rawUrl;
+  try {
+    const u = new URL(rawUrl);
+    u.searchParams.set(merchant.tagParam, merchant.tagValue);
+    return u.toString();
+  } catch { return rawUrl; }
+}
+function buyButtonHTML(garment) {
+  if (!garment || !garment.buyLink) return "";
+  return `<a class="detail-quick-btn" data-buy-garment-id="${garment.id}" href="${resolveBuyLink(garment.buyLink)}" target="_blank" rel="nofollow sponsored noopener">
+      <span class="detail-quick-icon"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="9" cy="21" r="1"/><circle cx="20" cy="21" r="1"/><path d="M1 1h4l2.68 13.39a2 2 0 0 0 2 1.61h9.72a2 2 0 0 0 2-1.61L23 6H6"/></svg></span>
+      <span class="detail-quick-label">Comprar</span>
+    </a>`;
+}
+// El texto cambia según quién se lleve la comisión: si DROBR ha convertido el
+// enlace en uno de afiliado propio (hay "merchant" activo), toca la
+// divulgación que exige el programa de afiliados en cuestión; si no, el
+// enlace sigue siendo tal cual lo puso quien publicó la prenda.
+function buyDisclosureHTML(garment) {
+  if (!garment || !garment.buyLink) return "";
+  const merchant = matchAffiliateMerchant(garment.buyLink);
+  const text = merchant
+    ? (merchant.disclosure || "Como Afiliado, DROBR obtiene ingresos por las compras que cumplen los requisitos aplicables.")
+    : "Este enlace lo ha puesto quien publicó la prenda — puede ser un enlace de afiliado suyo.";
+  return `<div class="fallback-note" style="text-align:center; margin-top:8px;">${text}</div>`;
+}
+// Registro de clic, "fire and forget": no se espera a que termine antes de
+// dejar que el <a> navegue (target="_blank" ya abre la pestaña sin ayuda de
+// JS), así un fallo o una conexión lenta aquí nunca retrasa ni rompe la compra.
+// ownerUid queda sin usar todavía (null) — se añadirá cuando haga falta para
+// el reparto con creadores (fase 2); no bloquea nada mientras tanto.
+function logAffiliateClick(garment) {
+  try {
+    const { doc, collection, setDoc, serverTimestamp } = window.__drobrFirestoreFns;
+    const merchant = matchAffiliateMerchant(garment.buyLink);
+    const ref = doc(collection(window.__drobrDb, "affiliate_clicks"));
+    setDoc(ref, {
+      garmentId: garment.id,
+      viewerUid: (window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid) || null,
+      merchantId: merchant ? merchant.id : null,
+      rawUrl: garment.buyLink,
+      resolvedUrl: resolveBuyLink(garment.buyLink),
+      createdAt: serverTimestamp(),
+    }).catch(() => {});
+  } catch { /* nunca debe romper el flujo de compra */ }
+}
 function openForeignGarmentDetail(garment, meta, foreignOutfitsArr) {
   const cat = CATEGORIES.find(c => c.id === garment.category);
   const title = garment.name ? garment.name.charAt(0).toUpperCase() + garment.name.slice(1) : (cat ? cat.label : garment.category);
@@ -7619,7 +7743,11 @@ function openForeignGarmentDetail(garment, meta, foreignOutfitsArr) {
         <span class="detail-quick-icon ${yaGuardada ? "accent" : ""}"><svg width="18" height="18" viewBox="0 0 24 24" fill="${yaGuardada ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg></span>
         <span class="detail-quick-label">${yaGuardada ? "Guardada" : "Guardar"}</span>
       </button>
-    </div>`;
+      ${buyButtonHTML(garment)}
+    </div>
+    ${buyDisclosureHTML(garment)}`;
+  const buyBtn = document.querySelector('[data-buy-garment-id="' + garment.id + '"]');
+  if (buyBtn) buyBtn.addEventListener("click", () => logAffiliateClick(garment));
   document.getElementById("foreignGarmentCheckBtn").addEventListener("click", () => {
     document.getElementById("itemDetailBackdrop").classList.remove("open");
     renderForeignGarmentCheck(garment);
@@ -7825,11 +7953,10 @@ function recreateOutfitFromMyWardrobe(entry) {
   const contextId = ctx ? ctx.id : "any";
   const season = (entry.top && entry.top.season) || (entry.bottom && entry.bottom.season) || (entry.shoes && entry.shoes.season) || "any";
   lockedPieces = { top: null, bottom: null, shoes: null };
-  recreateColorTargets = {
-    top: entry.top && entry.top.color,
-    bottom: entry.bottom && entry.bottom.color,
-    shoes: entry.shoes && entry.shoes.color,
-  };
+  const isOnePieceEntry = !!(entry.top && entry.bottom && entry.top.id === entry.bottom.id);
+  recreateColorTargets = isOnePieceEntry
+    ? { onepiece: entry.top.color, shoes: entry.shoes && entry.shoes.color }
+    : { top: entry.top && entry.top.color, bottom: entry.bottom && entry.bottom.color, shoes: entry.shoes && entry.shoes.color };
   const contextSelectEl = document.getElementById("contextSelect");
   const seasonSelectEl = document.getElementById("seasonSuggestSelect");
   if (contextSelectEl) contextSelectEl.value = contextId;
