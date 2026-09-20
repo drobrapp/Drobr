@@ -2090,17 +2090,23 @@ function evaluatePair(a, b) {
   const seasonOk = seasonCompatible(a, b);
   return { colorOk, styleOk, seasonOk, ok: colorOk && styleOk && seasonOk };
 }
+// Una prenda de "Cuerpo entero" (vestido/mono) ocupa a la vez el hueco de
+// "top" y de "bottom": se le pasa a evaluateOutfit dos veces, como el mismo
+// objeto. Al ser literalmente la misma prenda, el par top-bottom no se
+// evalúa (no tiene sentido comparar una prenda consigo misma) y solo cuenta
+// una vez para el chequeo de "demasiados colores llamativos".
 function evaluateOutfit(top, bottom, shoes) {
-  const tb = evaluatePair(top, bottom);
+  const isOnePiece = !!(top.id && bottom.id && top.id === bottom.id);
+  const tb = isOnePiece ? { colorOk: true, styleOk: true, seasonOk: true, ok: true } : evaluatePair(top, bottom);
   const ts = evaluatePair(top, shoes);
-  const bs = evaluatePair(bottom, shoes);
+  const bs = isOnePiece ? ts : evaluatePair(bottom, shoes);
   const pairs = [
     { catA: "top", catB: "bottom", ...tb },
     { catA: "top", catB: "shoes", ...ts },
     { catA: "bottom", catB: "shoes", ...bs },
   ];
-  const tooManyColors = tooManyLoudColors([top.color, bottom.color, shoes.color]);
-  return { ok: pairs.every(p => p.ok) && !tooManyColors, pairs, tooManyColors };
+  const tooManyColors = tooManyLoudColors(isOnePiece ? [top.color, shoes.color] : [top.color, bottom.color, shoes.color]);
+  return { ok: pairs.every(p => p.ok) && !tooManyColors, pairs, tooManyColors, isOnePiece };
 }
 function fitsContext(g, target) {
   if (g.versatile) return target === 2 || target === 3;
@@ -2126,20 +2132,35 @@ function colorFailReason(colorA, colorB) {
 }
 const CAT_TEXT = { top: "la parte de arriba", bottom: "la parte de abajo", shoes: "el calzado" };
 function localOutfitText(top, bottom, shoes, evalRes) {
+  const isOnePiece = !!evalRes.isOnePiece;
   const fails = evalRes.pairs.filter(p => !p.ok);
   if (evalRes.ok) {
+    if (isOnePiece) {
+      const c1 = colorById[top.color].label.toLowerCase();
+      const c2 = colorById[shoes.color].label.toLowerCase();
+      return `Buena combinación: el ${c1} y el ${c2} casan bien entre sí, y comparten un registro parecido de formalidad y temporada.`;
+    }
     const c1 = colorById[top.color].label.toLowerCase();
     const c2 = colorById[bottom.color].label.toLowerCase();
     const c3 = colorById[shoes.color].label.toLowerCase();
     return `Buena combinación: el ${c1}, el ${c2} y el ${c3} casan bien entre sí, y las tres prendas comparten un registro parecido de formalidad y temporada.`;
   }
   const catToGarment = { top, bottom, shoes };
-  const parts = fails.map(p => {
+  const catText = (id) => isOnePiece && id !== "shoes" ? "La prenda" : CAT_TEXT[id];
+  const seen = new Set();
+  const parts = [];
+  fails.forEach(p => {
+    if (isOnePiece) {
+      // top-shoes y bottom-shoes son idénticos para una prenda de una sola pieza: no duplicar el mensaje.
+      const key = `${p.colorOk}|${p.styleOk}|${p.seasonOk}`;
+      if (seen.has(key)) return;
+      seen.add(key);
+    }
     const reasons = [];
     if (!p.colorOk) reasons.push(colorFailReason(catToGarment[p.catA].color, catToGarment[p.catB].color));
     if (!p.styleOk) reasons.push("van en registros de formalidad demasiado distintos");
     if (!p.seasonOk) reasons.push("una es de verano y la otra de invierno, no pegan en la misma época");
-    return `${CAT_TEXT[p.catA]} y ${CAT_TEXT[p.catB]} no terminan de casar: ${reasons.join(" y ")}`;
+    parts.push(`${catText(p.catA)} y ${catText(p.catB)} no terminan de casar: ${reasons.join(" y ")}`);
   });
   if (evalRes.tooManyColors) parts.push("Además, hay demasiados colores llamativos a la vez — el conjunto queda recargado");
   return parts.join(". ") + ".";
@@ -2945,7 +2966,12 @@ function renderOutfitFab() {
 function counts() {
   return CATEGORIES.reduce((acc,c) => { acc[c.id] = garments.filter(g=>g.category===c.id).length; return acc; }, {});
 }
-function canSuggest() { const c = counts(); return c.top > 0 && c.bottom > 0 && c.shoes > 0; }
+// Se puede sugerir un outfit con superior+inferior+calzado, o con una prenda
+// de cuerpo entero (vestido/mono) + calzado — no hace falta tener las dos vías.
+function canSuggest() {
+  const c = counts();
+  return c.shoes > 0 && ((c.top > 0 && c.bottom > 0) || c.onepiece > 0);
+}
 
 function renderActions() {
   const generateBtn = document.getElementById("generateOutfitBtn");
@@ -2971,9 +2997,11 @@ function renderActions() {
   if (!ok) {
     const c = counts();
     const missing = [];
-    if (c.top === 0) missing.push("una prenda superior");
-    if (c.bottom === 0) missing.push("una prenda inferior");
     if (c.shoes === 0) missing.push("un calzado");
+    if (!((c.top > 0 && c.bottom > 0) || c.onepiece > 0)) {
+      if (c.top === 0) missing.push("una prenda superior");
+      if (c.bottom === 0) missing.push("una prenda inferior (o un vestido/mono)");
+    }
     onboardEl.style.display = "block";
     onboardEl.textContent = `Te falta: ${missing.join(", ")}.`;
   } else {
@@ -3024,14 +3052,27 @@ function buildOutfit(contextId, seasonId, locked = {}, colorTargets = null) {
   };
   const tops = poolFor("top");
   const bottoms = poolFor("bottom");
+  const onepieces = poolFor("onepiece");
   const shoesList = poolFor("shoes");
-  if (!tops.length || !bottoms.length || !shoesList.length) return { outfit: null };
+  if (!shoesList.length) return { outfit: null };
+  if (!(tops.length && bottoms.length) && !onepieces.length) return { outfit: null };
 
   const combos = [];
-  tops.forEach(t => bottoms.forEach(b => shoesList.forEach(s => {
-    const evalRes = evaluateOutfit(t, b, s);
-    combos.push({ top: t, bottom: b, shoes: s, evalRes });
-  })));
+  if (tops.length && bottoms.length) {
+    tops.forEach(t => bottoms.forEach(b => shoesList.forEach(s => {
+      const evalRes = evaluateOutfit(t, b, s);
+      combos.push({ top: t, bottom: b, shoes: s, evalRes });
+    })));
+  }
+  // Un vestido/mono ocupa el hueco de top y bottom a la vez (misma prenda en ambos).
+  // Si el usuario ha bloqueado un superior o inferior concreto, respetamos esa
+  // intención y no mezclamos sugerencias de cuerpo entero con esa selección.
+  if (!locked.top && !locked.bottom) {
+    onepieces.forEach(op => shoesList.forEach(s => {
+      const evalRes = evaluateOutfit(op, op, s);
+      combos.push({ top: op, bottom: op, shoes: s, evalRes });
+    }));
+  }
   const valid = combos.filter(c => c.evalRes.ok);
   if (valid.length) return { outfit: valid[Math.floor(Math.random() * valid.length)], approximate: false };
   combos.sort((a, b) => a.evalRes.pairs.filter(p=>!p.ok).length - b.evalRes.pairs.filter(p=>!p.ok).length);
@@ -3044,7 +3085,11 @@ function lockIconSVG(locked) {
     : `<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V7a4 4 0 0 1 7.6-1.8"/></svg>`;
 }
 function outfitCardHTML(g, category) {
-  const isLocked = !!lockedPieces[category];
+  // Una tarjeta "onepiece" representa un vestido/mono que ocupa top+bottom a
+  // la vez; su candado bloquea/desbloquea las dos claves juntas, así que
+  // consulta el estado de "top" (siempre sincronizado con "bottom" para estas prendas).
+  const lockKey = category === "onepiece" ? "top" : category;
+  const isLocked = !!lockedPieces[lockKey];
   return `
     <div class="frame frame-minimal">
       <div class="frame-inner">
@@ -3053,12 +3098,26 @@ function outfitCardHTML(g, category) {
       <button class="lock-btn ${isLocked ? "locked" : ""}" data-lock-cat="${category}" title="${isLocked ? "Desbloquear" : "Bloquear esta prenda"}">${lockIconSVG(isLocked)}</button>
     </div>`;
 }
+// Dibuja la rejilla de la sugerencia: 3 tarjetas (superior/inferior/calzado)
+// o, si el outfit usa una prenda de cuerpo entero (top y bottom son la misma
+// prenda), 2 tarjetas (cuerpo entero + calzado) en vez de mostrar la misma
+// imagen duplicada.
+function renderSuggestionGrid(outfit) {
+  const gridEl = document.getElementById("suggestionGrid");
+  const isOnePiece = !!(outfit.top && outfit.bottom && outfit.top.id === outfit.bottom.id);
+  const cats = isOnePiece ? ["onepiece", "shoes"] : ["top", "bottom", "shoes"];
+  gridEl.style.gridTemplateColumns = `repeat(${cats.length}, minmax(0, 1fr))`;
+  gridEl.innerHTML = cats.map(cat => outfitCardHTML(cat === "onepiece" ? outfit.top : outfit[cat], cat)).join("");
+}
 
 function localOutfitName(top, bottom, shoes) {
-  const avg = Math.round(((top.formality||2) + (bottom.formality||2) + (shoes.formality||2)) / 3);
+  const isOnePiece = !!(top && bottom && top.id === bottom.id);
+  const avg = isOnePiece
+    ? Math.round(((top.formality||2) + (shoes.formality||2)) / 2)
+    : Math.round(((top.formality||2) + (bottom.formality||2) + (shoes.formality||2)) / 3);
   const styleWord = (FORMALITY_LABELS[avg] || "Casual").split(" ")[0].split("/")[0];
   const c1 = colorById[top.color].label.toLowerCase();
-  const c2 = colorById[bottom.color].label.toLowerCase();
+  const c2 = isOnePiece ? colorById[shoes.color].label.toLowerCase() : colorById[bottom.color].label.toLowerCase();
   const c3 = colorById[shoes.color].label.toLowerCase();
   const second = c1 === c2 ? c3 : c2;
   return c1 === second ? `${styleWord} en ${c1}` : `${styleWord} en ${c1} y ${second}`;
@@ -3317,26 +3376,39 @@ function drawGarments(ctx, top, bottom, shoes, accessories, style, imgs) {
   const { supImg, infImg, shoeImg, accImgs, supTrim, infTrim, shoeTrim, accTrims } = imgs;
   const draw = SHARE_STYLE_DRAWERS[style] || drawShareItemFlat;
   const L = SHARE_LAYOUT;
+  const isOnePiece = !!(top.id && bottom.id && top.id === bottom.id);
 
-  const supDims = fitDimsArea(supTrim, L.supArea, L.supMaxW, L.supMaxH);
-  const supH = draw(ctx, supImg, supTrim, L.leftCX, L.supTopY, supDims.w, supDims.h, L.supRot);
+  let supH, infBottomY, topBound;
+  if (isOnePiece) {
+    // Un vestido/mono es una sola foto que ocupa el hueco combinado de
+    // "superior" + "inferior" — no hay dos prendas que encajar por anchura de
+    // cintura, así que se dibuja una vez, a tamaño de cuerpo completo.
+    const combinedH = L.supMaxH + L.infMaxH - 100;
+    const dims = fitDimsHeightLocked(supTrim, combinedH, Math.max(L.supMaxW, L.infMaxW));
+    supH = draw(ctx, supImg, supTrim, L.leftCX, L.supTopY, dims.w, dims.h, 0);
+    infBottomY = L.supTopY + supH;
+    topBound = L.supTopY;
+  } else {
+    const supDims = fitDimsArea(supTrim, L.supArea, L.supMaxW, L.supMaxH);
+    supH = draw(ctx, supImg, supTrim, L.leftCX, L.supTopY, supDims.w, supDims.h, L.supRot);
 
-  // "Inferior" se escala para que el ancho de su cinturilla (el 12% superior de
-  // la prenda) coincida con el ancho del bajo de "superior" (el 18% inferior) ya
-  // reescalado — como si de verdad una prenda se metiera dentro de la otra en
-  // un cuerpo. Esto sustituye a una simple proporción de altura, que no tenía
-  // en cuenta la anchura real de cada prenda en el punto donde se tocan.
-  const supScale = supDims.w / supTrim.sw;
-  const supHemWidth = getBandWidth(supImg, supTrim, 0.82, 1.0) * supScale;
-  const infWaistWidth = getBandWidth(infImg, infTrim, 0, 0.12);
-  let infScale = supHemWidth / infWaistWidth;
-  infScale = Math.min(infScale, L.infMaxW / infTrim.sw, L.infMaxH / infTrim.sh);
-  const infDims = { w: infTrim.sw * infScale, h: infTrim.sh * infScale };
+    // "Inferior" se escala para que el ancho de su cinturilla (el 12% superior de
+    // la prenda) coincida con el ancho del bajo de "superior" (el 18% inferior) ya
+    // reescalado — como si de verdad una prenda se metiera dentro de la otra en
+    // un cuerpo. Esto sustituye a una simple proporción de altura, que no tenía
+    // en cuenta la anchura real de cada prenda en el punto donde se tocan.
+    const supScale = supDims.w / supTrim.sw;
+    const supHemWidth = getBandWidth(supImg, supTrim, 0.82, 1.0) * supScale;
+    const infWaistWidth = getBandWidth(infImg, infTrim, 0, 0.12);
+    let infScale = supHemWidth / infWaistWidth;
+    infScale = Math.min(infScale, L.infMaxW / infTrim.sw, L.infMaxH / infTrim.sh);
+    const infDims = { w: infTrim.sw * infScale, h: infTrim.sh * infScale };
 
-  const infTopY = L.supTopY + supH - L.infOverlap;
-  const infH = draw(ctx, infImg, infTrim, L.leftCX, infTopY, infDims.w, infDims.h, L.infRot);
-  const infBottomY = infTopY + infH;
-  const topBound = L.supTopY;
+    const infTopY = L.supTopY + supH - L.infOverlap;
+    const infH = draw(ctx, infImg, infTrim, L.leftCX, infTopY, infDims.w, infDims.h, L.infRot);
+    infBottomY = infTopY + infH;
+    topBound = L.supTopY;
+  }
 
   const shoeDims = fitDimsWidthLocked(shoeTrim, supH * L.shoeWRatio, L.shoeMaxH);
   const shoeH = style === "polaroid" ? shoeDims.h * 1.14 : shoeDims.h;
@@ -3541,10 +3613,13 @@ async function finalizeShareOutfitAsImage(style) {
 }
 
 function outfitBadges(top, bottom, shoes, ctxLabel) {
-  const avg = Math.round(((top.formality||2) + (bottom.formality||2) + (shoes.formality||2)) / 3);
+  const isOnePiece = !!(top && bottom && top.id === bottom.id);
+  const avg = isOnePiece
+    ? Math.round(((top.formality||2) + (shoes.formality||2)) / 2)
+    : Math.round(((top.formality||2) + (bottom.formality||2) + (shoes.formality||2)) / 3);
   const badges = [FORMALITY_LABELS[avg] || "Casual"];
   if (top.versatile || bottom.versatile || shoes.versatile) badges.push("Versátil incluido");
-  const seasons = [top.season, bottom.season, shoes.season].filter(s => s && s !== "entretiempo");
+  const seasons = (isOnePiece ? [top.season, shoes.season] : [top.season, bottom.season, shoes.season]).filter(s => s && s !== "entretiempo");
   if (seasons.length) badges.push(SEASONS.find(s => s.id === seasons[0]).label);
   if (ctxLabel) badges.push(ctxLabel);
   return badges;
@@ -3608,7 +3683,7 @@ async function handleSuggest(contextId, seasonId) {
   saveBtn.style.display = "none";
   saveBtn.textContent = "Guardar outfit";
   saveBtn.disabled = false;
-  gridEl.innerHTML = ["top", "bottom", "shoes"].map(cat => outfitCardHTML(outfit[cat], cat)).join("");
+  renderSuggestionGrid(outfit);
   explainEl.textContent = "Pensando la combinación…";
   explainEl.style.color = "var(--ink-soft)";
 
@@ -3703,15 +3778,18 @@ function enableDragScrollAll(root) {
 /* ---------------- Manual builder (strict yes/no + swap suggestion) ---------------- */
 function renderPicker() {
   const container = document.getElementById("pickerContainer");
-  const catIds = manualAccessoryVisible ? ["top", "bottom", "shoes", "accessory"] : ["top", "bottom", "shoes"];
+  const catIds = manualAccessoryVisible ? ["top", "bottom", "onepiece", "shoes", "accessory"] : ["top", "bottom", "onepiece", "shoes"];
   container.innerHTML = catIds.map(catId => {
     const cat = CATEGORIES.find(c => c.id === catId);
     const options = garments.filter(g => g.category === catId);
+    if (!options.length) return "";
     const isMinor = catId === "accessory";
     const items = options.map(g => {
       const selected = isMinor
         ? manualPicks.accessories.some(a => a.id === g.id)
-        : manualPicks[catId] && manualPicks[catId].id === g.id;
+        : catId === "onepiece"
+          ? !!(manualPicks.top && manualPicks.bottom && manualPicks.top.id === g.id && manualPicks.bottom.id === g.id)
+          : manualPicks[catId] && manualPicks[catId].id === g.id;
       return `
         <div class="picker-item ${isMinor ? "picker-item-minor" : ""} ${selected ? "selected" : ""}" data-pick="${catId}" data-id="${g.id}">
           <div class="frame-img"><img src="${g.image}" alt=""></div>
@@ -3732,8 +3810,18 @@ function renderPicker() {
       if (cat === "accessory") {
         const already = manualPicks.accessories.some(a => a.id === id);
         manualPicks.accessories = already ? manualPicks.accessories.filter(a => a.id !== id) : [...manualPicks.accessories, garment];
+      } else if (cat === "onepiece") {
+        // Un vestido/mono ocupa los dos huecos (top y bottom) con la misma prenda.
+        const already = manualPicks.top && manualPicks.bottom && manualPicks.top.id === id && manualPicks.bottom.id === id;
+        manualPicks.top = already ? null : garment;
+        manualPicks.bottom = already ? null : garment;
       } else {
+        // Elegir un superior/inferior suelto sustituye por completo a un vestido/mono
+        // que estuviera ocupando ambos huecos — no tiene sentido dejar la otra mitad puesta.
+        const wasOnePieceLinked = manualPicks.top && manualPicks.bottom &&
+          manualPicks.top.id === manualPicks.bottom.id && manualPicks.top.category === "onepiece";
         manualPicks[cat] = (manualPicks[cat] && manualPicks[cat].id === id) ? null : garment;
+        if (wasOnePieceLinked) manualPicks[cat === "top" ? "bottom" : "top"] = null;
       }
       document.getElementById("manualResult").innerHTML = "";
       renderPicker();
@@ -3758,8 +3846,20 @@ function pickSuspectOrder(pairs) {
   return ["top", "bottom", "shoes"].sort((a, b) => involve[b] - involve[a]);
 }
 function findSwap(top, bottom, shoes) {
-  const slots = { top, bottom, shoes };
   const evalRes = evaluateOutfit(top, bottom, shoes);
+  // Con un vestido/mono no hay "superior" ni "inferior" independientes que
+  // cambiar por separado — solo tiene sentido probar otra prenda de cuerpo
+  // entero, o otro calzado.
+  if (evalRes.isOnePiece) {
+    const onePieceCandidates = garments.filter(g => g.category === "onepiece" && g.id !== top.id);
+    const onePieceFixes = onePieceCandidates.filter(cand => evaluateOutfit(cand, cand, shoes).ok);
+    if (onePieceFixes.length) return { category: "onepiece", options: onePieceFixes.slice(0, 2) };
+    const shoeCandidates = garments.filter(g => g.category === "shoes" && g.id !== shoes.id);
+    const shoeFixes = shoeCandidates.filter(cand => evaluateOutfit(top, bottom, cand).ok);
+    if (shoeFixes.length) return { category: "shoes", options: shoeFixes.slice(0, 2) };
+    return null;
+  }
+  const slots = { top, bottom, shoes };
   const order = pickSuspectOrder(evalRes.pairs);
   for (const cat of order) {
     const candidates = garments.filter(g => g.category === cat && g.id !== slots[cat].id);
@@ -3816,7 +3916,9 @@ async function handleCheckManual() {
   resultEl.querySelectorAll("[data-use-swap]").forEach(btn => {
     btn.addEventListener("click", () => {
       const [cat, id] = btn.dataset.useSwap.split(":");
-      manualPicks[cat] = garments.find(g => g.id === id);
+      const picked = garments.find(g => g.id === id);
+      if (cat === "onepiece") { manualPicks.top = picked; manualPicks.bottom = picked; }
+      else manualPicks[cat] = picked;
       renderPicker();
       updateCheckManualBtn();
       handleCheckManual();
@@ -4760,7 +4862,8 @@ document.getElementById("builderToggleBtn").addEventListener("click", () => {
   const preselected = garments.filter(g => selectedForMatch.has(g.id));
   manualPicks = { top: null, bottom: null, shoes: null, accessories: [] };
   preselected.forEach(g => {
-    if (g.category === "top" || g.category === "bottom" || g.category === "shoes") manualPicks[g.category] = g;
+    if (g.category === "onepiece") { manualPicks.top = g; manualPicks.bottom = g; }
+    else if (g.category === "top" || g.category === "bottom" || g.category === "shoes") manualPicks[g.category] = g;
     else if (g.category === "accessory") manualPicks.accessories.push(g);
   });
   manualAccessoryVisible = manualPicks.accessories.length > 0;
@@ -4845,9 +4948,14 @@ document.getElementById("suggestionGrid").addEventListener("click", (e) => {
   const btn = e.target.closest("[data-lock-cat]");
   if (!btn || !currentSuggestionOutfit) return;
   const cat = btn.dataset.lockCat;
-  lockedPieces[cat] = lockedPieces[cat] ? null : currentSuggestionOutfit[cat];
-  document.getElementById("suggestionGrid").innerHTML = ["top", "bottom", "shoes"]
-    .map(c => outfitCardHTML(currentSuggestionOutfit[c], c)).join("");
+  if (cat === "onepiece") {
+    const isLocked = !!lockedPieces.top;
+    lockedPieces.top = isLocked ? null : currentSuggestionOutfit.top;
+    lockedPieces.bottom = isLocked ? null : currentSuggestionOutfit.bottom;
+  } else {
+    lockedPieces[cat] = lockedPieces[cat] ? null : currentSuggestionOutfit[cat];
+  }
+  renderSuggestionGrid(currentSuggestionOutfit);
 });
 
 CONTEXTS.forEach(c => {
