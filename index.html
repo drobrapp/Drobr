@@ -1069,6 +1069,14 @@
     <div id="shopResult"></div>
   </div>
 
+  <div id="viewSearchUser" style="display:none;">
+    <div class="section" style="margin-bottom:0;">
+      <input type="text" id="searchUserInput" placeholder="@usuario" style="margin-top:0; width:100%; margin-bottom:4px;" autocomplete="off">
+      <p class="sub" id="searchUserHint" style="margin:14px 0 0; text-align:center;">Escribe un @usuario para encontrar a alguien.</p>
+      <div id="searchUserResults" style="display:none; flex-direction:column; gap:2px; margin-top:10px;"></div>
+    </div>
+  </div>
+
   <div id="viewMessages" style="display:none;">
     <div id="messagesInboxPane">
       <div class="section">
@@ -1078,10 +1086,9 @@
             <h2>Mensajes</h2>
             <p class="section-header-sub" id="messagesInboxCount">Tus conversaciones.</p>
           </div>
-          <button class="foreign-sort-btn" id="newMessageBtn" title="Nuevo mensaje" aria-label="Nuevo mensaje">
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" width="17" height="17"><path d="M12 5v14M5 12h14"/></svg>
-          </button>
         </div>
+        <input type="text" id="messagesNewSearchInput" placeholder="Buscar @usuario para escribirle..." style="margin-top:0; width:100%; margin-bottom:4px;" autocomplete="off">
+        <div id="messagesNewSearchResults" style="display:none; flex-direction:column; gap:2px; margin-bottom:10px;"></div>
         <div id="messagesInboxList" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
     </div>
@@ -1637,20 +1644,6 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="userSearchBackdrop">
-  <div class="modal" style="max-width:340px;">
-    <div class="modal-head">
-      <h2 style="font-size:16px;">Buscar usuario</h2>
-      <button class="modal-close" id="userSearchClose">✕</button>
-    </div>
-    <div class="row" style="gap:8px; margin-bottom:4px;">
-      <input type="text" id="userSearchInput" placeholder="@usuario" style="flex:1;" autocomplete="off">
-      <button class="btn btn-primary" id="userSearchGoBtn" style="white-space:nowrap;">Buscar</button>
-    </div>
-    <p id="userSearchError" class="sub" style="color:var(--danger); display:none; margin-bottom:0;"></p>
-    <div id="userSearchSuggestions" style="display:none; flex-direction:column; gap:2px; max-height:280px; overflow-y:auto; margin-top:8px;"></div>
-  </div>
-</div>
 
 <div class="modal-backdrop" id="sharePickerBackdrop">
   <div class="modal" style="max-width:380px;">
@@ -4807,6 +4800,7 @@ const PAGE_META = {
   home: { title: "Inicio", subtitle: "Los outfits de las personas que sigues.", action: false },
   wardrobe: { title: "Mi armario", subtitle: "Gestiona tu ropa y crea combinaciones que realmente vayan con tu estilo.", action: true },
   shop: { title: "¿Me lo compro?", subtitle: "¿Dudas si esa prenda combinaría con lo que ya tienes? ¡Compruébalo antes de comprarla!", action: false },
+  search: { title: "Buscar", subtitle: "Encuentra a otras personas por su @usuario.", action: false },
   profile: { title: "Perfil", subtitle: "DROBR no muestra quién eres. Muestra cómo utilizas lo que tienes.", action: false },
   settings: { title: "Configuración", subtitle: "Copia de seguridad de tu armario.", action: false },
   messages: { title: "Mensajes", subtitle: "Tus conversaciones privadas.", action: false },
@@ -4818,6 +4812,7 @@ function switchView(view) {
   document.getElementById("viewHome").style.display = view === "home" ? "block" : "none";
   document.getElementById("viewWardrobe").style.display = view === "wardrobe" ? "block" : "none";
   document.getElementById("viewShop").style.display = view === "shop" ? "block" : "none";
+  document.getElementById("viewSearchUser").style.display = view === "search" ? "block" : "none";
   document.getElementById("viewProfile").style.display = view === "profile" ? "block" : "none";
   document.getElementById("viewSettings").style.display = view === "settings" ? "block" : "none";
   document.getElementById("viewMessages").style.display = view === "messages" ? "block" : "none";
@@ -4833,20 +4828,28 @@ function switchView(view) {
   const hTab = document.getElementById("viewTabHome");
   const wTab = document.getElementById("viewTabWardrobe");
   const shTab = document.getElementById("viewTabShop");
+  const seTab = document.getElementById("viewTabSearchUser");
   const pTab = document.getElementById("viewTabProfile");
   const sTab = document.getElementById("viewTabSettings");
   const mTab = document.getElementById("viewTabMessages");
-  [hTab, wTab, shTab, pTab, sTab, mTab].forEach(t => t.classList.remove("nav-active"));
-  ({ home: hTab, wardrobe: wTab, shop: shTab, profile: pTab, settings: sTab, messages: mTab }[view])?.classList.add("nav-active");
+  [hTab, wTab, shTab, seTab, pTab, sTab, mTab].forEach(t => t.classList.remove("nav-active"));
+  ({ home: hTab, wardrobe: wTab, shop: shTab, search: seTab, profile: pTab, settings: sTab, messages: mTab }[view])?.classList.add("nav-active");
   if (view === "home") renderHomeFeed();
   if (view === "wardrobe") switchWardrobeTab("armario");
   if (view === "shop") renderShopView();
+  if (view === "search") setTimeout(() => document.getElementById("searchUserInput")?.focus(), 50);
   if (view === "profile") renderProfile();
 }
 document.getElementById("viewTabHome").addEventListener("click", () => switchView("home"));
 document.getElementById("viewTabWardrobe").addEventListener("click", () => switchView("wardrobe"));
 document.getElementById("viewTabShop").addEventListener("click", () => switchView("shop"));
 document.getElementById("viewTabProfile").addEventListener("click", () => switchView("profile"));
+// Ir a la pantalla "Buscar" y poner el foco en su cajón de texto: reutilizado
+// por los botones "Buscar personas" de Guardados y de Inicio (antes abrían un
+// modal aparte; ahora todos comparten la misma pantalla de búsqueda visible).
+function goToUserSearch() {
+  switchView("search");
+}
 
 // Pestañas internas de Mi armario (Armario / Outfits): mismo patrón que las
 // pestañas del perfil. El FAB flotante cambia de contenido según la pestaña
@@ -4866,22 +4869,13 @@ function switchWardrobeTab(tab) {
 document.querySelectorAll("#wardrobeMainTabs [data-wtab]").forEach(btn => {
   btn.addEventListener("click", () => switchWardrobeTab(btn.dataset.wtab));
 });
-document.getElementById("viewTabSearchUser").addEventListener("click", openUserSearchModal);
-document.getElementById("savedGarmentsSearchBtn")?.addEventListener("click", openUserSearchModal);
-document.getElementById("savedOutfitsSearchBtn")?.addEventListener("click", openUserSearchModal);
-document.getElementById("newMessageBtn")?.addEventListener("click", () => openUserSearchModal("message"));
-document.getElementById("userSearchClose").addEventListener("click", closeUserSearchModal);
-document.getElementById("userSearchBackdrop").addEventListener("click", (e) => { if (e.target.id === "userSearchBackdrop") closeUserSearchModal(); });
+document.getElementById("viewTabSearchUser").addEventListener("click", () => switchView("search"));
+document.getElementById("savedGarmentsSearchBtn")?.addEventListener("click", goToUserSearch);
+document.getElementById("savedOutfitsSearchBtn")?.addEventListener("click", goToUserSearch);
 document.getElementById("topbarBellBtn").addEventListener("click", openFollowRequestsPanel);
 document.getElementById("viewTabNotifications").addEventListener("click", openFollowRequestsPanel);
 document.getElementById("followRequestsClose").addEventListener("click", closeFollowRequestsPanel);
 document.getElementById("followRequestsBackdrop").addEventListener("click", (e) => { if (e.target.id === "followRequestsBackdrop") closeFollowRequestsPanel(); });
-document.getElementById("userSearchGoBtn").addEventListener("click", performUserSearch);
-document.getElementById("userSearchInput").addEventListener("keydown", (e) => { if (e.key === "Enter") performUserSearch(); });
-document.getElementById("userSearchInput").addEventListener("input", () => {
-  clearTimeout(userSearchDebounceTimer);
-  userSearchDebounceTimer = setTimeout(renderUserSearchSuggestions, 250);
-});
 document.getElementById("visitorProfileBackBtn").addEventListener("click", closeVisitorProfile);
 document.getElementById("viewTabSettings").addEventListener("click", () => switchView("settings"));
 document.getElementById("topbarSettingsBtn").addEventListener("click", () => switchView("settings"));
@@ -5347,70 +5341,11 @@ async function leerColeccion(uid, sub, opts) {
   return snap.docs.map(d => d.data());
 }
 
-// Qué hacer al encontrar a la persona buscada: "profile" (por defecto, abre su
-// perfil) o "message" (la abre directamente en un hilo de mensajes). Así el
-// mismo modal de búsqueda sirve tanto para descubrir cuentas como para
-// arrancar una conversación nueva desde Mensajes, sin duplicar el buscador.
-let userSearchOnFound = "profile";
-function openUserSearchModal(onFound) {
-  userSearchOnFound = onFound === "message" ? "message" : "profile";
-  document.getElementById("userSearchInput").value = "";
-  document.getElementById("userSearchError").style.display = "none";
-  const suggestBox = document.getElementById("userSearchSuggestions");
-  suggestBox.style.display = "none";
-  suggestBox.innerHTML = "";
-  document.getElementById("userSearchBackdrop").classList.add("open");
-  setTimeout(() => document.getElementById("userSearchInput").focus(), 50);
-}
-function closeUserSearchModal() {
-  document.getElementById("userSearchBackdrop").classList.remove("open");
-}
-
-async function performUserSearch() {
-  const errorEl = document.getElementById("userSearchError");
-  errorEl.style.display = "none";
-
-  let raw = document.getElementById("userSearchInput").value.trim().toLowerCase();
-  if (raw.startsWith("@")) raw = raw.slice(1);
-  if (!raw) return;
-
-  const authUser = window.__drobrAuth && window.__drobrAuth.currentUser;
-  if (authUser && profileData.username && raw === profileData.username.toLowerCase()) {
-    errorEl.textContent = "Ese eres tú.";
-    errorEl.style.display = "block";
-    return;
-  }
-
-  const goBtn = document.getElementById("userSearchGoBtn");
-  goBtn.disabled = true;
-  goBtn.textContent = "Buscando...";
-  try {
-    const { doc, getDoc } = window.__drobrFirestoreFns;
-    const usernameSnap = await getDoc(doc(window.__drobrDb, "usernames", raw));
-    if (!usernameSnap.exists()) {
-      errorEl.textContent = "No se ha encontrado ningún usuario con ese @usuario.";
-      errorEl.style.display = "block";
-      return;
-    }
-    const targetUid = usernameSnap.data().uid;
-    closeUserSearchModal();
-    if (userSearchOnFound === "message") await openMessageThread(targetUid);
-    else await openVisitorProfile(targetUid);
-  } catch (err) {
-    console.error(err);
-    errorEl.textContent = "Error al buscar. Inténtalo de nuevo.";
-    errorEl.style.display = "block";
-  } finally {
-    goBtn.disabled = false;
-    goBtn.textContent = "Buscar";
-  }
-}
-
 // Búsqueda parcial mientras se escribe: como el id del documento en
 // "usernames" ES el @usuario en minúsculas, un rango [prefijo, prefijo+""]
 // sobre documentId() encuentra a todo el que EMPIEZA por lo escrito, sin
 // necesidad de ningún índice ni campo adicional. No busca por nombre mostrado,
-// solo por @usuario (igual que la búsqueda exacta de siempre).
+// solo por @usuario.
 async function searchUsersByPrefix(prefixLower) {
   const { collection, query, where, orderBy, limit, documentId, getDocs } = window.__drobrFirestoreFns;
   const usersRef = collection(window.__drobrDb, "usernames");
@@ -5425,61 +5360,83 @@ async function searchUsersByPrefix(prefixLower) {
   return snap.docs.map(d => ({ username: d.id, uid: d.data().uid }));
 }
 
-// Token creciente: si el usuario sigue escribiendo, una respuesta anterior que
-// llega tarde no debe pisar la lista de lo que se ve ahora mismo.
-let userSearchToken = 0;
-let userSearchDebounceTimer = null;
+// Motor de búsqueda de usuarios reutilizable: dado un input y un contenedor
+// de resultados ya presentes en la página (nunca un modal), busca por
+// prefijo con debounce y pinta la lista ahí mismo. Se usa tanto en la
+// pantalla "Buscar" como en el cajón de Mensajes, para no duplicar la
+// lógica. onPick(uid) decide qué pasa al elegir a alguien (abrir su perfil,
+// abrir un hilo de mensajes...).
+function setupUserSearchBox(inputId, resultsId, onPick, hintId) {
+  const input = document.getElementById(inputId);
+  const box = document.getElementById(resultsId);
+  const hint = hintId ? document.getElementById(hintId) : null;
+  if (!input || !box) return;
+  let token = 0;
+  let timer = null;
 
-async function renderUserSearchSuggestions() {
-  const input = document.getElementById("userSearchInput");
-  const box = document.getElementById("userSearchSuggestions");
-  let raw = input.value.trim().toLowerCase();
-  if (raw.startsWith("@")) raw = raw.slice(1);
-  const myToken = ++userSearchToken;
-  if (!raw) { box.style.display = "none"; box.innerHTML = ""; return; }
-  try {
-    const results = await searchUsersByPrefix(raw);
-    if (myToken !== userSearchToken) return;
-    const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
-    const filtered = results.filter(r => r.uid !== myUid);
-    if (!filtered.length) {
-      box.style.display = "flex";
-      box.innerHTML = `<p class="sub" style="margin:4px 0; text-align:center;">Sin coincidencias.</p>`;
-      return;
-    }
-    const { doc, getDoc } = window.__drobrFirestoreFns;
-    const rows = await Promise.all(filtered.map(async (r) => {
-      let meta = {};
-      try {
-        const metaSnap = await getDoc(doc(window.__drobrDb, "armarios", r.uid));
-        meta = metaSnap.exists() ? metaSnap.data() : {};
-      } catch {}
-      const name = meta.name || r.username;
-      const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="" style="width:100%; height:100%; object-fit:cover;">` : name.charAt(0).toUpperCase();
-      return `
-        <div class="collection-item-row" data-suggest-uid="${r.uid}" style="cursor:pointer;">
-          <div style="width:36px; height:36px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
-          <span>${name} <span style="color:var(--ink-soft);">@${r.username}</span></span>
-        </div>`;
-    }));
-    if (myToken !== userSearchToken) return;
+  async function render() {
+    let raw = input.value.trim().toLowerCase();
+    if (raw.startsWith("@")) raw = raw.slice(1);
+    if (hint) hint.style.display = raw ? "none" : "block";
+    const myToken = ++token;
+    if (!raw) { box.style.display = "none"; box.innerHTML = ""; return; }
     box.style.display = "flex";
-    box.innerHTML = rows.join("");
-    box.querySelectorAll("[data-suggest-uid]").forEach(row => {
-      row.addEventListener("click", async () => {
-        const uid = row.dataset.suggestUid;
-        closeUserSearchModal();
-        if (userSearchOnFound === "message") await openMessageThread(uid);
-        else await openVisitorProfile(uid);
+    box.innerHTML = `<p class="sub" style="margin:4px 0; text-align:center;">Buscando...</p>`;
+    try {
+      const results = await searchUsersByPrefix(raw);
+      if (myToken !== token) return;
+      const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+      const filtered = results.filter(r => r.uid !== myUid);
+      if (!filtered.length) {
+        box.innerHTML = `<p class="sub" style="margin:4px 0; text-align:center;">Sin coincidencias.</p>`;
+        return;
+      }
+      const { doc, getDoc } = window.__drobrFirestoreFns;
+      const rows = await Promise.all(filtered.map(async (r) => {
+        let meta = {};
+        try {
+          const metaSnap = await getDoc(doc(window.__drobrDb, "armarios", r.uid));
+          meta = metaSnap.exists() ? metaSnap.data() : {};
+        } catch {}
+        const name = meta.name || r.username;
+        const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="" style="width:100%; height:100%; object-fit:cover;">` : name.charAt(0).toUpperCase();
+        return `
+          <div class="collection-item-row" data-suggest-uid="${r.uid}" style="cursor:pointer;">
+            <div style="width:36px; height:36px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:14px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
+            <span>${name} <span style="color:var(--ink-soft);">@${r.username}</span></span>
+          </div>`;
+      }));
+      if (myToken !== token) return;
+      box.innerHTML = rows.join("");
+      box.querySelectorAll("[data-suggest-uid]").forEach(row => {
+        row.addEventListener("click", () => onPick(row.dataset.suggestUid));
       });
-    });
-  } catch (err) {
-    console.error(err);
-    if (myToken !== userSearchToken) return;
-    box.style.display = "none";
-    box.innerHTML = "";
+    } catch (err) {
+      console.error(err);
+      if (myToken !== token) return;
+      box.innerHTML = `<p class="sub" style="margin:4px 0; text-align:center;">Error al buscar.</p>`;
+    }
   }
+
+  input.addEventListener("input", () => {
+    clearTimeout(timer);
+    timer = setTimeout(render, 250);
+  });
 }
+
+// Pantalla "Buscar": cajón siempre visible, sin modal. Al elegir a alguien
+// abre directamente su perfil.
+setupUserSearchBox("searchUserInput", "searchUserResults", (uid) => openVisitorProfile(uid), "searchUserHint");
+
+// Cajón de Mensajes para empezar una conversación nueva: al elegir a alguien
+// se limpia el cajón (para que no quede una búsqueda a medias detrás) y se
+// abre el hilo con esa persona directamente.
+setupUserSearchBox("messagesNewSearchInput", "messagesNewSearchResults", (uid) => {
+  document.getElementById("messagesNewSearchInput").value = "";
+  document.getElementById("messagesNewSearchResults").style.display = "none";
+  document.getElementById("messagesNewSearchResults").innerHTML = "";
+  openMessageThread(uid);
+});
 
 // Igual que categoryLabel/allSections pero para el armario de OTRO usuario,
 // usando el customCategories/categoryLabels que trae su doc meta en vez de los
@@ -6756,7 +6713,7 @@ function renderHomeFeedScopedContent() {
     else if (homeFeedScope === "favoritos" && !homeFeedFavoriteUids.length) kind = "no-favorites";
     pane.innerHTML = homeFeedEmptyHTML(kind);
     const btn = document.getElementById("homeFeedSearchBtn");
-    if (btn) btn.addEventListener("click", openUserSearchModal);
+    if (btn) btn.addEventListener("click", goToUserSearch);
     return;
   }
   pane.innerHTML = `
@@ -6999,7 +6956,10 @@ async function refreshOwnFollowCounts() {
 // Muestra una de las pantallas "ajenas" (perfil / armario / outfits de solo
 // lectura) y oculta el resto de vistas principales de la app.
 function showForeignSubView(id) {
-  ["viewHome", "viewWardrobe", "viewShop", "viewProfile", "viewSettings", ...FOREIGN_SUBVIEWS].forEach(v => {
+  // "viewSearchUser" y "viewMessages" faltaban aquí: al abrir un perfil desde
+  // la búsqueda o desde un hilo de mensajes, esas vistas se quedaban visibles
+  // por debajo en vez de ocultarse como el resto.
+  ["viewHome", "viewWardrobe", "viewShop", "viewSearchUser", "viewMessages", "viewProfile", "viewSettings", ...FOREIGN_SUBVIEWS].forEach(v => {
     document.getElementById(v).style.display = v === id ? "block" : "none";
   });
   document.getElementById("topbarSettingsBtn").style.display = "none";
