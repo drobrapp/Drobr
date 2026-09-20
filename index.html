@@ -407,6 +407,7 @@
     #viewTabSettings { display: none; }
     #viewTabShop { display: none; }
     #viewTabNotifications { display: none; }
+    #viewTabMessages { display: none; } /* ya accesible desde el icono de mensajes de la topbar móvil */
     #viewTabWardrobe { order: 1; }
     #viewTabHome { order: 2; }
     #viewTabSearchUser { order: 3; }
@@ -440,24 +441,24 @@
     display: flex; gap: 2px; font-family: "Poppins", sans-serif; font-size: 10px; font-weight: 300;
     color: #fff;
   }
-  .topbar-settings-btn {
-    position: absolute; right: 16px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
-    background: none; border: none; color: #fff; padding: 4px; cursor: pointer;
-    display: none; align-items: center; justify-content: center;
-  }
-  .topbar-settings-btn svg { width: 21px; height: 21px; }
   .topbar-shop-btn {
     position: absolute; left: 16px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
     background: none; border: none; color: #fff; padding: 4px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .topbar-shop-btn svg { width: 21px; height: 21px; }
-  .topbar-bell-btn {
-    position: absolute; right: 52px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
-    background: none; border: none; color: #fff; padding: 4px; cursor: pointer;
+  /* Iconos de la derecha (Mensajes, Notificaciones, Configuración) en un mismo grupo flex:
+     así cuando uno se oculta (p.ej. Configuración fuera de Perfil) los demás se recolocan
+     solos, sin dejar huecos ni depender de márgenes fijos calculados a mano. */
+  .mobile-topbar-right-actions {
+    position: absolute; right: 10px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
+    display: flex; align-items: center; gap: 10px;
+  }
+  .topbar-icon-btn {
+    position: relative; background: none; border: none; color: #fff; padding: 4px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
-  .topbar-bell-btn svg { width: 20px; height: 20px; }
+  .topbar-icon-btn svg { width: 20px; height: 20px; }
   .notif-dot {
     display: none; position: absolute; top: 2px; right: 2px; width: 8px; height: 8px; border-radius: 50%;
     background: var(--danger); border: 1.5px solid var(--sidebar-bg);
@@ -799,16 +800,18 @@
     <button class="topbar-shop-btn" id="topbarShopBtn" aria-label="¿Me lo compro?">
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5H4.5a1 1 0 0 0-1 1.11l1 9A2 2 0 0 0 6.48 17H16.5a2 2 0 0 0 2-1.83l.85-9.06A1 1 0 0 0 18.35 5H9Z"/><path d="M9 5a3 3 0 0 1 6 0"/><circle cx="9" cy="10" r=".6" fill="currentColor" stroke="none"/><circle cx="15" cy="10" r=".6" fill="currentColor" stroke="none"/></svg>
     </button>
-    <button class="topbar-shop-btn" id="topbarMessagesBtn" aria-label="Mensajes">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5c-1.35 0-2.62-.34-3.73-.94L3 21l1.94-5.77A8.38 8.38 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg>
-    </button>
-    <button class="topbar-bell-btn" id="topbarBellBtn" aria-label="Solicitudes de seguimiento">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
-      <span class="notif-dot"></span>
-    </button>
-    <button class="topbar-settings-btn" id="topbarSettingsBtn" aria-label="Configuración">
-      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
-    </button>
+    <div class="mobile-topbar-right-actions">
+      <button class="topbar-icon-btn" id="topbarMessagesBtn" aria-label="Mensajes">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5c-1.35 0-2.62-.34-3.73-.94L3 21l1.94-5.77A8.38 8.38 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg>
+      </button>
+      <button class="topbar-icon-btn" id="topbarBellBtn" aria-label="Solicitudes de seguimiento">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+        <span class="notif-dot"></span>
+      </button>
+      <button class="topbar-icon-btn" id="topbarSettingsBtn" aria-label="Configuración">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+      </button>
+    </div>
   </div>
   <div class="app-shell">
   <aside class="sidebar">
@@ -1980,9 +1983,9 @@ function seasonCompatible(a, b) {
   return sa === sb;
 }
 
-const FORMALITY_LABELS = { 1: "Deporte", 2: "Casual", 3: "Trabajo", 4: "Evento", 5: "Etiqueta" };
+const FORMALITY_LABELS = { 1: "Deporte", 2: "Casual", 3: "Formal", 4: "Etiqueta" };
 const SEASON_COLORS = { verano: "#E0A72E", entretiempo: "#4C9A5B", invierno: "#4A90C2" };
-const FORMALITY_COLORS = { 1: "#E0763C", 2: "#4FA6A0", 3: "#3B6E91", 4: "#6A4C93", 5: "#2B2B2B" };
+const FORMALITY_COLORS = { 1: "#E0763C", 2: "#4FA6A0", 3: "#3B6E91", 4: "#2B2B2B" };
 function metaChipsHTML(g) {
   const season = g.season || "entretiempo";
   return `<span class="mini-chip" style="background:${FORMALITY_COLORS[g.formality || 2]};">${FORMALITY_LABELS[g.formality || 2]}</span><span class="mini-chip" style="background:${SEASON_COLORS[season]};">${SEASONS.find(s => s.id === season).label}</span>`;
@@ -1990,14 +1993,22 @@ function metaChipsHTML(g) {
 const CONTEXTS = [
   { id: "deporte", label: "Deporte", target: 1 },
   { id: "casual", label: "Casual", target: 2 },
-  { id: "trabajo", label: "Trabajo", target: 3 },
-  { id: "evento", label: "Evento", target: 4 },
-  { id: "formal", label: "Etiqueta", target: 5 },
+  { id: "formal", label: "Formal", target: 3 },
+  { id: "etiqueta", label: "Etiqueta", target: 4 },
 ];
 
+// Una prenda "versátil" puentea Casual y Formal (niveles 2 y 3), pero nunca
+// combina con Deporte (1) ni con Etiqueta (4) por mucha tolerancia que haya.
+// Si ninguna de las dos es versátil, solo combinan niveles de formalidad
+// adyacentes (diferencia máxima de 1).
 function styleCompatible(a, b) {
-  const tol = 1 + ((a.versatile || b.versatile) ? 1 : 0);
-  return Math.abs((a.formality || 2) - (b.formality || 2)) <= tol;
+  const av = !!a.versatile, bv = !!b.versatile;
+  if (av && bv) return true;
+  if (av || bv) {
+    const otherFormality = (av ? b.formality : a.formality) || 2;
+    return otherFormality === 2 || otherFormality === 3;
+  }
+  return Math.abs((a.formality || 2) - (b.formality || 2)) <= 1;
 }
 function evaluatePair(a, b) {
   const colorOk = colorCompatible(a.color, b.color);
@@ -2018,8 +2029,8 @@ function evaluateOutfit(top, bottom, shoes) {
   return { ok: pairs.every(p => p.ok) && !tooManyColors, pairs, tooManyColors };
 }
 function fitsContext(g, target) {
-  const tol = 1 + (g.versatile ? 1 : 0);
-  return Math.abs((g.formality || 2) - target) <= tol;
+  if (g.versatile) return target === 2 || target === 3;
+  return Math.abs((g.formality || 2) - target) <= 1;
 }
 function describe(g) {
   const cat = CATEGORIES.find(c => c.id === g.category);
@@ -4183,7 +4194,7 @@ function renderModalCategory() {
 }
 function renderModalFormality() {
   const el = document.getElementById("modalFormality");
-  el.innerHTML = [1,2,3,4,5].map(n => `
+  el.innerHTML = [1,2,3,4].map(n => `
     <button class="formality-btn ${pending.formality === n ? "selected" : ""}" data-formality="${n}">${n} · ${FORMALITY_LABELS[n]}</button>
   `).join("");
   el.querySelectorAll("[data-formality]").forEach(btn => {
@@ -4586,7 +4597,7 @@ function renderOutfitTagSeason() {
 }
 function renderOutfitTagFormality() {
   const el = document.getElementById("outfitTagFormality");
-  el.innerHTML = [1,2,3,4,5].map(n => `<button class="formality-btn ${outfitTagPending.formality === n ? "selected" : ""}" data-tag-formality="${n}">${n} · ${FORMALITY_LABELS[n]}</button>`).join("");
+  el.innerHTML = [1,2,3,4].map(n => `<button class="formality-btn ${outfitTagPending.formality === n ? "selected" : ""}" data-tag-formality="${n}">${n} · ${FORMALITY_LABELS[n]}</button>`).join("");
   el.querySelectorAll("[data-tag-formality]").forEach(btn => {
     btn.addEventListener("click", () => {
       const n = parseInt(btn.dataset.tagFormality, 10);
@@ -5613,7 +5624,7 @@ async function renderMessagesInbox() {
     const convs = snap.docs.map(d => d.data());
     document.getElementById("messagesInboxCount").textContent = convs.length ? `${convs.length} conversaci${convs.length === 1 ? "ón" : "ones"}` : "Tus conversaciones.";
     if (!convs.length) {
-      list.innerHTML = `<p class="sub foreign-gallery-empty">Todavía no tienes conversaciones. Usa el botón "+" para buscar a alguien y escribirle.</p>`;
+      list.innerHTML = `<p class="sub foreign-gallery-empty">Todavía no tienes conversaciones. Busca un @usuario arriba para escribirle.</p>`;
       return;
     }
     const rows = await Promise.all(convs.map(async (c) => {
