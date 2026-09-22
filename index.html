@@ -25,7 +25,7 @@
     --line-strong: rgba(27,27,24,0.14);
     --accent: #2F4858;
     --success: #2E7D32;
-    --gold: #B08D57;
+    --gold: #8F6E3F;
     --warning: #C1752E;
     --danger: #C0392B;
     --radius: 14px;
@@ -350,7 +350,7 @@
   }
   .formality-btn.selected { border-color: var(--accent); background: #EFF4F5; color: var(--accent); font-weight: 600; }
   input[type="text"] {
-    width: 100%; margin-top: 4px; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 8px; font-size: 13px;
+    width: 100%; margin-top: 4px; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius: 8px; font-size: 16px;
   }
   .error-msg { margin-top: 8px; font-size: 12.5px; color: var(--danger); }
   .ai-status { font-size: 11.5px; margin: -10px 0 14px; }
@@ -442,8 +442,8 @@
     color: #fff;
   }
   .topbar-shop-btn {
-    position: absolute; left: 16px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
-    background: none; border: none; color: #fff; padding: 4px; cursor: pointer;
+    position: absolute; left: 8px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
+    background: none; border: none; color: #fff; padding: 12px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .topbar-shop-btn svg { width: 21px; height: 21px; }
@@ -451,11 +451,11 @@
      así cuando uno se oculta (p.ej. Configuración fuera de Perfil) los demás se recolocan
      solos, sin dejar huecos ni depender de márgenes fijos calculados a mano. */
   .mobile-topbar-right-actions {
-    position: absolute; right: 10px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
-    display: flex; align-items: center; gap: 10px;
+    position: absolute; right: 2px; top: calc(50% + env(safe-area-inset-top) / 2); transform: translateY(-50%);
+    display: flex; align-items: center; gap: 2px;
   }
   .topbar-icon-btn {
-    position: relative; background: none; border: none; color: #fff; padding: 4px; cursor: pointer;
+    position: relative; background: none; border: none; color: #fff; padding: 12px; cursor: pointer;
     display: flex; align-items: center; justify-content: center;
   }
   .topbar-icon-btn svg { width: 20px; height: 20px; }
@@ -512,7 +512,7 @@
   .detail-quick-btn { display:flex; flex-direction:column; align-items:center; gap:6px; cursor:pointer; width:64px; background:none; border:none; font-family:inherit; padding:0; }
   a.detail-quick-btn { text-decoration:none; color:inherit; }
   .detail-quick-btn:disabled { cursor:default; }
-  .detail-quick-icon { width:40px; height:40px; border-radius:50%; background:#fff; border:1px solid var(--line-strong); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; color:var(--ink); flex-shrink:0; }
+  .detail-quick-icon { width:44px; height:44px; border-radius:50%; background:#fff; border:1px solid var(--line-strong); box-shadow:var(--shadow); display:flex; align-items:center; justify-content:center; color:var(--ink); flex-shrink:0; }
   .detail-quick-icon.accent { background:var(--accent); border-color:var(--accent); color:#fff; }
   .detail-quick-btn:disabled .detail-quick-icon { background:var(--accent); border-color:var(--accent); color:#fff; opacity:0.55; box-shadow:none; }
   .detail-quick-label { font-size:10.5px; color:var(--ink-soft); text-align:center; line-height:1.2; }
@@ -647,7 +647,7 @@
   .post-card-comment-username { font-weight:700; margin-right:4px; }
   .post-card-comments-empty { font-size:11.5px; color:var(--ink-soft); margin:0; }
   .post-card-comment-form { display:flex; gap:6px; flex-shrink:0; position:relative; align-items:center; }
-  .post-card-comment-input { flex:1; min-width:0; border:1px solid var(--line-strong); border-radius:999px; padding:7px 34px 7px 12px; font-size:11.5px; font-family:inherit; background:var(--bg); color:var(--ink); }
+  .post-card-comment-input { flex:1; min-width:0; border:1px solid var(--line-strong); border-radius:999px; padding:7px 34px 7px 12px; font-size:16px; font-family:inherit; background:var(--bg); color:var(--ink); }
   .post-card-comment-input:focus { outline:none; border-color:var(--accent); }
   .post-card-comment-send { position:absolute; right:3px; top:50%; transform:translateY(-50%); width:22px; height:22px; border-radius:50%; background:var(--ink); border:none; display:flex; align-items:center; justify-content:center; cursor:pointer; padding:0; flex-shrink:0; }
   .post-card-comment-send svg { width:12px; height:12px; }
@@ -810,7 +810,7 @@
   }
   .splash-login-form input {
     width: 100%; box-sizing: border-box; padding: 12px 16px; border-radius: 999px; border: none;
-    font-family: "Poppins", sans-serif; font-size: 14px; text-align: center;
+    font-family: "Poppins", sans-serif; font-size: 16px; text-align: center;
   }
   .splash-login-form input:focus { outline: 2px solid rgba(255,255,255,0.6); }
   .splash-login-error { color: #ffb3b3; font-size: 13px; margin: 0; min-height: 16px; }
@@ -830,10 +830,10 @@
     <h1 class="splash-title">¡Bienvenido a DROBR!</h1>
     <p class="splash-subtitle">Tu armario virtual</p>
     <form id="splashLoginForm" class="splash-login-form" novalidate>
-      <input type="email" id="splashEmail" placeholder="Correo electrónico" required autocomplete="username">
-      <input type="text" id="splashUsername" placeholder="Nombre de usuario" autocomplete="off" hidden>
-      <input type="password" id="splashPassword" placeholder="Contraseña" required autocomplete="current-password">
-      <input type="password" id="splashPasswordConfirm" placeholder="Confirmar contraseña" autocomplete="new-password" hidden>
+      <input type="email" id="splashEmail" placeholder="Correo electrónico" aria-label="Correo electrónico" required autocomplete="username">
+      <input type="text" id="splashUsername" placeholder="Nombre de usuario" aria-label="Nombre de usuario" autocomplete="off" hidden>
+      <input type="password" id="splashPassword" placeholder="Contraseña" aria-label="Contraseña" required autocomplete="current-password">
+      <input type="password" id="splashPasswordConfirm" placeholder="Confirmar contraseña" aria-label="Confirmar contraseña" autocomplete="new-password" hidden>
       <p id="splashLoginError" class="splash-login-error" hidden></p>
       <button type="submit" id="splashOpenBtn">Abrir armario</button>
       <a href="#" id="splashForgotLink" class="splash-forgot-link">¿Has olvidado tu contraseña?</a>
@@ -5146,15 +5146,19 @@ document.getElementById("deselectAllBtn").addEventListener("click", () => {
   updateSelectionBar();
 });
 
+// Nota: cada vista ya pinta su propio título/subtítulo (.section-header /
+// .section-header-sub) con texto más específico que este objeto, así que
+// aquí solo queda "action" (si esa vista muestra la barra de buscar+añadir).
+// title/subtitle se quitaron el 2026-09-22 por no usarse nunca (código muerto).
 const PAGE_META = {
-  home: { title: "Inicio", subtitle: "Los outfits de las personas que sigues.", action: false },
-  wardrobe: { title: "Mi armario", subtitle: "Gestiona tu ropa y crea combinaciones que realmente vayan con tu estilo.", action: true },
-  shop: { title: "¿Me lo compro?", subtitle: "¿Dudas si esa prenda combinaría con lo que ya tienes? ¡Compruébalo antes de comprarla!", action: false },
-  search: { title: "Buscar", subtitle: "Encuentra a otras personas por su @usuario.", action: false },
-  profile: { title: "Perfil", subtitle: "DROBR no muestra quién eres. Muestra cómo utilizas lo que tienes.", action: false },
-  settings: { title: "Configuración", subtitle: "Copia de seguridad de tu armario.", action: false },
-  messages: { title: "Mensajes", subtitle: "Tus conversaciones privadas.", action: false },
-  notifications: { title: "Notificaciones", subtitle: "Solicitudes de seguimiento y actividad reciente.", action: false },
+  home: { action: false },
+  wardrobe: { action: true },
+  shop: { action: false },
+  search: { action: false },
+  profile: { action: false },
+  settings: { action: false },
+  messages: { action: false },
+  notifications: { action: false },
 };
 
 // Oyentes en vivo (onSnapshot) del feed de inicio y de perfiles ajenos: para
@@ -6283,7 +6287,7 @@ async function renderSharePickerConversations() {
       const meta = snap2.exists() ? snap2.data() : {};
       const name = meta.name || meta.username || "Usuario";
       return `<div class="collection-item-row" data-share-target="${otherUid}" style="cursor:pointer;">
-        <div style="width:36px; height:36px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; overflow:hidden;">${meta.avatar ? `<img src="${meta.avatar}" style="width:100%;height:100%;object-fit:cover;">` : name.charAt(0).toUpperCase()}</div>
+        <div style="width:36px; height:36px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; overflow:hidden;">${meta.avatar ? `<img src="${meta.avatar}" alt="" style="width:100%;height:100%;object-fit:cover;">` : name.charAt(0).toUpperCase()}</div>
         <span>${name}</span>
       </div>`;
     }));
