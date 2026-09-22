@@ -642,9 +642,27 @@
   .post-card-comment-send:disabled { background:var(--line-strong); cursor:default; }
   .chat-bubble-row { display:flex; justify-content:flex-start; }
   .chat-bubble-row.mine { justify-content:flex-end; }
-  .chat-bubble { max-width:75%; padding:8px 12px; border-radius:16px; background:var(--bg); color:var(--ink); font-size:13px; line-height:1.35; word-break:break-word; }
+  /* El límite de ancho tiene que ir en esta columna (el elemento flex real
+     dentro de .chat-bubble-row), no solo en .chat-bubble: puesto solo ahí, el
+     75% se calculaba sobre un contenedor sin ancho propio y los mensajes
+     largos se salían y se cortaban raro contra el borde de la pantalla. */
+  .chat-bubble-col { display:flex; flex-direction:column; max-width:75%; min-width:0; align-items:flex-start; }
+  .chat-bubble-row.mine .chat-bubble-col { align-items:flex-end; }
+  .chat-bubble { max-width:100%; padding:8px 12px; border-radius:16px; background:var(--bg); color:var(--ink); font-size:13px; line-height:1.35; word-break:break-word; }
   .chat-bubble-row.mine .chat-bubble { background:var(--ink); color:#fff; }
   .chat-quote { font-size:11px; opacity:0.75; border-left:2px solid currentColor; padding-left:6px; margin-bottom:4px; }
+  .messages-thread-pane { flex-direction:column; }
+  @media (max-width:720px) {
+    /* En móvil el hilo pasa a ocupar toda la pantalla (por encima de topbar y
+       nav inferior) en vez de quedarse en la tarjeta de altura fija que dejaba
+       un hueco vacío debajo: así se siente un chat de verdad, no una sección
+       recortada dentro de la página. */
+    .messages-thread-pane {
+      position:fixed; inset:0; z-index:60; background:var(--bg); overflow:hidden;
+      padding:calc(14px + env(safe-area-inset-top)) 16px calc(14px + env(safe-area-inset-bottom));
+    }
+    .messages-thread-pane .messages-thread-card { flex:1; min-height:0; height:auto; }
+  }
   .chat-shared-post { display:flex; align-items:center; gap:8px; background:var(--paper); border:1px solid var(--line-strong); border-radius:12px; padding:6px; cursor:pointer; max-width:220px; }
   .chat-shared-post-img { width:40px; height:52px; border-radius:6px; overflow:hidden; background:#EFEFEC; flex-shrink:0; }
   .chat-shared-post-img img { width:100%; height:100%; object-fit:cover; }
@@ -1120,12 +1138,12 @@
         <div id="messagesInboxList" style="display:flex; flex-direction:column; gap:10px;"></div>
       </div>
     </div>
-    <div id="messagesThreadPane" style="display:none;">
-      <button class="back-chip" id="messagesThreadBackBtn" style="margin-bottom:14px;">
+    <div id="messagesThreadPane" class="messages-thread-pane" style="display:none;">
+      <button class="back-chip" id="messagesThreadBackBtn" style="margin-bottom:14px; flex-shrink:0;">
         <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="m12 19-7-7 7-7"/></svg>
         Mensajes
       </button>
-      <div class="section" style="display:flex; flex-direction:column; height:min(70vh, 560px); padding-bottom:12px;">
+      <div class="section messages-thread-card" style="display:flex; flex-direction:column; height:min(70vh, 560px); padding-bottom:12px;">
         <div id="messagesThreadHeader" style="display:flex; align-items:center; gap:10px; padding-bottom:12px; border-bottom:1px solid var(--line); margin-bottom:12px; flex-shrink:0;"></div>
         <div id="messagesThreadList" style="flex:1; overflow-y:auto; display:flex; flex-direction:column; gap:8px;"></div>
         <div id="messagesThreadReplyBanner" class="post-card-reply-banner" style="display:none; margin-top:10px;"></div>
@@ -6066,7 +6084,7 @@ async function openMessageThread(targetUid) {
   document.getElementById("messagesThreadReplyBanner").style.display = "none";
   switchView("messages");
   document.getElementById("messagesInboxPane").style.display = "none";
-  document.getElementById("messagesThreadPane").style.display = "block";
+  document.getElementById("messagesThreadPane").style.display = "flex";
   const { doc, getDoc, setDoc, collection, query, orderBy, onSnapshot, serverTimestamp } = window.__drobrFirestoreFns;
   let meta = {};
   try {
@@ -6108,7 +6126,7 @@ function threadMessageBubbleHTML(m, myUid) {
   }
   return `
     <div class="chat-bubble-row${mine ? " mine" : ""}" data-message-id="${m.id}">
-      <div>
+      <div class="chat-bubble-col">
         ${body}
         <button type="button" class="post-card-comment-reply-btn" data-reply-msg="${m.id}" style="margin:2px 4px;">Responder</button>
       </div>
@@ -7092,13 +7110,17 @@ async function renderHomeFeed() {
   stopLiveListeners();
   container.innerHTML = `<p class="sub" style="text-align:center; padding:30px 0;">Cargando...</p>`;
   try {
-    // El feed solo muestra a la gente que sigo (nunca mis propias publicaciones,
-    // que ya están en "Mi armario"). Favoritos es un subconjunto de a quién sigo,
-    // marcado con "isFavorite" en el mismo documento de seguimiento.
+    // El feed muestra a la gente que sigo MÁS mis propias publicaciones (antes
+    // se excluían a propósito por estar ya en "Mi armario", pero se decidió que
+    // sí aparezcan aquí también). Se trata mi propio uid igual que a cualquier
+    // seguido: mismo caché en vivo, mismos listeners de prendas/outfits — el
+    // resto del feed (postCardHTML, isOwn, etc.) ya sabe distinguir "mis"
+    // publicaciones de las ajenas sin tocar nada más. Favoritos sigue siendo
+    // solo un subconjunto de a quién sigo (no te "favoriteas" a ti mismo).
     const { collectionGroup, query, where, getDocs, doc, getDoc, collection, onSnapshot } = window.__drobrFirestoreFns;
     const followQ = query(collectionGroup(window.__drobrDb, "followers"), where("followerUid", "==", myUid), where("status", "==", "accepted"));
     const followSnap = await getDocs(followQ);
-    const followingUids = [];
+    const followingUids = [myUid];
     const favoriteUids = [];
     followSnap.docs.forEach(d => {
       const uid = d.ref.parent.parent.id;
@@ -8542,7 +8564,7 @@ splashFormEl.addEventListener("submit", async (e) => {
   try {
     let cred;
     if (splashModo === "registro") {
-      const { doc, getDoc, setDoc } = window.__drobrFirestoreFns;
+      const { doc, getDoc, writeBatch } = window.__drobrFirestoreFns;
       const usernameRef = doc(window.__drobrDb, "usernames", username);
       const usernameSnap = await getDoc(usernameRef);
       if (usernameSnap.exists()) {
@@ -8554,8 +8576,16 @@ splashFormEl.addEventListener("submit", async (e) => {
       }
       submitBtn.textContent = "Creando cuenta...";
       cred = await window.__drobrSignUp(email, password);
-      await setDoc(usernameRef, { uid: cred.user.uid });
-      await setDoc(doc(window.__drobrDb, "armarios", cred.user.uid), { username, name: username, bio: profileData.bio, avatar: profileData.avatar }, { merge: true });
+      // Reservar el @usuario y escribir el perfil en un solo batch atómico: si
+      // se hacían como dos setDoc sueltos, un fallo justo entre el primero y el
+      // segundo (red, cuota, lo que sea) dejaba el @usuario reservado en
+      // "usernames" pero el documento de "armarios" sin username/name — el
+      // usuario aparecía en las búsquedas pero su perfil se veía sin nombre.
+      // Con el batch, o se guardan los dos a la vez o no se guarda ninguno.
+      const batch = writeBatch(window.__drobrDb);
+      batch.set(usernameRef, { uid: cred.user.uid });
+      batch.set(doc(window.__drobrDb, "armarios", cred.user.uid), { username, name: username, bio: profileData.bio, avatar: profileData.avatar }, { merge: true });
+      await batch.commit();
       profileData = { ...profileData, username, name: username };
       saveProfile(profileData);
     } else {
