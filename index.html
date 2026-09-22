@@ -584,6 +584,18 @@
   .post-card-username { font-size:11.5px; font-weight:700; color:var(--ink); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .post-card-media { position:relative; width:100%; aspect-ratio:3/4; background:#EFEFEC; cursor:pointer; overflow:hidden; }
   .post-card-media img { width:100%; height:100%; object-fit:cover; display:block; }
+  .post-card-like-burst {
+    position:absolute; top:50%; left:50%; transform:translate(-50%,-50%) scale(0.4);
+    pointer-events:none; z-index:7; opacity:0; filter:drop-shadow(0 2px 10px rgba(0,0,0,0.35));
+    animation: postCardLikeBurst 0.7s cubic-bezier(0.17,0.89,0.32,1.49) forwards;
+  }
+  @keyframes postCardLikeBurst {
+    0% { opacity:0; transform:translate(-50%,-50%) scale(0.4); }
+    18% { opacity:1; transform:translate(-50%,-50%) scale(1.15); }
+    32% { transform:translate(-50%,-50%) scale(0.95); }
+    75% { opacity:1; transform:translate(-50%,-50%) scale(1); }
+    100% { opacity:0; transform:translate(-50%,-50%) scale(1); }
+  }
   .post-card-kebab { position:absolute; top:6px; right:6px; width:25px; height:25px; border-radius:50%; border:none; background:rgba(255,255,255,0.88); display:flex; align-items:center; justify-content:center; cursor:pointer; color:var(--ink); padding:0; }
   .post-card-actions { display:flex; align-items:center; gap:11px; padding:8px 9px 0; }
   .post-card-action-btn { display:flex; align-items:center; gap:3px; background:none; border:none; padding:0; cursor:pointer; color:var(--ink); font-family:inherit; -webkit-tap-highlight-color:transparent; }
@@ -1157,6 +1169,30 @@
     </div>
   </div>
 
+  <div id="viewNotifications" style="display:none;">
+    <div class="section">
+      <div class="section-header">
+        <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg></div>
+        <div class="section-header-text">
+          <h2>Notificaciones</h2>
+          <p class="section-header-sub">Solicitudes de seguimiento y actividad reciente.</p>
+        </div>
+      </div>
+      <div class="profile-tabs" id="notifTabs" style="margin-bottom:14px;">
+        <button class="profile-tab active" data-ntab="solicitudes">Solicitudes</button>
+        <button class="profile-tab" data-ntab="actividad">Actividad</button>
+      </div>
+      <div id="notifSolicitudesPane">
+        <div id="followRequestsList" style="display:flex; flex-direction:column; gap:10px;"></div>
+        <p id="followRequestsEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">No tienes solicitudes pendientes.</p>
+      </div>
+      <div id="notifActividadPane" style="display:none;">
+        <div id="activityNotifList" style="display:flex; flex-direction:column; gap:4px;"></div>
+        <p id="activityNotifEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">Todavía no tienes actividad.</p>
+      </div>
+    </div>
+  </div>
+
   <div id="viewSettings" style="display:none;">
     <div class="section">
       <div class="profile-section-title"><h2>Cuenta</h2></div>
@@ -1710,27 +1746,6 @@
     </div>
     <input type="text" id="followListSearchInput" placeholder="Buscar por nombre…" style="margin-top:0; margin-bottom:12px; display:none;">
     <div id="followListContent" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
-  </div>
-</div>
-
-<div class="modal-backdrop" id="followRequestsBackdrop">
-  <div class="modal" style="max-width:380px;">
-    <div class="modal-head">
-      <h2 style="font-size:16px;">Notificaciones</h2>
-      <button class="modal-close" id="followRequestsClose">✕</button>
-    </div>
-    <div class="profile-tabs" id="notifTabs" style="margin-bottom:14px;">
-      <button class="profile-tab active" data-ntab="solicitudes">Solicitudes</button>
-      <button class="profile-tab" data-ntab="actividad">Actividad</button>
-    </div>
-    <div id="notifSolicitudesPane">
-      <div id="followRequestsList" style="display:flex; flex-direction:column; gap:10px; max-height:400px; overflow-y:auto;"></div>
-      <p id="followRequestsEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">No tienes solicitudes pendientes.</p>
-    </div>
-    <div id="notifActividadPane" style="display:none;">
-      <div id="activityNotifList" style="display:flex; flex-direction:column; gap:4px; max-height:400px; overflow-y:auto;"></div>
-      <p id="activityNotifEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">Todavía no tienes actividad.</p>
-    </div>
   </div>
 </div>
 
@@ -5139,6 +5154,7 @@ const PAGE_META = {
   profile: { title: "Perfil", subtitle: "DROBR no muestra quién eres. Muestra cómo utilizas lo que tienes.", action: false },
   settings: { title: "Configuración", subtitle: "Copia de seguridad de tu armario.", action: false },
   messages: { title: "Mensajes", subtitle: "Tus conversaciones privadas.", action: false },
+  notifications: { title: "Notificaciones", subtitle: "Solicitudes de seguimiento y actividad reciente.", action: false },
 };
 
 // Oyentes en vivo (onSnapshot) del feed de inicio y de perfiles ajenos: para
@@ -5162,7 +5178,9 @@ function switchView(view) {
   document.getElementById("viewProfile").style.display = view === "profile" ? "block" : "none";
   document.getElementById("viewSettings").style.display = view === "settings" ? "block" : "none";
   document.getElementById("viewMessages").style.display = view === "messages" ? "block" : "none";
+  document.getElementById("viewNotifications").style.display = view === "notifications" ? "block" : "none";
   if (view === "settings") populateAccountSettings();
+  if (view === "notifications") showNotificationsView();
   document.getElementById("topbarSettingsBtn").style.display = view === "profile" ? "flex" : "none";
   if (view !== "wardrobe") {
     document.getElementById("wardrobeFab").style.display = "none";
@@ -5178,8 +5196,9 @@ function switchView(view) {
   const pTab = document.getElementById("viewTabProfile");
   const sTab = document.getElementById("viewTabSettings");
   const mTab = document.getElementById("viewTabMessages");
-  [hTab, wTab, shTab, seTab, pTab, sTab, mTab].forEach(t => t.classList.remove("nav-active"));
-  ({ home: hTab, wardrobe: wTab, shop: shTab, search: seTab, profile: pTab, settings: sTab, messages: mTab }[view])?.classList.add("nav-active");
+  const nTab = document.getElementById("viewTabNotifications");
+  [hTab, wTab, shTab, seTab, pTab, sTab, mTab, nTab].forEach(t => t.classList.remove("nav-active"));
+  ({ home: hTab, wardrobe: wTab, shop: shTab, search: seTab, profile: pTab, settings: sTab, messages: mTab, notifications: nTab }[view])?.classList.add("nav-active");
   if (view === "home") renderHomeFeed();
   if (view === "wardrobe") switchWardrobeTab("armario");
   if (view === "shop") renderShopView();
@@ -5218,10 +5237,8 @@ document.querySelectorAll("#wardrobeMainTabs [data-wtab]").forEach(btn => {
 document.getElementById("viewTabSearchUser").addEventListener("click", () => switchView("search"));
 document.getElementById("savedGarmentsSearchBtn")?.addEventListener("click", goToUserSearch);
 document.getElementById("savedOutfitsSearchBtn")?.addEventListener("click", goToUserSearch);
-document.getElementById("topbarBellBtn").addEventListener("click", openFollowRequestsPanel);
-document.getElementById("viewTabNotifications").addEventListener("click", openFollowRequestsPanel);
-document.getElementById("followRequestsClose").addEventListener("click", closeFollowRequestsPanel);
-document.getElementById("followRequestsBackdrop").addEventListener("click", (e) => { if (e.target.id === "followRequestsBackdrop") closeFollowRequestsPanel(); });
+document.getElementById("topbarBellBtn").addEventListener("click", () => switchView("notifications"));
+document.getElementById("viewTabNotifications").addEventListener("click", () => switchView("notifications"));
 document.getElementById("visitorProfileBackBtn").addEventListener("click", closeVisitorProfile);
 document.getElementById("viewTabSettings").addEventListener("click", () => switchView("settings"));
 document.getElementById("topbarSettingsBtn").addEventListener("click", () => switchView("settings"));
@@ -5913,6 +5930,10 @@ async function sendFollowRequest(targetUid, myUid, targetIsPrivate) {
   const { setDoc, serverTimestamp } = window.__drobrFirestoreFns;
   const status = targetIsPrivate ? "pending" : "accepted";
   await setDoc(followerDocRef(targetUid, myUid), { followerUid: myUid, status, since: serverTimestamp() });
+  // Cuenta pública: el seguimiento queda aceptado al instante, así que ya se
+  // puede avisar a quien te sigue. En cuenta privada no hay nada que avisar
+  // todavía (sigue pendiente) — ver acceptFollowRequest más abajo para ese caso.
+  if (status === "accepted") notifyPostOwner(targetUid, { type: "follow", ...currentUserSocialMeta() });
   return status;
 }
 
@@ -5924,6 +5945,8 @@ async function cancelFollow(targetUid, myUid) {
 async function acceptFollowRequest(myUid, followerUid) {
   const { updateDoc } = window.__drobrFirestoreFns;
   await updateDoc(followerDocRef(myUid, followerUid), { status: "accepted" });
+  // Aviso a quien esperaba respuesta: se acaba de aceptar su solicitud.
+  notifyPostOwner(followerUid, { type: "follow_accepted", ...currentUserSocialMeta() });
 }
 
 async function rejectFollowRequest(myUid, followerUid) {
@@ -6201,6 +6224,7 @@ async function sendThreadMessage() {
     if (replyToId) { data.replyToId = replyToId; data.replyToText = replyToText; }
     await setDoc(msgRef, data);
     await setDoc(doc(window.__drobrDb, "conversations", convId), { participants: [myUid, currentThreadWithUid].sort(), lastMessage: { text, fromUid: myUid }, updatedAt: serverTimestamp() }, { merge: true });
+    notifyPostOwner(currentThreadWithUid, { type: "message", ...currentUserSocialMeta(), text: text.slice(0, 80) });
   } catch (err) {
     console.error(err);
     showAppToast("No se pudo enviar el mensaje.");
@@ -6813,6 +6837,18 @@ async function attachPostSocialMeta(entries) {
   }));
 }
 
+// Corazón que aparece y se desvanece sobre la foto al hacer doble tap (mismo
+// gesto que Instagram/TikTok). Se crea y se destruye solo; no necesita ningún
+// nodo fijo en el HTML de la tarjeta.
+function triggerLikeBurst(mediaEl) {
+  const burst = document.createElement("div");
+  burst.className = "post-card-like-burst";
+  burst.innerHTML = '<svg width="72" height="72" viewBox="0 0 24 24" fill="#fff" stroke="rgba(0,0,0,0.15)" stroke-width="0.5"><path d="M12 21s-6.7-4.35-9.3-8.28C1.02 10.2 1.6 6.9 4.2 5.3c2.2-1.36 4.9-.78 6.6 1.2a.9.9 0 0 0 1.4 0c1.7-1.98 4.4-2.56 6.6-1.2 2.6 1.6 3.18 4.9 1.5 7.42C18.7 16.65 12 21 12 21z"/></svg>';
+  mediaEl.appendChild(burst);
+  burst.addEventListener("animationend", () => burst.remove());
+  setTimeout(() => burst.remove(), 900); // red por si "animationend" no llega (pestaña en segundo plano, etc.)
+}
+
 // Conecta cabecera/foto/menú "..."/acciones de cada .post-card ya pintada
 // dentro de container, buscando su entrada en outfitEntries/garmentEntries.
 function wirePostCards(container, outfitEntries, garmentEntries) {
@@ -6847,7 +6883,26 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
       if (card.closest("#singlePostContent")) return; // ya estamos viendo esta publicación individual
       openSinglePost(type, type === "outfit" ? entry.outfit : entry.garment, uid, entry.meta, entry.outfitsArr);
     };
-    card.querySelector('[data-role="open-detail"]').addEventListener("click", openDetail);
+    // Un solo tap abre el detalle, pero antes espera un poco por si llega un
+    // segundo tap: si llega a tiempo, es doble tap → da like (y muestra el
+    // corazón) en vez de abrir. Es el mismo patrón que Instagram/TikTok: el
+    // tap sencillo se retrasa ~260ms, casi imperceptible, para poder
+    // distinguirlo del doble tap sobre el mismo elemento.
+    const mediaEl = card.querySelector('[data-role="open-detail"]');
+    let mediaTapCount = 0;
+    let mediaTapTimer = null;
+    mediaEl.addEventListener("click", () => {
+      mediaTapCount++;
+      if (mediaTapCount === 1) {
+        mediaTapTimer = setTimeout(() => { mediaTapCount = 0; openDetail(); }, 260);
+      } else {
+        clearTimeout(mediaTapTimer);
+        mediaTapCount = 0;
+        triggerLikeBurst(mediaEl);
+        const likeBtnNow = card.querySelector('[data-role="like"]');
+        if (likeBtnNow && !likeBtnNow.classList.contains("liked")) likeBtnNow.click();
+      }
+    });
     card.querySelector('[data-role="open-profile"]').addEventListener("click", (e) => {
       e.stopPropagation();
       if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
@@ -7262,7 +7317,7 @@ function watchFollowRequests(myUid) {
   unsubscribeFollowRequests = onSnapshot(q, (snap) => {
     pendingFollowRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     updateFollowRequestsBadge();
-    if (document.getElementById("followRequestsBackdrop").classList.contains("open")) {
+    if (isNotificationsViewOpen()) {
       renderFollowRequestsPanel();
     }
   }, (err) => console.error("No se pudieron escuchar las solicitudes de seguimiento:", err));
@@ -7316,13 +7371,15 @@ async function renderFollowRequestsPanel() {
     });
   });
 }
-function openFollowRequestsPanel() {
+// Notificaciones es una pantalla propia (como Mensajes), no un modal: se
+// accede desde el icono de campana igual que antes, pero ahora con su propia
+// vista en el nav, sin recortar el historial a una caja de 400px de alto.
+function isNotificationsViewOpen() {
+  return document.getElementById("viewNotifications").style.display !== "none";
+}
+function showNotificationsView() {
   switchNotifTab("solicitudes");
   renderFollowRequestsPanel();
-  document.getElementById("followRequestsBackdrop").classList.add("open");
-}
-function closeFollowRequestsPanel() {
-  document.getElementById("followRequestsBackdrop").classList.remove("open");
 }
 
 /* ---------------- Actividad (like / guardado / comentario reales) ---------------- */
@@ -7338,9 +7395,8 @@ function watchActivityNotifications(myUid) {
     activityNotifications = snap.docs.map(d => ({ id: d.id, ...d.data() }));
     unreadActivityCount = activityNotifications.filter(n => !n.read).length;
     updateFollowRequestsBadge();
-    const panelOpen = document.getElementById("followRequestsBackdrop").classList.contains("open");
-    const onActividad = document.getElementById("notifActividadPane").style.display !== "none";
-    if (panelOpen && onActividad) renderActivityPanel();
+    const onActividad = isNotificationsViewOpen() && document.getElementById("notifActividadPane").style.display !== "none";
+    if (onActividad) renderActivityPanel();
   }, (err) => console.error("No se pudo escuchar la actividad:", err));
 }
 
@@ -7352,6 +7408,9 @@ function activityNotifText(n) {
   if (n.type === "comment") return `<b>${name}</b> comentó: “${n.text || ""}”`;
   if (n.type === "reply") return `<b>${name}</b> respondió a tu comentario: “${n.text || ""}”`;
   if (n.type === "mention") return `<b>${name}</b> te mencionó en un comentario: “${n.text || ""}”`;
+  if (n.type === "follow") return `<b>${name}</b> ha empezado a seguirte`;
+  if (n.type === "follow_accepted") return `<b>${name}</b> aceptó tu solicitud de seguimiento`;
+  if (n.type === "message") return `<b>${name}</b> te envió un mensaje: “${n.text || ""}”`;
   return `<b>${name}</b> interactuó con ${cosa}`;
 }
 
@@ -7400,7 +7459,16 @@ function renderActivityPanel() {
 // mención, se abre el hilo correspondiente ya expandido (sin tocar los
 // demás hilos: no invasivo).
 async function openNotificationTarget(n) {
-  closeFollowRequestsPanel();
+  // Un seguimiento no tiene publicación asociada: lleva directamente al
+  // perfil de quien te siguió o aceptó tu solicitud.
+  if (n.type === "follow" || n.type === "follow_accepted") {
+    if (n.fromUid) openVisitorProfile(n.fromUid);
+    return;
+  }
+  if (n.type === "message") {
+    if (n.fromUid) openMessageThread(n.fromUid);
+    return;
+  }
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
   const ownerUid = n.postOwnerUid || myUid;
   const wantsComments = n.type === "comment" || n.type === "reply" || n.type === "mention";
