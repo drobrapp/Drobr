@@ -6082,7 +6082,7 @@ async function renderMessagesInbox() {
       const preview = lm ? (lm.type === "shared_post" ? "📎 Publicación compartida" : (lm.fromUid === myUid ? "Tú: " : "") + (lm.text || "")) : "";
       return `
         <div class="collection-item-row" data-conv-uid="${otherUid}" style="cursor:pointer;">
-          <div style="width:44px; height:44px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
+          <div data-conv-avatar-uid="${otherUid}" style="width:44px; height:44px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:16px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
           <div style="min-width:0;">
             <p style="margin:0; font-weight:600; font-size:13.5px;">${name}</p>
             <p style="margin:2px 0 0; font-size:12px; color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">${preview}</p>
@@ -6090,6 +6090,16 @@ async function renderMessagesInbox() {
         </div>`;
     }));
     list.innerHTML = rows.join("");
+    // La foto lleva al perfil; el resto de la fila sigue abriendo la
+    // conversación (es lo que se espera al pulsar una fila de una bandeja).
+    list.querySelectorAll("[data-conv-avatar-uid]").forEach(av => {
+      av.addEventListener("click", (e) => {
+        e.stopPropagation();
+        const myUid2 = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+        const uid = av.dataset.convAvatarUid;
+        if (uid === myUid2) switchView("profile"); else openVisitorProfile(uid);
+      });
+    });
     list.querySelectorAll("[data-conv-uid]").forEach(row => {
       row.addEventListener("click", () => openMessageThread(row.dataset.convUid));
     });
@@ -6115,9 +6125,12 @@ async function openMessageThread(targetUid) {
     meta = snap.exists() ? snap.data() : {};
   } catch {}
   const name = meta.name || meta.username || "Usuario";
-  document.getElementById("messagesThreadHeader").innerHTML = `
+  const threadHeader = document.getElementById("messagesThreadHeader");
+  threadHeader.style.cursor = "pointer";
+  threadHeader.innerHTML = `
     <div style="width:34px; height:34px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:13px; font-weight:600; overflow:hidden;">${meta.avatar ? `<img src="${meta.avatar}" alt="" style="width:100%; height:100%; object-fit:cover;">` : name.charAt(0).toUpperCase()}</div>
     <span style="font-weight:600; font-size:14px;">@${meta.username || name}</span>`;
+  threadHeader.onclick = () => openVisitorProfile(targetUid);
   document.getElementById("messagesThreadList").innerHTML = `<p class="sub" style="text-align:center; padding:20px 0;">Cargando...</p>`;
   const convId = conversationIdFor(myUid, targetUid);
   try {
@@ -6526,7 +6539,7 @@ function commentItemHTML(c, opts) {
   const classes = "post-card-comment-item" + (opts.reply ? " is-reply" : "") + (opts.highlight ? " is-highlighted" : "");
   return `
     <div class="${classes}" data-comment-id="${c.id || ""}">
-      <div class="post-card-comment-avatar">${c.fromAvatar ? `<img src="${c.fromAvatar}" alt="">` : (name.charAt(0) || "?").toUpperCase()}</div>
+      <div class="post-card-comment-avatar" data-comment-avatar-uid="${c.fromUid || ""}" style="cursor:pointer;">${c.fromAvatar ? `<img src="${c.fromAvatar}" alt="">` : (name.charAt(0) || "?").toUpperCase()}</div>
       <div class="post-card-comment-body">
         <div><span class="post-card-comment-username">@${name}</span><span class="post-card-comment-text">${linkifyMentions(c.text)}</span></div>
         ${opts.showReplyBtn === false ? "" : `<button type="button" class="post-card-comment-reply-btn" data-reply-to="${c.id}" data-reply-username="${name}">Responder</button>`}
@@ -7039,6 +7052,16 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
           btn.textContent = nowOpen ? "Ocultar respuestas" : btn.dataset.verLabel;
         });
       });
+      commentsList.querySelectorAll("[data-comment-avatar-uid]").forEach(av => {
+        const targetUid = av.dataset.commentAvatarUid;
+        if (!targetUid) return;
+        av.addEventListener("click", (e) => {
+          e.stopPropagation();
+          const myUid2 = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+          closeSinglePost();
+          if (targetUid === myUid2) switchView("profile"); else openVisitorProfile(targetUid);
+        });
+      });
       commentsList.querySelectorAll(".post-card-mention").forEach(el => {
         el.addEventListener("click", async (e) => {
           e.stopPropagation();
@@ -7347,8 +7370,8 @@ async function renderFollowRequestsPanel() {
     const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
     return `
       <div class="collection-item-row" data-follower-row="${req.followerUid}">
-        <div style="width:40px; height:40px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; flex-shrink:0; overflow:hidden;">${avatarHTML}</div>
-        <span>${name}${meta.username ? ` <span style="color:var(--ink-soft);">@${meta.username}</span>` : ""}</span>
+        <div data-req-avatar-uid="${req.followerUid}" style="width:40px; height:40px; border-radius:50%; background:var(--ink); color:#fff; display:flex; align-items:center; justify-content:center; font-size:15px; font-weight:600; flex-shrink:0; overflow:hidden; cursor:pointer;">${avatarHTML}</div>
+        <span data-req-avatar-uid="${req.followerUid}" style="cursor:pointer;">${name}${meta.username ? ` <span style="color:var(--ink-soft);">@${meta.username}</span>` : ""}</span>
         <div style="display:flex; gap:8px; flex-shrink:0;">
           <button class="btn btn-outline" data-accept-follower="${req.followerUid}" style="padding:5px 12px; font-size:11.5px;">Aceptar</button>
           <button class="btn-text" data-reject-follower="${req.followerUid}" style="color:var(--danger);">Rechazar</button>
@@ -7356,6 +7379,9 @@ async function renderFollowRequestsPanel() {
       </div>`;
   }));
   list.innerHTML = rows.join("");
+  list.querySelectorAll("[data-req-avatar-uid]").forEach(el => {
+    el.addEventListener("click", () => openVisitorProfile(el.dataset.reqAvatarUid));
+  });
   list.querySelectorAll("[data-accept-follower]").forEach(btn => {
     btn.addEventListener("click", async () => {
       btn.disabled = true;
@@ -7437,13 +7463,21 @@ function renderActivityPanel() {
     const avatarHTML = n.fromAvatar ? `<img src="${n.fromAvatar}" alt="">` : (n.fromUsername || "?").charAt(0).toUpperCase();
     return `
       <div class="activity-notif-item${n.read ? "" : " unread"}" data-notif-id="${n.id}">
-        <div class="activity-notif-avatar">${avatarHTML}</div>
+        <div class="activity-notif-avatar" data-notif-avatar-uid="${n.fromUid || ""}" style="cursor:pointer;">${avatarHTML}</div>
         <div>
           <p class="activity-notif-text">${activityNotifText(n)}</p>
           <p class="activity-notif-time">${activityNotifTimeLabel(n)}</p>
         </div>
       </div>`;
   }).join("");
+  // La foto siempre lleva al perfil de quien generó el aviso, sea cual sea el
+  // tipo; el resto de la fila mantiene su destino habitual (el post, el hilo
+  // de mensajes, etc. — ver openNotificationTarget).
+  list.querySelectorAll("[data-notif-avatar-uid]").forEach(av => {
+    const uid = av.dataset.notifAvatarUid;
+    if (!uid) return;
+    av.addEventListener("click", (e) => { e.stopPropagation(); openVisitorProfile(uid); });
+  });
   list.querySelectorAll("[data-notif-id]").forEach(row => {
     row.addEventListener("click", () => {
       const n = activityNotifications.find(x => x.id === row.dataset.notifId);
