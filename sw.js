@@ -7,7 +7,7 @@ const ASSETS = [
   "./rembg-assets/ort.wasm.bundle.min.mjs",
   "./rembg-assets/ort-wasm-simd-threaded.mjs",
   "./rembg-assets/ort-wasm-simd-threaded.wasm",
-  "./rembg-assets/u2netp.onnx",
+  "./rembg-assets/isnet-general-use.quant.onnx",
 ];
 
 self.addEventListener("install", (event) => {

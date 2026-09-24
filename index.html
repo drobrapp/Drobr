@@ -1892,7 +1892,7 @@ async function getBgRemovalSession() {
       "ort-wasm-simd.wasm": new URL(BG_REMOVAL_ASSETS + "ort-wasm-simd.wasm", location.href).href,
     };
   }
-  bgRemovalSession = await bgRemovalModule.InferenceSession.create(BG_REMOVAL_ASSETS + "u2netp.onnx");
+  bgRemovalSession = await bgRemovalModule.InferenceSession.create(BG_REMOVAL_ASSETS + "isnet-general-use.quant.onnx");
   return bgRemovalSession;
 }
 async function removeImageBackground(file, maxDim = 480) {
@@ -1906,8 +1906,9 @@ async function removeImageBackground(file, maxDim = 480) {
     URL.revokeObjectURL(srcUrl);
   }
 
-  // ---- Preprocess: letterbox into 320x320 (preserve aspect ratio, no squashing) ----
-  const SIZE = 320;
+  // ---- Preprocess: letterbox into 1024x1024 (preserve aspect ratio, no squashing) ----
+  // IS-Net espera 1024x1024 y normalización estándar (v-0.5)/1.0, no la del U-2-Net anterior.
+  const SIZE = 1024;
   const plane = SIZE * SIZE;
   const fitScale = Math.min(SIZE / img.width, SIZE / img.height);
   const fitW = Math.round(img.width * fitScale);
@@ -1922,50 +1923,61 @@ async function removeImageBackground(file, maxDim = 480) {
   sctx.drawImage(img, padX, padY, fitW, fitH);
   const { data: pixels } = sctx.getImageData(0, 0, SIZE, SIZE);
 
-  const mean = [0.485, 0.456, 0.406];
-  const std = [0.229, 0.224, 0.225];
-  const rgb = new Float32Array(3 * plane);
-  let maxVal = 0;
-  for (let i = 0; i < plane; i++) {
-    const r = pixels[i * 4] / 255, g = pixels[i * 4 + 1] / 255, b = pixels[i * 4 + 2] / 255;
-    rgb[i] = r; rgb[plane + i] = g; rgb[2 * plane + i] = b;
-    if (r > maxVal) maxVal = r;
-    if (g > maxVal) maxVal = g;
-    if (b > maxVal) maxVal = b;
-  }
-  if (maxVal < 1e-6) maxVal = 1;
   const floatData = new Float32Array(3 * plane);
   for (let i = 0; i < plane; i++) {
-    floatData[i] = (rgb[i] / maxVal - mean[0]) / std[0];
-    floatData[plane + i] = (rgb[plane + i] / maxVal - mean[1]) / std[1];
-    floatData[2 * plane + i] = (rgb[2 * plane + i] / maxVal - mean[2]) / std[2];
+    floatData[i] = pixels[i * 4] / 255 - 0.5;
+    floatData[plane + i] = pixels[i * 4 + 1] / 255 - 0.5;
+    floatData[2 * plane + i] = pixels[i * 4 + 2] / 255 - 0.5;
   }
 
   const tensor = new ort.Tensor("float32", floatData, [1, 3, SIZE, SIZE]);
-  const outputs = await session.run({ "input.1": tensor });
-  const rawMask = outputs["1959"].data; // Float32Array 320x320, sigmoid already applied (0..1)
+  const outputs = await session.run({ input_image: tensor });
+  const rawMask = outputs["output_image"].data; // Float32Array 1024x1024, ya en 0..1
 
   // ---- Clean the mask: median filter to remove per-pixel noise (busy prints/patterns
   // make the model's confidence flicker pixel to pixel; a min-filter/erosion turns that
-  // flicker into a perforated edge, a median filter removes it without eating the silhouette) ----
+  // flicker into a perforated edge, a median filter removes it without eating the silhouette).
+  // Implementado como red de comparaciones (sin asignar memoria por píxel) porque a 1024x1024
+  // hay 1M+ píxeles y crear un array + ordenarlo por cada uno sería demasiado lento en móvil. ----
+  function median9(p0, p1, p2, p3, p4, p5, p6, p7, p8) {
+    // red de comparación clásica "opt_med9" (19 compare-swaps), sin asignar memoria
+    let t;
+    if (p1 > p2) { t = p1; p1 = p2; p2 = t; }
+    if (p4 > p5) { t = p4; p4 = p5; p5 = t; }
+    if (p7 > p8) { t = p7; p7 = p8; p8 = t; }
+    if (p0 > p1) { t = p0; p0 = p1; p1 = t; }
+    if (p3 > p4) { t = p3; p3 = p4; p4 = t; }
+    if (p6 > p7) { t = p6; p6 = p7; p7 = t; }
+    if (p1 > p2) { t = p1; p1 = p2; p2 = t; }
+    if (p4 > p5) { t = p4; p4 = p5; p5 = t; }
+    if (p7 > p8) { t = p7; p7 = p8; p8 = t; }
+    if (p0 > p3) { t = p0; p0 = p3; p3 = t; }
+    if (p5 > p8) { t = p5; p5 = p8; p8 = t; }
+    if (p4 > p7) { t = p4; p4 = p7; p7 = t; }
+    if (p3 > p6) { t = p3; p3 = p6; p6 = t; }
+    if (p1 > p4) { t = p1; p1 = p4; p4 = t; }
+    if (p2 > p5) { t = p2; p2 = p5; p5 = t; }
+    if (p4 > p7) { t = p4; p4 = p7; p7 = t; }
+    if (p4 > p2) { t = p4; p4 = p2; p2 = t; }
+    if (p6 > p4) { t = p6; p6 = p4; p4 = t; }
+    if (p4 > p2) { t = p4; p4 = p2; p2 = t; }
+    return p4;
+  }
   const denoised = new Float32Array(plane);
-  const win = new Float32Array(9);
   for (let y = 0; y < SIZE; y++) {
+    const yTop = y > 0 ? y - 1 : y, yBot = y < SIZE - 1 ? y + 1 : y;
     for (let x = 0; x < SIZE; x++) {
-      let n = 0;
-      for (let dy = -1; dy <= 1; dy++) {
-        for (let dx = -1; dx <= 1; dx++) {
-          const ny = y + dy, nx = x + dx;
-          win[n++] = (ny < 0 || ny >= SIZE || nx < 0 || nx >= SIZE) ? rawMask[y * SIZE + x] : rawMask[ny * SIZE + nx];
-        }
-      }
-      const w = Array.from(win).sort((a, b) => a - b);
-      denoised[y * SIZE + x] = w[4]; // mediana de la ventana 3x3
+      const xL = x > 0 ? x - 1 : x, xR = x < SIZE - 1 ? x + 1 : x;
+      denoised[y * SIZE + x] = median9(
+        rawMask[yTop * SIZE + xL], rawMask[yTop * SIZE + x], rawMask[yTop * SIZE + xR],
+        rawMask[y * SIZE + xL], rawMask[y * SIZE + x], rawMask[y * SIZE + xR],
+        rawMask[yBot * SIZE + xL], rawMask[yBot * SIZE + x], rawMask[yBot * SIZE + xR]
+      );
     }
   }
-  // ---- Softer contrast curve: only kills clearly-background confidence (sombras difusas),
-  // keeps a wider band around the true edge so it stays smooth instead of jagged ----
-  const LOW = 0.3, HIGH = 0.8;
+  // ---- Contrast curve: mata la confianza claramente de sombra/fondo, mantiene el borde suave.
+  // Umbral más alto que con u2netp porque IS-Net da valores de confianza más altos en sombras difusas. ----
+  const LOW = 0.55, HIGH = 0.85;
   const mask = new Float32Array(plane);
   for (let i = 0; i < plane; i++) {
     const v = denoised[i];
