@@ -3595,7 +3595,7 @@ async function renderHomeOutfitCard() {
   if (cached.thumbUrl) return;
   try {
     const [topImg, bottomImg, shoesImg] = await Promise.all([
-      ensureBgRemovedImage(top), ensureBgRemovedImage(bottom), ensureBgRemovedImage(shoes),
+      ensureBgRemovedImage(top, 10000), ensureBgRemovedImage(bottom, 10000), ensureBgRemovedImage(shoes, 10000),
     ]);
     const canvas = await generateOutfitThumbCanvas(
       { ...top, image: topImg }, { ...bottom, image: bottomImg }, { ...shoes, image: shoesImg }, [], "flat"
@@ -3723,16 +3723,16 @@ function getBandWidth(img, trim, bandStartFrac, bandEndFrac) {
 function imageLikelyHasTransparency(dataUrl) {
   return typeof dataUrl === "string" && dataUrl.startsWith("data:image/png");
 }
-async function ensureBgRemovedImage(garment) {
+async function ensureBgRemovedImage(garment, timeoutMs = 4000) {
   const src = garmentImageForDisplay(garment) || garment.image;
   if (imageLikelyHasTransparency(src)) return src;
   try {
     const blob = await (await fetch(src)).blob();
     // En algunos móviles, quitar el fondo (WASM con hilos) puede quedarse
     // colgado sin más (ni éxito ni error) por falta de las cabeceras que
-    // GitHub Pages no puede dar en móvil. Si tarda más de 4s, seguimos con
-    // la foto normal en vez de dejar el outfit "cargando" para siempre.
-    const timeout = new Promise(resolve => setTimeout(() => resolve(null), 4000));
+    // GitHub Pages no puede dar en móvil. Si tarda más de timeoutMs, seguimos
+    // con la foto normal en vez de dejar el outfit "cargando" para siempre.
+    const timeout = new Promise(resolve => setTimeout(() => resolve(null), timeoutMs));
     const result = await Promise.race([removeImageBackground(blob), timeout]);
     return result || src;
   } catch (err) {
