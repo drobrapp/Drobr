@@ -289,12 +289,17 @@
     font-size:var(--fs-2xs); font-weight: 600; color: var(--ink-soft);
   }
 
-  .home-outfit-card { background: var(--accent-tint); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 22px; cursor: pointer; }
+  .home-outfit-card { background: var(--disabled-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 22px; cursor: pointer; display: flex; align-items: flex-start; gap: 6px; position: relative; z-index: 1; }
+  .home-outfit-card-body { flex: 1 1 auto; min-width: 0; }
   .home-outfit-card-eyebrow { font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin: 0 0 4px; }
   .home-outfit-card-title { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
   .home-outfit-card-sub { font-size: var(--fs-2xs); color: var(--ink-soft); margin: 0 0 16px; }
-  .home-outfit-card-pieces { display: flex; gap: 10px; margin-bottom: 14px; }
-  .home-outfit-card-pieces .frame { flex: 1; min-width: 0; }
+  .home-outfit-card-pieces { display: flex; gap: 8px; flex: 0 0 auto; margin: -30px -14px -14px 0; }
+  .home-outfit-card-pieces .frame { width: 72px; flex-shrink: 0; }
+  @media (max-width: 480px) {
+    .home-outfit-card-pieces { gap: 6px; margin: -24px -10px -10px 0; }
+    .home-outfit-card-pieces .frame { width: 56px; }
+  }
 
   .picker-row { margin-bottom: 16px; }
   .picker-label { font-size:var(--fs-2xs); color: var(--ink-soft); margin-bottom: 8px; font-weight: 600; }
@@ -3576,11 +3581,13 @@ function renderHomeOutfitCard() {
   wrap.style.display = "block";
   wrap.innerHTML = `
     <div class="home-outfit-card" id="homeOutfitCardBtn" role="button" tabindex="0">
-      <p class="home-outfit-card-eyebrow">Outfit sugerido</p>
-      <h3 class="home-outfit-card-title">${localOutfitName(top, bottom, shoes)}</h3>
-      <p class="home-outfit-card-sub">Sugerencia basada en tu armario</p>
+      <div class="home-outfit-card-body">
+        <p class="home-outfit-card-eyebrow">Outfit del día</p>
+        <h3 class="home-outfit-card-title">${localOutfitName(top, bottom, shoes)}</h3>
+        <p class="home-outfit-card-sub">Sugerencia basada en tu armario</p>
+        <div class="badge-row">${badges.map(b => `<span class="badge">${b}</span>`).join("")}</div>
+      </div>
       <div class="home-outfit-card-pieces">${piecesHTML}</div>
-      <div class="badge-row">${badges.map(b => `<span class="badge">${b}</span>`).join("")}</div>
     </div>`;
 }
 
