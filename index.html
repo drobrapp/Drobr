@@ -7525,7 +7525,7 @@ function postCardHTML(entry, isOwn) {
         ${img ? `<img src="${img}" alt="" loading="lazy">` : ""}
         <div class="post-card-kebab-wrap">
           <button type="button" class="post-card-kebab" data-role="kebab" title="Más opciones">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m12,0C5.383,0,0,5.383,0,12s5.383,12,12,12,12-5.383,12-12S18.617,0,12,0Zm0,19c-.828,0-1.5-.672-1.5-1.5s.672-1.5,1.5-1.5,1.5.672,1.5,1.5-.672,1.5-1.5,1.5Zm0-5.5c-.828,0-1.5-.672-1.5-1.5s.672-1.5,1.5-1.5,1.5.672,1.5,1.5-.672,1.5-1.5,1.5Zm0-5.5c-.828,0-1.5-.672-1.5-1.5s.672-1.5,1.5-1.5,1.5.672,1.5,1.5-.672,1.5-1.5,1.5Z"/></svg>
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="2.2"/><circle cx="12" cy="12" r="2.2"/><circle cx="12" cy="19" r="2.2"/></svg>
           </button>
           <div class="post-card-kebab-menu">${postCardKebabItemsHTML(type, isOwn)}</div>
         </div>
@@ -7543,19 +7543,19 @@ function postCardHTML(entry, isOwn) {
       </div>
       <div class="post-card-actions">
         <button type="button" class="post-card-action-btn${s.liked ? " liked" : ""}" data-role="like">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="${s.liked ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Z"/></svg>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="${s.liked ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12,12) scale(0.72) translate(-12,-12)"><path d="M17.5,1.917a6.4,6.4,0,0,0-5.5,3.3,6.4,6.4,0,0,0-5.5-3.3A6.8,6.8,0,0,0,0,8.967c0,4.547,4.786,9.513,8.8,12.88a4.974,4.974,0,0,0,6.4,0C19.214,18.48,24,13.514,24,8.967A6.8,6.8,0,0,0,17.5,1.917Z"/></g></svg>
           <span class="post-card-count" data-role="like-count">${s.likeCount}</span>
         </button>
         <button type="button" class="post-card-action-btn" data-role="comment">
-          <svg width="19" height="19" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="m12.836.029c-3.474-.235-6.875,1.036-9.328,3.492S-.211,9.378.03,12.854c.44,6.354,6.052,11.146,13.054,11.146h5.917c2.757,0,5-2.243,5-5v-6.66C24,5.862,19.096.454,12.836.029Zm-5.836,13.471c-.828,0-1.5-.672-1.5-1.5s.672-1.5,1.5-1.5,1.5.672,1.5,1.5-.672,1.5-1.5,1.5Zm5,0c-.828,0-1.5-.672-1.5-1.5s.672-1.5,1.5-1.5,1.5.672,1.5,1.5-.672,1.5-1.5,1.5Zm5,0c-.828,0-1.5-.672-1.5-1.5s.672-1.5,1.5-1.5,1.5.672,1.5,1.5-.672,1.5-1.5,1.5Z"/></svg>
+          <svg width="19" height="19" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5c-1.35 0-2.62-.34-3.73-.94L3 21l1.94-5.77A8.38 8.38 0 0 1 12.5 3 8.5 8.5 0 0 1 21 11.5z"/></svg>
           <span class="post-card-count" data-role="comment-count">${s.commentCount}</span>
         </button>
         <button type="button" class="post-card-action-btn" data-role="share">
-          <svg width="18" height="18" viewBox="0 0 512.012 512.012" fill="currentColor"><path fill-rule="evenodd" d="M405.339,298.678c-31.546,0.117-61.402,14.278-81.451,38.635l-115.2-52.011c2.93-9.494,4.496-19.356,4.651-29.291c-0.138-9.827-1.653-19.586-4.501-28.992l115.072-52.267c37.932,44.641,104.871,50.08,149.512,12.149S523.502,82.031,485.57,37.39S380.7-12.691,336.059,25.241c-23.88,20.291-37.565,50.102-37.386,81.437c0,3.029,0.64,5.888,0.896,8.853l-126.763,57.536c-18.688-15.229-42.026-23.601-66.133-23.723c-58.91,0-106.667,47.756-106.667,106.667s47.756,106.667,106.667,106.667c24.003-0.098,47.255-8.376,65.92-23.467l126.976,57.323c-0.256,2.965-0.896,5.803-0.896,8.811c0,58.91,47.756,106.667,106.667,106.667s106.667-47.756,106.667-106.667S464.25,298.678,405.339,298.678z M405.339,64.012c23.564,0,42.667,19.103,42.667,42.667s-19.103,42.667-42.667,42.667c-23.564,0-42.667-19.103-42.667-42.667S381.775,64.012,405.339,64.012z M106.673,298.678c-23.564,0-42.667-19.103-42.667-42.667s19.103-42.667,42.667-42.667s42.667,19.103,42.667,42.667S130.237,298.678,106.673,298.678z M405.339,448.012c-23.564,0-42.667-19.102-42.667-42.667s19.103-42.667,42.667-42.667c23.564,0,42.667,19.102,42.667,42.667S428.903,448.012,405.339,448.012z"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.6" y1="10.6" x2="15.4" y2="6.4"/><line x1="8.6" y1="13.4" x2="15.4" y2="17.6"/></svg>
         </button>
         ${isOwn ? "" : `
         <button type="button" class="post-card-action-btn post-card-save${s.saved ? " saved" : ""}" data-role="save">
-          <svg width="18" height="18" viewBox="0 0 24 24" fill="${s.saved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></svg>
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="${s.saved ? "currentColor" : "none"}" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><g transform="translate(12,12) scale(1.3) translate(-12,-12)"><path d="M19 21 12 16 5 21V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z"/></g></svg>
           <span class="post-card-count" data-role="save-count">${s.saveCount}</span>
         </button>`}
       </div>
