@@ -294,11 +294,16 @@
   .home-outfit-card-eyebrow { font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin: 0 0 4px; }
   .home-outfit-card-title { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
   .home-outfit-card-sub { font-size: var(--fs-2xs); color: var(--ink-soft); margin: 0 0 16px; }
-  .home-outfit-card-pieces { display: flex; gap: 8px; flex: 0 0 auto; margin: -30px -14px -14px 0; }
-  .home-outfit-card-pieces .frame { width: 72px; flex-shrink: 0; }
+  .home-outfit-card-pieces { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; flex: 0 0 auto; margin: -26px -12px -10px 6px; }
+  .home-outfit-card-pieces .frame-polaroid { width: 70px; flex-shrink: 0; background: var(--paper); border-radius: 4px; padding: 5px 5px 14px; box-shadow: var(--shadow); }
+  .home-outfit-card-pieces .frame-polaroid .frame-img { width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 2px; background: var(--bg-muted); }
+  .home-outfit-card-pieces .frame-polaroid .frame-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
+  .home-outfit-card-pieces .frame-polaroid:nth-child(1) { transform: rotate(-7deg); }
+  .home-outfit-card-pieces .frame-polaroid:nth-child(2) { transform: rotate(4deg); margin-right: 16px; }
+  .home-outfit-card-pieces .frame-polaroid:nth-child(3) { transform: rotate(-3deg); margin-right: 4px; }
   @media (max-width: 480px) {
-    .home-outfit-card-pieces { gap: 6px; margin: -24px -10px -10px 0; }
-    .home-outfit-card-pieces .frame { width: 56px; }
+    .home-outfit-card-pieces { gap: 10px; margin: -20px -8px -8px 4px; }
+    .home-outfit-card-pieces .frame-polaroid { width: 56px; padding: 4px 4px 10px; }
   }
 
   .picker-row { margin-bottom: 16px; }
@@ -3552,14 +3557,12 @@ function renderSuggestionGrid(outfit) {
 }
 
 // Miniatura de prenda solo visual (sin candado) para la tarjeta fija de
-// "Outfit sugerido" en Mi armario — a diferencia de outfitCardHTML, esta no
-// es interactiva pieza a pieza: toda la tarjeta abre el modal de sugerencia.
+// "Outfit del día" en Mi armario — marco tipo Polaroid (mismo lenguaje visual
+// que el estilo "Polaroids" de compartir), no el frame-minimal del modal.
 function homeOutfitPieceHTML(g) {
   return `
-    <div class="frame frame-minimal">
-      <div class="frame-inner">
-        <div class="frame-img"><img src="${g.image}" alt="${g.name || g.category}"></div>
-      </div>
+    <div class="frame-polaroid">
+      <div class="frame-img"><img src="${g.image}" alt="${g.name || g.category}"></div>
     </div>`;
 }
 
