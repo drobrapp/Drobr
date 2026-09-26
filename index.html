@@ -3550,17 +3550,35 @@ function renderSuggestionGrid(outfit) {
   gridEl.innerHTML = cats.map(cat => outfitCardHTML(cat === "onepiece" ? outfit.top : outfit[cat], cat)).join("");
 }
 
+// Temporada actual según el mes (mismos 3 valores que usa el resto de la
+// app: verano/entretiempo/invierno). Diciembre-febrero invierno, junio-agosto
+// verano, el resto entretiempo.
+function currentSeasonId() {
+  const m = new Date().getMonth();
+  if (m === 11 || m <= 1) return "invierno";
+  if (m >= 5 && m <= 7) return "verano";
+  return "entretiempo";
+}
+
 // Elige qué outfit guardado mostrar en "Outfit del día": rota una vez al día
 // (mismo outfit todo el día, distinto mañana) entre los outfits guardados
-// que YA tienen su miniatura generada (thumbCache). Así la tarjeta nunca
-// dispara un recorte de fondo nuevo — reutiliza una foto que ya existe,
-// tal y como se ve en "Outfits" — y no puede quedarse a medias ni congelar
-// la interfaz.
+// que YA tienen su miniatura generada (thumbCache) y que además encajan con
+// la temporada actual (mismo criterio que outfitBadges: solo cuenta si
+// alguna prenda tiene una temporada marcada distinta de "entretiempo"). Si
+// ninguno guardado encaja con la temporada, se cae a cualquiera antes que
+// no mostrar nada.
 function pickHomeOutfitEntry() {
   const ready = outfits.filter(o => o.thumbCache);
   if (!ready.length) return null;
+  const nowSeason = currentSeasonId();
+  const fitsNow = (o) => {
+    const seasons = [o.top.season, o.bottom.season, o.shoes.season].filter(s => s && s !== "entretiempo");
+    return !seasons.length || seasons.includes(nowSeason);
+  };
+  const pool = ready.filter(fitsNow);
+  const list = pool.length ? pool : ready;
   const dayIndex = Math.floor(Date.now() / 86400000);
-  return ready[dayIndex % ready.length];
+  return list[dayIndex % list.length];
 }
 
 // Tarjeta fija de "Outfit del día" arriba de las pestañas Armario/Outfits.
