@@ -289,21 +289,14 @@
     font-size:var(--fs-2xs); font-weight: 600; color: var(--ink-soft);
   }
 
-  .home-outfit-card { background: var(--disabled-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 22px; cursor: pointer; display: flex; align-items: flex-start; gap: 6px; position: relative; z-index: 1; }
+  .home-outfit-card { background: var(--disabled-bg); border-radius: var(--radius); box-shadow: var(--shadow); padding: 20px; margin-bottom: 22px; cursor: pointer; display: flex; align-items: center; gap: 6px; position: relative; z-index: 1; max-width: 460px; }
   .home-outfit-card-body { flex: 1 1 auto; min-width: 0; }
   .home-outfit-card-eyebrow { font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin: 0 0 4px; }
   .home-outfit-card-title { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
   .home-outfit-card-sub { font-size: var(--fs-2xs); color: var(--ink-soft); margin: 0 0 16px; }
-  .home-outfit-card-pieces { display: flex; flex-direction: column; align-items: flex-end; gap: 14px; flex: 0 0 auto; margin: -26px -12px -10px 6px; }
-  .home-outfit-card-pieces .frame-polaroid { width: 70px; flex-shrink: 0; background: var(--paper); border-radius: 4px; padding: 5px 5px 14px; box-shadow: var(--shadow); }
-  .home-outfit-card-pieces .frame-polaroid .frame-img { width: 100%; aspect-ratio: 1; overflow: hidden; border-radius: 2px; background: var(--bg-muted); }
-  .home-outfit-card-pieces .frame-polaroid .frame-img img { width: 100%; height: 100%; object-fit: contain; display: block; }
-  .home-outfit-card-pieces .frame-polaroid:nth-child(1) { transform: rotate(-7deg); }
-  .home-outfit-card-pieces .frame-polaroid:nth-child(2) { transform: rotate(4deg); margin-right: 16px; }
-  .home-outfit-card-pieces .frame-polaroid:nth-child(3) { transform: rotate(-3deg); margin-right: 4px; }
+  .home-outfit-card-collage { width: 130px; flex-shrink: 0; margin: -34px -18px -14px 10px; box-shadow: var(--shadow); transform: rotate(3deg); }
   @media (max-width: 480px) {
-    .home-outfit-card-pieces { gap: 10px; margin: -20px -8px -8px 4px; }
-    .home-outfit-card-pieces .frame-polaroid { width: 56px; padding: 4px 4px 10px; }
+    .home-outfit-card-collage { width: 104px; margin: -26px -12px -10px 8px; }
   }
 
   .picker-row { margin-bottom: 16px; }
@@ -3559,27 +3552,33 @@ function renderSuggestionGrid(outfit) {
 // Miniatura de prenda solo visual (sin candado) para la tarjeta fija de
 // "Outfit del día" en Mi armario — marco tipo Polaroid (mismo lenguaje visual
 // que el estilo "Polaroids" de compartir), no el frame-minimal del modal.
-function homeOutfitPieceHTML(g) {
-  return `
-    <div class="frame-polaroid">
-      <div class="frame-img"><img src="${g.image}" alt="${g.name || g.category}"></div>
-    </div>`;
-}
+// Caché en memoria (solo de esta sesión) del outfit elegido para la tarjeta
+// "Outfit del día" y de su collage ya generado, para no repetir el recorte de
+// fondo + dibujado en canvas cada vez que se refresca la vista (cambio de
+// pestaña, etc.) — solo se recalcula si el armario ya no tiene esas prendas.
+let homeOutfitCache = null;
 
-// Tarjeta fija de "Outfit sugerido" arriba de las pestañas Armario/Outfits.
+// Tarjeta fija de "Outfit del día" arriba de las pestañas Armario/Outfits.
 // Reutiliza buildOutfit() (misma lógica de compatibilidad que el modal, así
-// que el resultado siempre es coherente) y outfitBadges() para las
-// etiquetas — no hay generación ni criterios nuevos, solo una vista previa.
-function renderHomeOutfitCard() {
+// que el resultado siempre es coherente) y el mismo motor de collage
+// "flat-lay" que ya usan Compartir y las miniaturas de outfits guardados
+// (generateOutfitThumbCanvas), así que las prendas salen colocadas como
+// puestas, no como recortes sueltos.
+async function renderHomeOutfitCard() {
   const wrap = document.getElementById("homeOutfitCardWrap");
   if (!wrap) return;
-  if (!canSuggest()) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
-  const { outfit } = buildOutfit("any", "any");
-  if (!outfit) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
-  const { top, bottom, shoes } = outfit;
-  const isOnePiece = top.id === bottom.id;
-  const cats = isOnePiece ? ["onepiece", "shoes"] : ["top", "bottom", "shoes"];
-  const piecesHTML = cats.map(cat => homeOutfitPieceHTML(cat === "onepiece" ? top : outfit[cat])).join("");
+  if (!canSuggest()) { wrap.style.display = "none"; wrap.innerHTML = ""; homeOutfitCache = null; return; }
+
+  let cached = homeOutfitCache;
+  const stillValid = cached && [cached.top, cached.bottom, cached.shoes]
+    .every(g => garments.some(x => x.id === g.id));
+  if (!stillValid) {
+    const { outfit } = buildOutfit("any", "any");
+    if (!outfit) { wrap.style.display = "none"; wrap.innerHTML = ""; homeOutfitCache = null; return; }
+    cached = { top: outfit.top, bottom: outfit.bottom, shoes: outfit.shoes, thumbUrl: null };
+    homeOutfitCache = cached;
+  }
+  const { top, bottom, shoes } = cached;
   const badges = outfitBadges(top, bottom, shoes);
   wrap.style.display = "block";
   wrap.innerHTML = `
@@ -3590,8 +3589,23 @@ function renderHomeOutfitCard() {
         <p class="home-outfit-card-sub">Sugerencia basada en tu armario</p>
         <div class="badge-row">${badges.map(b => `<span class="badge">${b}</span>`).join("")}</div>
       </div>
-      <div class="home-outfit-card-pieces">${piecesHTML}</div>
+      <div class="outfit-mini-collage home-outfit-card-collage" id="homeOutfitCollage">${cached.thumbUrl ? `<img src="${cached.thumbUrl}" alt="">` : `<div class="outfit-mini-collage-loading"></div>`}</div>
     </div>`;
+
+  if (cached.thumbUrl) return;
+  try {
+    const [topImg, bottomImg, shoesImg] = await Promise.all([
+      ensureBgRemovedImage(top), ensureBgRemovedImage(bottom), ensureBgRemovedImage(shoes),
+    ]);
+    const canvas = await generateOutfitThumbCanvas(
+      { ...top, image: topImg }, { ...bottom, image: bottomImg }, { ...shoes, image: shoesImg }, [], "flat"
+    );
+    cached.thumbUrl = canvas.toDataURL("image/jpeg", 0.85);
+    const slot = document.getElementById("homeOutfitCollage");
+    if (slot) slot.innerHTML = `<img src="${cached.thumbUrl}" alt="">`;
+  } catch (err) {
+    console.error("No se pudo generar el collage de Outfit del día:", err);
+  }
 }
 
 function localOutfitName(top, bottom, shoes) {
