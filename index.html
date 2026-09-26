@@ -294,9 +294,10 @@
   .home-outfit-card-eyebrow { font-size: var(--fs-2xs); font-weight: 700; text-transform: uppercase; letter-spacing: 0.03em; color: var(--accent); margin: 0 0 4px; }
   .home-outfit-card-title { font-size: 18px; font-weight: 700; color: var(--ink); margin: 0 0 4px; }
   .home-outfit-card-sub { font-size: var(--fs-2xs); color: var(--ink-soft); margin: 0 0 16px; }
-  .home-outfit-card .home-outfit-card-collage { width: 130px; flex-shrink: 0; margin: -34px -18px -14px 10px; box-shadow: var(--shadow); transform: rotate(3deg); }
+  .home-outfit-card .home-outfit-card-collage { width: 130px; flex-shrink: 0; margin: -34px -18px -14px 10px; box-shadow: var(--shadow); transform: rotate(3deg); box-sizing: border-box; background: var(--paper); padding: 6px 6px 16px; border-radius: 6px; }
+  .home-outfit-card .home-outfit-card-collage img { border-radius: 2px; }
   @media (max-width: 480px) {
-    .home-outfit-card .home-outfit-card-collage { width: 104px; margin: -26px -12px -10px 8px; }
+    .home-outfit-card .home-outfit-card-collage { width: 104px; margin: -26px -12px -10px 8px; padding: 5px 5px 13px; }
   }
 
   .picker-row { margin-bottom: 16px; }
@@ -3549,63 +3550,39 @@ function renderSuggestionGrid(outfit) {
   gridEl.innerHTML = cats.map(cat => outfitCardHTML(cat === "onepiece" ? outfit.top : outfit[cat], cat)).join("");
 }
 
-// Miniatura de prenda solo visual (sin candado) para la tarjeta fija de
-// "Outfit del día" en Mi armario — marco tipo Polaroid (mismo lenguaje visual
-// que el estilo "Polaroids" de compartir), no el frame-minimal del modal.
-// Caché en memoria (solo de esta sesión) del outfit elegido para la tarjeta
-// "Outfit del día" y de su collage ya generado, para no repetir el recorte de
-// fondo + dibujado en canvas cada vez que se refresca la vista (cambio de
-// pestaña, etc.) — solo se recalcula si el armario ya no tiene esas prendas.
-let homeOutfitCache = null;
+// Elige qué outfit guardado mostrar en "Outfit del día": rota una vez al día
+// (mismo outfit todo el día, distinto mañana) entre los outfits guardados
+// que YA tienen su miniatura generada (thumbCache). Así la tarjeta nunca
+// dispara un recorte de fondo nuevo — reutiliza una foto que ya existe,
+// tal y como se ve en "Outfits" — y no puede quedarse a medias ni congelar
+// la interfaz.
+function pickHomeOutfitEntry() {
+  const ready = outfits.filter(o => o.thumbCache);
+  if (!ready.length) return null;
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  return ready[dayIndex % ready.length];
+}
 
 // Tarjeta fija de "Outfit del día" arriba de las pestañas Armario/Outfits.
-// Reutiliza buildOutfit() (misma lógica de compatibilidad que el modal, así
-// que el resultado siempre es coherente) y el mismo motor de collage
-// "flat-lay" que ya usan Compartir y las miniaturas de outfits guardados
-// (generateOutfitThumbCanvas), así que las prendas salen colocadas como
-// puestas, no como recortes sueltos.
-async function renderHomeOutfitCard() {
+function renderHomeOutfitCard() {
   const wrap = document.getElementById("homeOutfitCardWrap");
   if (!wrap) return;
-  if (!canSuggest()) { wrap.style.display = "none"; wrap.innerHTML = ""; homeOutfitCache = null; return; }
-
-  let cached = homeOutfitCache;
-  const stillValid = cached && [cached.top, cached.bottom, cached.shoes]
-    .every(g => garments.some(x => x.id === g.id));
-  if (!stillValid) {
-    const { outfit } = buildOutfit("any", "any");
-    if (!outfit) { wrap.style.display = "none"; wrap.innerHTML = ""; homeOutfitCache = null; return; }
-    cached = { top: outfit.top, bottom: outfit.bottom, shoes: outfit.shoes, thumbUrl: null };
-    homeOutfitCache = cached;
-  }
-  const { top, bottom, shoes } = cached;
+  const entry = pickHomeOutfitEntry();
+  if (!entry) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
+  const { top, bottom, shoes } = entry;
   const badges = outfitBadges(top, bottom, shoes);
   wrap.style.display = "block";
+  wrap.dataset.outfitId = entry.id;
   wrap.innerHTML = `
     <div class="home-outfit-card" id="homeOutfitCardBtn" role="button" tabindex="0">
       <div class="home-outfit-card-body">
         <p class="home-outfit-card-eyebrow">Outfit del día</p>
-        <h3 class="home-outfit-card-title">${localOutfitName(top, bottom, shoes)}</h3>
-        <p class="home-outfit-card-sub">Sugerencia basada en tu armario</p>
+        <h3 class="home-outfit-card-title">${entry.name}</h3>
+        <p class="home-outfit-card-sub">De tus outfits guardados</p>
         <div class="badge-row">${badges.map(b => `<span class="badge">${b}</span>`).join("")}</div>
       </div>
-      <div class="outfit-mini-collage home-outfit-card-collage" id="homeOutfitCollage">${cached.thumbUrl ? `<img src="${cached.thumbUrl}" alt="">` : `<div class="outfit-mini-collage-loading"></div>`}</div>
+      <div class="outfit-mini-collage home-outfit-card-collage"><img src="${entry.thumbCache}" alt=""></div>
     </div>`;
-
-  if (cached.thumbUrl) return;
-  try {
-    const [topImg, bottomImg, shoesImg] = await Promise.all([
-      ensureBgRemovedImage(top, 10000), ensureBgRemovedImage(bottom, 10000), ensureBgRemovedImage(shoes, 10000),
-    ]);
-    const canvas = await generateOutfitThumbCanvas(
-      { ...top, image: topImg }, { ...bottom, image: bottomImg }, { ...shoes, image: shoesImg }, [], "flat"
-    );
-    cached.thumbUrl = canvas.toDataURL("image/jpeg", 0.85);
-    const slot = document.getElementById("homeOutfitCollage");
-    if (slot) slot.innerHTML = `<img src="${cached.thumbUrl}" alt="">`;
-  } catch (err) {
-    console.error("No se pudo generar el collage de Outfit del día:", err);
-  }
 }
 
 function localOutfitName(top, bottom, shoes) {
@@ -5439,7 +5416,8 @@ document.getElementById("generateOutfitBtn").addEventListener("click", () => {
   handleSuggest("any", "any");
 });
 document.getElementById("homeOutfitCardWrap").addEventListener("click", (e) => {
-  if (e.target.closest("#homeOutfitCardBtn")) document.getElementById("generateOutfitBtn").click();
+  const wrap = e.currentTarget;
+  if (e.target.closest("#homeOutfitCardBtn") && wrap.dataset.outfitId) openOutfitDetail(wrap.dataset.outfitId);
 });
 let fabManuallyOpen = false;
 function closeFabMenu() {
