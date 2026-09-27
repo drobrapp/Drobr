@@ -6660,6 +6660,13 @@ function setupExploreObservers() {
 function pickFeaturedOwner() {
   const items = exploreState.prendas.items;
   const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  // TEMPORAL (prueba de hoy): fuerza que salga tu propio perfil para comprobar el diseño.
+  // Quitar este bloque para volver a excluir el propio perfil de la rotación normal.
+  const ownEntries = items.filter(e => e.uid === myUid);
+  if (ownEntries.length) {
+    const images = ownEntries.slice(0, 2).map(e => e.garment.image).filter(Boolean);
+    return { uid: myUid, images };
+  }
   const byUid = new Map();
   items.forEach(e => {
     if (!e.uid || e.uid === myUid) return;
@@ -6670,7 +6677,7 @@ function pickFeaturedOwner() {
   if (!candidates.length) return null;
   const dayIndex = Math.floor(Date.now() / 86400000);
   const [uid, entries] = candidates[dayIndex % candidates.length];
-  const images = entries.slice(0, 3).map(e => e.garment.image).filter(Boolean);
+  const images = entries.slice(0, 2).map(e => e.garment.image).filter(Boolean);
   return { uid, images };
 }
 
@@ -6699,7 +6706,7 @@ async function renderFeaturedUserCard() {
       <div class="home-outfit-card-body">
         <p class="home-outfit-card-eyebrow">Descubre este armario</p>
         <h3 class="home-outfit-card-title">${meta.name || meta.username || "Usuario"}</h3>
-        <p class="home-outfit-card-sub">@${meta.username || ""}</p>
+        ${meta.username ? `<p class="home-outfit-card-sub">@${meta.username}</p>` : ""}
         <div class="featured-user-stats">${statsHTML}</div>
       </div>
       <div class="featured-user-collage">
