@@ -2932,6 +2932,78 @@ async function removeImageBackground(file, maxDim = 480) {
   octx.putImageData(outData, 0, 0);
   return outCanvas.toDataURL("image/png");
 }
+
+// ---- Prueba: recorte via Hugging Face (BiRefNet) en vez del modelo local ----
+// Pon USE_HF_BG_REMOVAL a false para volver al 100% al modelo local sin perder nada.
+const USE_HF_BG_REMOVAL = true;
+const HF_TOKEN = "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"; // token de Hugging Face (permiso "Inference" es suficiente)
+const HF_MODEL = "ZhengPeng7/BiRefNet";
+
+function blobToDataURL(blob) {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result);
+    reader.onerror = () => reject(new Error("No se pudo leer la respuesta de Hugging Face"));
+    reader.readAsDataURL(blob);
+  });
+}
+
+// La API puede devolver: (a) la imagen ya recortada directamente, o (b) una
+// máscara en JSON que hay que aplicar nosotros sobre la foto original. Cubrimos
+// los dos casos porque no hemos podido comprobar en directo cuál usa BiRefNet.
+async function applyMaskToImage(file, maskBase64) {
+  const srcUrl = URL.createObjectURL(file);
+  let img;
+  try { img = await loadImageEl(srcUrl); } finally { URL.revokeObjectURL(srcUrl); }
+  const maskSrc = maskBase64.startsWith("data:") ? maskBase64 : `data:image/png;base64,${maskBase64}`;
+  const maskImg = await loadImageEl(maskSrc);
+  const canvas = document.createElement("canvas");
+  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
+  const ctx = canvas.getContext("2d");
+  ctx.drawImage(img, 0, 0);
+  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+  const maskCanvas = document.createElement("canvas");
+  maskCanvas.width = canvas.width; maskCanvas.height = canvas.height;
+  const mctx = maskCanvas.getContext("2d");
+  mctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
+  const maskData = mctx.getImageData(0, 0, canvas.width, canvas.height).data;
+  for (let i = 0; i < canvas.width * canvas.height; i++) {
+    imgData.data[i * 4 + 3] = maskData[i * 4];
+  }
+  ctx.putImageData(imgData, 0, 0);
+  return canvas.toDataURL("image/png");
+}
+
+async function removeImageBackgroundHF(file) {
+  const res = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
+    method: "POST",
+    headers: { "Authorization": `Bearer ${HF_TOKEN}` },
+    body: file,
+  });
+  if (!res.ok) {
+    const text = await res.text().catch(() => "");
+    throw new Error(`Hugging Face API error ${res.status}: ${text.slice(0, 300)}`);
+  }
+  const contentType = res.headers.get("content-type") || "";
+  if (contentType.startsWith("image/")) {
+    return blobToDataURL(await res.blob());
+  }
+  const data = await res.json();
+  const maskEntry = Array.isArray(data) ? data.find(d => d && d.mask) : null;
+  if (!maskEntry) throw new Error("Respuesta de Hugging Face en formato no reconocido: " + JSON.stringify(data).slice(0, 300));
+  return applyMaskToImage(file, maskEntry.mask);
+}
+
+async function runBackgroundRemoval(blob) {
+  if (USE_HF_BG_REMOVAL) {
+    try {
+      return await removeImageBackgroundHF(blob);
+    } catch (err) {
+      console.error("Hugging Face falló, usando el modelo local en su lugar:", err);
+    }
+  }
+  return removeImageBackground(blob);
+}
 /* ---------------- Rendering helpers ---------------- */
 function swatchHTML(colorId, size = 14) {
   const c = colorById[colorId];
@@ -3742,7 +3814,7 @@ async function ensureBgRemovedImage(garment, timeoutMs = 4000) {
     // GitHub Pages no puede dar en móvil. Si tarda más de timeoutMs, seguimos
     // con la foto normal en vez de dejar el outfit "cargando" para siempre.
     const timeout = new Promise(resolve => setTimeout(() => resolve(null), timeoutMs));
-    const result = await Promise.race([removeImageBackground(blob), timeout]);
+    const result = await Promise.race([runBackgroundRemoval(blob), timeout]);
     return result || src;
   } catch (err) {
     console.error("No se pudo quitar el fondo al compartir:", err);
