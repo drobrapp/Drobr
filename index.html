@@ -3000,6 +3000,7 @@ async function runBackgroundRemoval(blob) {
       return await removeImageBackgroundHF(blob);
     } catch (err) {
       console.error("Hugging Face falló, usando el modelo local en su lugar:", err);
+      alert("DEBUG temporal — Hugging Face falló: " + err.message); // TODO: quitar este aviso
     }
   }
   return removeImageBackground(blob);

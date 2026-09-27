@@ -4,9 +4,8 @@ const ASSETS = [
   "./manifest.json",
   "./icon-192.png",
   "./icon-512.png",
-  "./rembg-assets/ort.wasm.bundle.min.mjs",
-  "./rembg-assets/ort-wasm-simd-threaded.mjs",
-  "./rembg-assets/ort-wasm-simd-threaded.wasm",
+  "./rembg-assets/ort.wasm.min.js",
+  "./rembg-assets/ort-wasm-simd.wasm",
   "./rembg-assets/isnet-general-use.quant.onnx",
 ];
 
@@ -29,11 +28,15 @@ self.addEventListener("activate", (event) => {
 // Red primero, caché como respaldo solo si no hay conexión: así cualquier
 // actualización que subas se ve en cuanto se reabre la app, sin reinstalar nada.
 self.addEventListener("fetch", (event) => {
+  const req = event.request;
+  const canCache = req.method === "GET" && req.url.startsWith("http");
   event.respondWith(
-    fetch(event.request).then((res) => {
-      const copy = res.clone();
-      caches.open(CACHE_NAME).then((cache) => cache.put(event.request, copy));
+    fetch(req).then((res) => {
+      if (canCache) {
+        const copy = res.clone();
+        caches.open(CACHE_NAME).then((cache) => cache.put(req, copy)).catch(() => {});
+      }
       return res;
-    }).catch(() => caches.match(event.request))
+    }).catch(() => caches.match(req))
   );
 });
