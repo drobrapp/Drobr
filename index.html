@@ -299,6 +299,19 @@
   @media (max-width: 480px) {
     .home-outfit-card .home-outfit-card-collage { width: 136px; margin: -27px -14px -27px 8px; padding: 5px 5px 13px; }
   }
+  .featured-user-stats { display: flex; gap: 10px; font-size: var(--fs-2xs); color: var(--ink); margin: 0; flex-wrap: wrap; }
+  .featured-user-collage { position: relative; width: 120px; height: 130px; flex-shrink: 0; }
+  .featured-user-collage img { position: absolute; object-fit: cover; border-radius: 10px; background: var(--paper); border: 4px solid var(--paper); box-shadow: var(--shadow); }
+  .featured-user-collage img:nth-child(1) { top: 0; right: 10px; width: 70px; height: 70px; transform: rotate(4deg); z-index: 2; }
+  .featured-user-collage img:nth-child(2) { bottom: 0; left: 0; width: 64px; height: 64px; transform: rotate(-6deg); z-index: 1; }
+  .featured-user-avatar { position: absolute; bottom: 20px; right: 0; width: 52px; height: 52px; border-radius: 50%; overflow: hidden; border: 3px solid var(--paper); box-shadow: var(--shadow); background: var(--disabled-bg); z-index: 3; }
+  .featured-user-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  @media (max-width: 720px) {
+    .featured-user-collage { width: 96px; height: 104px; }
+    .featured-user-collage img:nth-child(1) { width: 56px; height: 56px; }
+    .featured-user-collage img:nth-child(2) { width: 50px; height: 50px; }
+    .featured-user-avatar { width: 42px; height: 42px; bottom: 16px; }
+  }
 
   .picker-row { margin-bottom: 16px; }
   .picker-label { font-size:var(--fs-2xs); color: var(--ink-soft); margin-bottom: 8px; font-weight: 600; }
@@ -1189,6 +1202,7 @@
       <div id="searchUserResults" class="explore-search-overlay" style="display:none;"></div>
     </div>
     <p class="section-header-sub" style="margin:10px 0 16px;">Prendas y outfits de cuentas públicas de toda la comunidad.</p>
+    <div id="featuredUserCardWrap" style="display:none;"></div>
 
     <div class="profile-tabs" id="exploreTabs">
       <button class="profile-tab active" data-etab="prendas">Prendas</button>
@@ -5607,6 +5621,12 @@ function switchView(view) {
   const meta = PAGE_META[view];
   document.getElementById("pageAction").style.display = meta.action ? "flex" : "none";
   document.getElementById("pageHead").style.display = meta.action ? "flex" : "none";
+  if (meta.action && wardrobeActiveTab === "armario") { renderHomeOutfitCard(); }
+  else { document.getElementById("homeOutfitCardWrap").style.display = "none"; }
+  {
+    const fCard = document.getElementById("featuredUserCardWrap");
+    if (fCard) fCard.style.display = (view === "search" && fCard.dataset.uid) ? "block" : "none";
+  }
   const hTab = document.getElementById("viewTabHome");
   const wTab = document.getElementById("viewTabWardrobe");
   const shTab = document.getElementById("viewTabShop");
@@ -5647,7 +5667,7 @@ function switchWardrobeTab(tab) {
   document.getElementById("pageAction").style.display = tab === "armario" ? "flex" : "none";
   document.getElementById("pageHead").style.display = tab === "armario" ? "flex" : "none";
   if (tab === "armario") renderActions();
-  else renderOutfits();
+  else { renderOutfits(); document.getElementById("homeOutfitCardWrap").style.display = "none"; }
 }
 document.querySelectorAll("#wardrobeMainTabs [data-wtab]").forEach(btn => {
   btn.addEventListener("click", () => switchWardrobeTab(btn.dataset.wtab));
@@ -6635,6 +6655,64 @@ function setupExploreObservers() {
   new IntersectionObserver((entries) => { if (entries[0].isIntersecting) fetchExploreOutfitPage(false); }, opts)
     .observe(document.getElementById("exploreOutfitSentinel"));
 }
+// Tarjeta "Descubre este armario" en Explorar: elige a un dueño (de entre las
+// prendas públicas ya cargadas), rotando por día como con "Outfit del día".
+function pickFeaturedOwner() {
+  const items = exploreState.prendas.items;
+  const myUid = window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid;
+  const byUid = new Map();
+  items.forEach(e => {
+    if (!e.uid || e.uid === myUid) return;
+    if (!byUid.has(e.uid)) byUid.set(e.uid, []);
+    byUid.get(e.uid).push(e);
+  });
+  const candidates = [...byUid.entries()];
+  if (!candidates.length) return null;
+  const dayIndex = Math.floor(Date.now() / 86400000);
+  const [uid, entries] = candidates[dayIndex % candidates.length];
+  const images = entries.slice(0, 3).map(e => e.garment.image).filter(Boolean);
+  return { uid, images };
+}
+
+async function renderFeaturedUserCard() {
+  const wrap = document.getElementById("featuredUserCardWrap");
+  if (!wrap) return;
+  const picked = pickFeaturedOwner();
+  if (!picked) { wrap.style.display = "none"; wrap.innerHTML = ""; return; }
+  const { uid, images } = picked;
+  await exploreEnsureOwnerMetaFor([uid]);
+  const meta = exploreOwnerMetaCache.get(uid) || {};
+  const [garmentCount, outfitCount, followerCount] = await Promise.all([
+    getGarmentCountFor(uid).catch(() => null),
+    getOutfitCountFor(uid).catch(() => null),
+    getFollowerCount(uid).catch(() => null),
+  ]);
+  wrap.dataset.uid = uid;
+  wrap.style.display = "block";
+  const statsHTML = [
+    garmentCount != null ? `<span><b>${garmentCount}</b> ${garmentCount === 1 ? "prenda" : "prendas"}</span>` : "",
+    outfitCount != null ? `<span><b>${outfitCount}</b> ${outfitCount === 1 ? "outfit" : "outfits"}</span>` : "",
+    followerCount != null ? `<span><b>${followerCount}</b> seguidores</span>` : "",
+  ].join("");
+  wrap.innerHTML = `
+    <div class="home-outfit-card featured-user-card" id="featuredUserCardBtn" role="button" tabindex="0">
+      <div class="home-outfit-card-body">
+        <p class="home-outfit-card-eyebrow">Descubre este armario</p>
+        <h3 class="home-outfit-card-title">${meta.name || meta.username || "Usuario"}</h3>
+        <p class="home-outfit-card-sub">@${meta.username || ""}</p>
+        <div class="featured-user-stats">${statsHTML}</div>
+      </div>
+      <div class="featured-user-collage">
+        ${images.map(src => `<img src="${src}" alt="">`).join("")}
+        <div class="featured-user-avatar">${meta.avatar ? `<img src="${meta.avatar}" alt="">` : ""}</div>
+      </div>
+    </div>`;
+}
+document.getElementById("featuredUserCardWrap").addEventListener("click", (e) => {
+  const wrap = e.currentTarget;
+  if (e.target.closest("#featuredUserCardBtn") && wrap.dataset.uid) openVisitorProfile(wrap.dataset.uid);
+});
+
 function initExploreIfNeeded() {
   if (exploreInitDone) return;
   exploreInitDone = true;
@@ -6644,7 +6722,7 @@ function initExploreIfNeeded() {
   // de forma síncrona, así que si el sentinel ya está a la vista (grid vacío)
   // el primer aviso del IntersectionObserver lo bloquea el propio guard en
   // vez de disparar una segunda petición duplicada para la misma página.
-  fetchExplorePrendaPage(true);
+  fetchExplorePrendaPage(true).then(() => renderFeaturedUserCard());
   setupExploreObservers();
 }
 /* ============ fin "Explorar" ============ */
@@ -6754,6 +6832,16 @@ async function getFollowingCount(targetUid) {
   const { collectionGroup, query, where, getCountFromServer } = window.__drobrFirestoreFns;
   const q = query(collectionGroup(window.__drobrDb, "followers"), where("followerUid", "==", targetUid), where("status", "==", "accepted"));
   const snap = await getCountFromServer(q);
+  return snap.data().count;
+}
+async function getGarmentCountFor(targetUid) {
+  const { collection, getCountFromServer } = window.__drobrFirestoreFns;
+  const snap = await getCountFromServer(collection(window.__drobrDb, "armarios", targetUid, "prendas"));
+  return snap.data().count;
+}
+async function getOutfitCountFor(targetUid) {
+  const { collection, getCountFromServer } = window.__drobrFirestoreFns;
+  const snap = await getCountFromServer(collection(window.__drobrDb, "armarios", targetUid, "outfits"));
   return snap.data().count;
 }
 
@@ -8386,6 +8474,8 @@ function showForeignSubView(id) {
   document.getElementById("wardrobeFab").style.display = "none";
   document.getElementById("pageAction").style.display = "none";
   document.getElementById("pageHead").style.display = "none";
+  document.getElementById("homeOutfitCardWrap").style.display = "none";
+  { const fCard = document.getElementById("featuredUserCardWrap"); if (fCard) fCard.style.display = "none"; }
   closeFabMenu();
   window.scrollTo(0, 0);
 }
