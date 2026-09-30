@@ -448,9 +448,10 @@
     #viewTabNotifications { display: none; }
     #viewTabMessages { display: none; } /* ya accesible desde el icono de mensajes de la topbar móvil */
     #viewTabWardrobe { order: 1; }
-    #viewTabHome { order: 2; }
-    #viewTabSearchUser { order: 3; }
-    #viewTabProfile { order: 4; }
+    #viewTabCreate { order: 2; }
+    #viewTabHome { order: 3; }
+    #viewTabSearchUser { order: 4; }
+    #viewTabProfile { order: 5; }
     html, .grid-row-collapsed, .picker-scroll, .modal-backdrop {
       scrollbar-width: none; -ms-overflow-style: none;
     }
@@ -837,6 +838,45 @@
        sección es más importante que ver el modo de orden completo. */
     .sort-text-label { max-width:62px; }
   }
+
+  /* ---------------- Asistente "Nueva prenda" (pantalla completa) ---------------- */
+  #viewNewGarmentWizard { position: fixed; inset: 0; background: var(--paper); z-index: 200; display: flex; flex-direction: column; }
+  .wizard-header { display:flex; align-items:center; justify-content:space-between; padding: 16px 16px 8px; flex-shrink:0; }
+  .wizard-header-btn { background:none; border:none; font-size:20px; color:var(--ink); cursor:pointer; padding:6px; line-height:1; }
+  .wizard-progress { display:flex; gap:6px; }
+  .wizard-dot { width:8px; height:8px; border-radius:50%; background:var(--line); transition: background 0.2s ease, transform 0.2s ease; }
+  .wizard-dot.active { background: var(--accent); transform: scale(1.2); }
+  .wizard-dot.done { background: var(--ink-soft); }
+  .wizard-body { flex:1; overflow-y:auto; padding: 8px 20px 24px; max-width:520px; width:100%; margin:0 auto; box-sizing:border-box; }
+  .wizard-step-title { font-size: 19px; font-weight:700; margin: 4px 0 18px; }
+  .wizard-photo-drop {
+    width:100%; aspect-ratio: 4/3; border-radius:14px; border:2px dashed var(--line-strong);
+    display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;
+    background: var(--disabled-bg); margin-bottom: 22px; color: var(--ink-soft); font-size: var(--fs-sm); text-align:center;
+  }
+  .wizard-photo-drop img { width:100%; height:100%; object-fit:contain; }
+  .wizard-search-input { width:100%; box-sizing:border-box; padding:10px 14px; border-radius:999px; border:1px solid var(--line-strong); font-size:var(--fs-sm); margin-bottom:12px; }
+  .wizard-footer { padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; gap:10px; flex-shrink:0; }
+  .wizard-done-icon {
+    width:64px; height:64px; border-radius:50%; background: var(--accent); color:#fff;
+    display:flex; align-items:center; justify-content:center; font-size:30px; margin: 20px auto 16px;
+  }
+  .wizard-done-preview { display:flex; align-items:center; gap:14px; background:var(--disabled-bg); border-radius:12px; padding:12px; margin: 18px 0 24px; }
+  .wizard-done-preview img { width:64px; height:64px; object-fit:cover; border-radius:8px; background:#fff; flex-shrink:0; }
+  .wizard-done-preview div { flex:1; min-width:0; }
+  .wizard-done-preview .wdp-name { font-weight:700; font-size:var(--fs-sm); }
+  .wizard-done-preview .wdp-meta { font-size:var(--fs-xs); color:var(--ink-soft); margin-top:2px; }
+
+  /* Botón "Crear" del menú: distinto al resto para que destaque como acción, no como pestaña */
+  .nav-item.nav-create .nav-create-circle {
+    width:32px; height:32px; border-radius:50%; background:var(--ink); color:var(--paper);
+    display:flex; align-items:center; justify-content:center; margin: 0 auto 2px;
+  }
+  .nav-item.nav-create .nav-create-circle svg { width:16px; height:16px; }
+  @media (max-width: 720px) {
+    .nav-item.nav-create .nav-create-circle { width:44px; height:44px; margin-top:-16px; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
+    .nav-item.nav-create .nav-create-circle svg { width:22px; height:22px; }
+  }
 </style>
 </head>
 <body>
@@ -940,6 +980,12 @@
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="m6.329 17.765c-.486.497-1.329.153-1.329-.542v-1.223h-3.5c-.828 0-1.5-.671-1.5-1.5s.672-1.5 1.5-1.5h3.5v-1.223c0-.695.844-1.039 1.33-.542l2.481 2.538c.402.401.402 1.053 0 1.453l-2.481 2.538zm10.171-6.765c-.828 0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5 1.5-.672 1.5-1.5-.672-1.5-1.5-1.5zm7.5-5.289v14.789c0 1.93-1.57 3.5-3.5 3.5h-11c-1.93 0-3.5-1.57-3.5-3.5 0-.829.672-1.5 1.5-1.5s1.5.671 1.5 1.5c0 .276.225.5.5.5h1.5v-16h-.5c-.827 0-1.5.673-1.5 1.5v2c0 .829-.672 1.5-1.5 1.5s-1.5-.671-1.5-1.5v-2c0-2.481 2.019-4.5 4.5-4.5h1.286c.242-.359.518-.697.862-.979 1.047-.858 2.412-1.197 3.734-.933l3.599.72c2.329.466 4.02 2.528 4.02 4.903zm-3 0c0-.95-.676-1.775-1.607-1.961l-3.599-.72c-.441-.087-.896.025-1.245.311s-.549.709-.549 1.16v16.499h6.5c.275 0 .5-.224.5-.5z"/></svg>
         Mi armario
       </button>
+      <button class="nav-item nav-create" id="viewTabCreate" aria-label="Crear">
+        <span class="nav-create-circle">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
+        </span>
+        Crear
+      </button>
       <button class="nav-item" id="viewTabShop">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5,6.2H18V6A6,6,0,0,0,6,6v.2H3.5A3.543,3.543,0,0,0,0,9.7v8.8A5.549,5.549,0,0,0,5.5,24h13A5.549,5.549,0,0,0,24,18.5V9.7A3.543,3.543,0,0,0,20.5,6.2ZM9,6a3,3,0,0,1,6,0v.2H9ZM21,18.5A2.476,2.476,0,0,1,18.5,21H5.5A2.476,2.476,0,0,1,3,18.5V9.7a.472.472,0,0,1,.5-.5H6v1.3a1.5,1.5,0,0,0,3,0V9.2h6v1.3a1.5,1.5,0,0,0,3,0V9.2h2.5a.472.472,0,0,1,.5.5Z"/></svg>
         ¿Me lo compro?
@@ -991,7 +1037,6 @@
   <div class="page-head" id="pageHead">
     <div id="pageAction" style="display:flex; align-items:center; justify-content:space-between; width:100%; gap:12px; flex-wrap:wrap;">
       <input type="text" id="searchInput" placeholder="Buscar por nombre…" style="margin-top:0; width:220px;">
-      <input type="file" id="fileInput" accept="image/*" multiple style="display:none;">
       <button class="btn btn-primary" id="uploadBtn"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg> Añadir prenda</button>
       <div class="error-msg" id="uploadError" style="display:none;"></div>
     </div>
@@ -1827,20 +1872,6 @@
   </div>
 </div>
 
-<div class="modal-backdrop" id="shareStyleBackdrop">
-  <div class="modal" style="max-width:420px;">
-    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
-      <h2 style="font-size:17px;">¿Cómo compartimos tu outfit?</h2>
-      <button class="modal-close" id="shareStyleClose">✕</button>
-    </div>
-    <p class="sub" style="margin-bottom:16px;">Elige un estilo para la imagen.</p>
-    <div style="display:flex; flex-direction:column; gap:10px;">
-      <button class="btn btn-outline" data-share-style="flat">Plano</button>
-      <button class="btn btn-outline" data-share-style="outline">Contorno blanco</button>
-      <button class="btn btn-outline" data-share-style="polaroid">Polaroids</button>
-    </div>
-  </div>
-</div>
 
 <div class="modal-backdrop" id="confirmBackdrop">
   <div class="modal" style="max-width:340px; text-align:center;">
@@ -1981,14 +2012,6 @@
       <div class="formality-options" id="modalSeason"></div>
     </label>
 
-    <div id="modalBgRemoveField">
-      <label style="display:flex; align-items:flex-start; gap:8px; font-size:12px; color:var(--ink-soft); margin-bottom:16px;">
-        <input type="checkbox" id="modalBgRemove" style="margin-top:2px;">
-        <span>¡Elimina el fondo de mi prenda!</span>
-      </label>
-      <div id="modalBgStatus" class="ai-status" style="display:none;"></div>
-    </div>
-
     <label class="field-eyebrow" id="modalColorField">Color
       <div class="color-options" id="modalColors"></div>
     </label>
@@ -2000,6 +2023,83 @@
       <span style="display:block; font-size:11px; color:var(--ink-soft); margin-top:4px;">Si otra persona la compra desde aquí, la comisión (si la hay) es tuya: es tu enlace.</span>
     </label>
     <button class="btn btn-primary" id="modalConfirm" style="width:100%;">Añadir al armario</button>
+  </div>
+</div>
+
+<input type="file" id="wizardFileInput" accept="image/*" style="display:none;">
+<div id="viewNewGarmentWizard" style="display:none;">
+  <div class="wizard-header">
+    <button class="wizard-header-btn" id="wizardBackBtn" aria-label="Volver">‹</button>
+    <div class="wizard-progress" id="wizardProgress">
+      <span class="wizard-dot" data-step="1"></span>
+      <span class="wizard-dot" data-step="2"></span>
+      <span class="wizard-dot" data-step="3"></span>
+      <span class="wizard-dot" data-step="4"></span>
+    </div>
+    <button class="wizard-header-btn" id="wizardCloseBtn" aria-label="Cerrar">✕</button>
+  </div>
+
+  <div class="wizard-body">
+    <div class="wizard-step" id="wizardStep1">
+      <h2 class="wizard-step-title">Foto y categoría</h2>
+      <div class="wizard-photo-drop" id="wizardPhotoDrop">
+        <img id="wizardPreview" style="display:none;" alt="Vista previa">
+        <span id="wizardPhotoPlaceholder">Toca para añadir una foto<br>(cámara o galería)</span>
+      </div>
+      <label class="field-eyebrow">Categoría
+        <div class="formality-options" id="wizardCategory"></div>
+      </label>
+    </div>
+
+    <div class="wizard-step" id="wizardStep2" style="display:none;">
+      <h2 class="wizard-step-title">Tipo de prenda</h2>
+      <input type="text" id="wizardSubtypeSearch" class="wizard-search-input" placeholder="Busca el tipo (ej. vestido, chinos...)">
+      <div class="formality-options" id="wizardSubtypeOptions"></div>
+    </div>
+
+    <div class="wizard-step" id="wizardStep3" style="display:none;">
+      <h2 class="wizard-step-title">Características</h2>
+      <label class="field-eyebrow">¿Qué estilo tiene esta prenda?
+        <div class="formality-options" id="wizardFormality"></div>
+      </label>
+      <div style="margin: 4px 0 18px;">
+        <input type="checkbox" id="wizardVersatile" class="pill-checkbox">
+        <label for="wizardVersatile" class="versatile-toggle">
+          <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M18 6c-2.69 0-4.756 1.855-6 3.37-1.244-1.515-3.31-3.37-6-3.37a6 6 0 0 0 0 12c2.69 0 4.756-1.855 6-3.37 1.244 1.515 3.31 3.37 6 3.37a6 6 0 0 0 0-12zm-12 9a3 3 0 0 1 0-6c1.791 0 3.4 1.783 4.239 3-.839 1.217-2.448 3-4.239 3zm12 0c-1.791 0-3.4-1.783-4.239-3 .839-1.217 2.448-3 4.239-3a3 3 0 0 1 0 6z"/></svg>
+          Prenda versátil
+        </label>
+      </div>
+      <label class="field-eyebrow">Temporada
+        <div class="formality-options" id="wizardSeason"></div>
+      </label>
+      <label class="field-eyebrow">Color
+        <div class="color-options" id="wizardColors"></div>
+      </label>
+    </div>
+
+    <div class="wizard-step" id="wizardStep4" style="display:none;">
+      <h2 class="wizard-step-title">Detalles</h2>
+      <label class="field-eyebrow">Nombre
+        <input type="text" id="wizardName" placeholder="p. ej. camiseta lino blanca">
+      </label>
+      <label class="field-eyebrow">¿Dónde comprarla? (opcional)
+        <input type="url" id="wizardBuyLink" placeholder="Pega tu enlace (de afiliado o donde la compraste)">
+      </label>
+    </div>
+
+    <div class="wizard-step" id="wizardStepDone" style="display:none;">
+      <div class="wizard-done-icon">✓</div>
+      <h2 class="wizard-step-title" style="text-align:center;">¡Prenda añadida!</h2>
+      <div class="wizard-done-preview" id="wizardDonePreview"></div>
+      <div style="display:flex; flex-direction:column; gap:10px;">
+        <button class="btn btn-outline" id="wizardAddAnotherBtn">Añadir otra prenda</button>
+        <button class="btn btn-primary" id="wizardGoWardrobeBtn">Ver en mi armario</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="wizard-footer" id="wizardFooter">
+    <button class="btn btn-primary" id="wizardContinueBtn" style="width:100%;">Continuar</button>
   </div>
 </div>
 
@@ -2605,406 +2705,7 @@ function loadImageEl(src) {
     img.src = src;
   });
 }
-let bgRemovalModule = null;
-let bgRemovalSession = null;
-const BG_REMOVAL_ASSETS = "rembg-assets/";
-async function getBgRemovalSession() {
-  if (bgRemovalSession) return bgRemovalSession;
-  if (!bgRemovalModule) {
-    // Cargamos el script como texto y lo ejecutamos manualmente en un <script> en vez de hacer
-    // fetch+import como módulo: así evitamos que falle si el hosting no sirve el archivo con el
-    // Content-Type correcto (causa habitual de que quitar el fondo no funcione en la app instalada).
-    // IMPORTANTE: usamos ONNX Runtime Web v1.18.0 (ort.wasm.min.js + ort-wasm-simd.wasm) en vez de
-    // una versión más reciente porque, a partir de la v1.19, la única variante WASM disponible
-    // requiere memoria compartida (SharedArrayBuffer), que a su vez exige cabeceras de servidor
-    // (COOP/COEP) que GitHub Pages no permite configurar. Con esas versiones la función se queda
-    // colgada sin avisar (sobre todo notorio en móvil) en vez de dar un error claro.
-    const scriptRes = await fetch(BG_REMOVAL_ASSETS + "ort.wasm.min.js");
-    if (!scriptRes.ok) throw new Error("No se pudo cargar el módulo de quitar fondo (" + scriptRes.status + ")");
-    const scriptText = await scriptRes.text();
-    const scriptEl = document.createElement("script");
-    scriptEl.textContent = scriptText;
-    document.head.appendChild(scriptEl);
-    document.head.removeChild(scriptEl);
-    bgRemovalModule = window.ort;
-    if (!bgRemovalModule) throw new Error("No se pudo inicializar el módulo de quitar fondo.");
-    bgRemovalModule.env.wasm.numThreads = 1; // works with no special server headers
-    bgRemovalModule.env.wasm.wasmPaths = {
-      "ort-wasm-simd.wasm": new URL(BG_REMOVAL_ASSETS + "ort-wasm-simd.wasm", location.href).href,
-    };
-  }
-  bgRemovalSession = await bgRemovalModule.InferenceSession.create(BG_REMOVAL_ASSETS + "isnet-general-use.quant.onnx");
-  return bgRemovalSession;
-}
-// Limpia la máscara de recorte de fondo: el modelo de segmentación a veces marca como
-// "primer plano" objetos sueltos junto a la prenda (el gancho o el cuerpo del maniquí),
-// normalmente unidos a la prenda por un cuello muy fino (el propio gancho). Esta función:
-// 1) binariza la máscara, 2) la erosiona unos píxeles para romper esos cuellos finos,
-// 3) se queda solo con el componente conexo más grande (la prenda) y 4) reconstruye su
-// contorno real por dilatación (sin dejar volver ningún trozo que no estuviera unido al
-// bulto principal), suavizando el borde final para que no se vea pixelado.
-// Umbral adaptativo (Otsu): en vez de un corte fijo (calibrado para la distribución de un modelo
-// concreto), separa la máscara en sus dos grupos reales (prenda / fondo) buscando el punto de corte
-// que más los distingue. Así el recorte no depende de que el modelo de turno reparta su confianza
-// igual que u2netp — funciona igual si los valores de "prenda segura" quedan altos o más moderados.
-function otsuThreshold(mask, n) {
-  const BINS = 256;
-  const hist = new Float64Array(BINS);
-  for (let i = 0; i < n; i++) {
-    let b = (mask[i] * (BINS - 1)) | 0;
-    if (b < 0) b = 0; else if (b > BINS - 1) b = BINS - 1;
-    hist[b]++;
-  }
-  let sumAll = 0;
-  for (let b = 0; b < BINS; b++) sumAll += b * hist[b];
-  let wB = 0, sumB = 0, maxVar = -1, bestBin = Math.round(BINS * 0.35);
-  for (let b = 0; b < BINS; b++) {
-    wB += hist[b];
-    if (wB === 0) continue;
-    const wF = n - wB;
-    if (wF === 0) break;
-    sumB += b * hist[b];
-    const mB = sumB / wB;
-    const mF = (sumAll - sumB) / wF;
-    const between = wB * wF * (mB - mF) * (mB - mF);
-    if (between > maxVar) { maxVar = between; bestBin = b; }
-  }
-  return bestBin / (BINS - 1);
-}
-// Filtro de caja (dilatación=max / erosión=min) separable en O(ancho*alto), sin importar
-// el radio -- sustituye EXACTAMENTE un bucle de "radio" pasadas de dilate()/erode() 3x3
-// (mismo resultado píxel a píxel, verificado), pero sin el coste de repetir toda la imagen
-// "radio" veces: una caja (2*radio+1) es la suma de N cajas 3x3, y el filtro de caja es
-// separable (fila, luego columna) con relleno 0 en los bordes -- igual que erode()/dilate().
-function boxLine1D(src, len, radius, isMax) {
-  const out = new Uint8Array(len);
-  const dq = new Int32Array(len + 2 * radius + 2);
-  let head = 0, tail = 0;
-  const get = (i) => (i < 0 || i >= len) ? 0 : src[i];
-  for (let i = -radius; i < len + radius; i++) {
-    const v = get(i);
-    while (tail > head && (isMax ? get(dq[tail - 1]) <= v : get(dq[tail - 1]) >= v)) tail--;
-    dq[tail++] = i;
-    while (dq[head] < i - 2 * radius) head++;
-    const outIdx = i - radius;
-    if (outIdx >= 0 && outIdx < len) out[outIdx] = get(dq[head]);
-  }
-  return out;
-}
-function boxFilter2D(src, w, h, radius, isMax) {
-  if (radius <= 0) return src.slice();
-  const rowPass = new Uint8Array(w * h);
-  const rowBuf = new Uint8Array(w);
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) rowBuf[x] = src[y * w + x];
-    rowPass.set(boxLine1D(rowBuf, w, radius, isMax), y * w);
-  }
-  const out = new Uint8Array(w * h);
-  const colBuf = new Uint8Array(h);
-  for (let x = 0; x < w; x++) {
-    for (let y = 0; y < h; y++) colBuf[y] = rowPass[y * w + x];
-    const filtered = boxLine1D(colBuf, h, radius, isMax);
-    for (let y = 0; y < h; y++) out[y * w + x] = filtered[y];
-  }
-  return out;
-}
-function cleanupBgMask(mask, w, h) {
-  const n = w * h;
-  // Margen sobre el umbral de Otsu: los píxeles de confianza intermedia (sombras
-  // proyectadas, penumbras) quedan del lado del fondo en vez de colarse como
-  // prenda semitransparente. Verificado con fotos reales: elimina la sombra de la
-  // gorra sin afectar a zapatillas/camisa (su contraste real vs 1.0 es mucho mayor).
-  const THRESH = Math.min(0.95, otsuThreshold(mask, n) + 0.2);
-  const ERODE_PX = Math.max(1, Math.round(4 * Math.min(w, h) / 320)); // se escala con la resolución: a 320px de lado rompe cuellos finos (ganchos, tiras de maniquí) sin comerse la prenda
-  let bin = new Uint8Array(n);
-  for (let i = 0; i < n; i++) bin[i] = mask[i] >= THRESH ? 1 : 0;
 
-  const dilate = (src) => {
-    const out = new Uint8Array(n);
-    for (let y = 0; y < h; y++) {
-      for (let x = 0; x < w; x++) {
-        const i = y * w + x;
-        let any = false;
-        for (let dy = -1; dy <= 1 && !any; dy++) {
-          for (let dx = -1; dx <= 1 && !any; dx++) {
-            const ny = y + dy, nx = x + dx;
-            if (ny >= 0 && ny < h && nx >= 0 && nx < w && src[ny * w + nx]) any = true;
-          }
-        }
-        out[i] = any ? 1 : 0;
-      }
-    }
-    return out;
-  };
-
-  // Cierre morfológico ANTES de romper el cuello del gancho/maniquí: sella huecos
-  // interiores causados por zonas oscuras de un estampado mal clasificadas como fondo
-  // (p.ej. los cuadros negros de un print, que son tela opaca real, no huecos).
-  // IMPORTANTE que vaya antes y no después: en un estampado con muchos cuadros oscuros,
-  // la erosión de ERODE_PX de abajo (pensada solo para romper el cuello fino del gancho)
-  // fragmenta el interior de la prenda en muchos trozos desconectados si esos huecos
-  // siguen ahí — el mayor trozo puede quedar muy por debajo del 40% mínimo de la
-  // salvaguarda más abajo, y toda la limpieza se descarta devolviendo la máscara sucia
-  // sin procesar (así se veía el bug con estampados reales). Radio de cierre probado
-  // sobre fotos reales: 20px a 1024 de lado ya sellaba los huecos sin deformar el
-  // contorno; se deja en 30px de margen para estampados con zonas oscuras más anchas.
-  const CLOSE_PX = Math.max(1, Math.round(30 * Math.min(w, h) / 1024));
-  let closedBin = boxFilter2D(bin, w, h, CLOSE_PX, true);
-  closedBin = boxFilter2D(closedBin, w, h, CLOSE_PX, false);
-  for (let i = 0; i < n; i++) {
-    if (closedBin[i] && !bin[i]) mask[i] = Math.max(mask[i], 0.9); // hueco sellado: confianza alta
-  }
-  bin = closedBin;
-
-  const eroded = boxFilter2D(bin, w, h, ERODE_PX, false);
-
-  // Componentes conexas (4-vecinos) sobre la máscara ya erosionada — nos quedamos con la mayor
-  const labels = new Int32Array(n).fill(-1);
-  let bestLabel = -1, bestSize = 0, nextLabel = 0;
-  const stack = [];
-  for (let i = 0; i < n; i++) {
-    if (!eroded[i] || labels[i] !== -1) continue;
-    let size = 0;
-    stack.push(i);
-    labels[i] = nextLabel;
-    while (stack.length) {
-      const cur = stack.pop();
-      size++;
-      const cy = (cur / w) | 0, cx = cur % w;
-      const neighbors = [[cy - 1, cx], [cy + 1, cx], [cy, cx - 1], [cy, cx + 1]];
-      for (const [ny, nx] of neighbors) {
-        if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
-        const ni = ny * w + nx;
-        if (eroded[ni] && labels[ni] === -1) { labels[ni] = nextLabel; stack.push(ni); }
-      }
-    }
-    if (size > bestSize) { bestSize = size; bestLabel = nextLabel; }
-    nextLabel++;
-  }
-
-  let kept = bestLabel !== -1 ? Uint8Array.from({ length: n }, (_, i) => (labels[i] === bestLabel ? 1 : 0)) : bin;
-
-  // Reconstrucción por dilatación: recupera el contorno real de la prenda (no el erosionado),
-  // pero sin dejar volver nada que no estuviera unido al bulto principal.
-  for (let k = 0; k < ERODE_PX + 2; k++) {
-    const grown = dilate(kept);
-    for (let i = 0; i < n; i++) kept[i] = grown[i] && bin[i] ? 1 : 0;
-  }
-
-  // Salvaguarda: si nos quedamos con menos del 40% del área original, el recorte probablemente
-  // ha ido mal (prenda con formas muy separadas) — no arriesgamos, devolvemos la máscara original.
-  let origArea = 0, keptArea = 0;
-  for (let i = 0; i < n; i++) { if (bin[i]) origArea++; if (kept[i]) keptArea++; }
-  if (origArea === 0 || keptArea / origArea < 0.4) return mask;
-
-  // Suaviza el contorno final (antialias) con un promedio de vecinos, para que el borde
-  // no se vea pixelado — dentro de la silueta conserva el mismo alpha suave del modelo.
-  // AUMENTADO de 1 a 4: con ventana de 1 (3x3) quedaba un flequillo pixelado/dentado en
-  // bordes de bajo contraste real (p.ej. la sombra suave que una prenda oscura proyecta
-  // sobre un fondo claro, sin un límite nítido de verdad en la foto) — no se puede
-  // "adivinar" un borde más nítido que el que hay en la foto, pero sí convertir ese ruido
-  // en una transición suave en vez de dentada. Probado sobre fotos reales con ventanas de
-  // 3/7/9/13 (BLUR 1/3/4/6): con BLUR=4 el flequillo pixelado desaparece y el cordón de
-  // las zapatillas y el detalle del estampado de la camisa se mantienen intactos.
-  const out = new Float32Array(n);
-  const BLUR = Math.max(1, Math.round(4 * Math.min(w, h) / 1024));
-  for (let y = 0; y < h; y++) {
-    for (let x = 0; x < w; x++) {
-      const i = y * w + x;
-      if (!kept[i]) { out[i] = 0; continue; }
-      let sum = 0, count = 0;
-      for (let dy = -BLUR; dy <= BLUR; dy++) {
-        for (let dx = -BLUR; dx <= BLUR; dx++) {
-          const ny = y + dy, nx = x + dx;
-          if (ny < 0 || ny >= h || nx < 0 || nx >= w) continue;
-          const ni = ny * w + nx;
-          // Blur geométrico puro (solo la forma 0/1 de "kept"), no el valor de confianza:
-          // así ningún píxel de sombra de baja confianza puede colarse como borde translúcido.
-          sum += kept[ni] ? 1 : 0;
-          count++;
-        }
-      }
-      out[i] = sum / count;
-    }
-  }
-  return out;
-}
-async function removeImageBackground(file, maxDim = 480) {
-  const session = await getBgRemovalSession();
-  const ort = bgRemovalModule;
-  const srcUrl = URL.createObjectURL(file);
-  let img;
-  try {
-    img = await loadImageEl(srcUrl);
-  } finally {
-    URL.revokeObjectURL(srcUrl);
-  }
-
-  // ---- Preprocess: resize a 1024x1024, normalizado igual que espera el modelo IS-Net (isnet-general-use) ----
-  const SIZE = 1024;
-  const plane = SIZE * SIZE;
-  const smallCanvas = document.createElement("canvas");
-  smallCanvas.width = SIZE; smallCanvas.height = SIZE;
-  const sctx = smallCanvas.getContext("2d");
-  sctx.drawImage(img, 0, 0, SIZE, SIZE);
-  const { data: pixels } = sctx.getImageData(0, 0, SIZE, SIZE);
-
-  // CORREGIDO: isnet-general-use espera mean=(0.5,0.5,0.5) std=(1,1,1) (así lo normaliza
-  // rembg, la librería de la que sale este modelo) — no las medias/std de ImageNet que
-  // necesitaba el u2netp anterior. Con las constantes de ImageNet el modelo recibía la
-  // imagen con un contraste equivocado y su salida perdía casi todo el interior de la
-  // prenda (confirmado con fotos reales: la gorra y las zapatillas casi desaparecían).
-  const mean = [0.5, 0.5, 0.5];
-  const std = [1.0, 1.0, 1.0];
-  const rgb = new Float32Array(3 * plane);
-  let maxVal = 0;
-  for (let i = 0; i < plane; i++) {
-    const r = pixels[i * 4] / 255, g = pixels[i * 4 + 1] / 255, b = pixels[i * 4 + 2] / 255;
-    rgb[i] = r; rgb[plane + i] = g; rgb[2 * plane + i] = b;
-    if (r > maxVal) maxVal = r;
-    if (g > maxVal) maxVal = g;
-    if (b > maxVal) maxVal = b;
-  }
-  if (maxVal < 1e-6) maxVal = 1;
-  const floatData = new Float32Array(3 * plane);
-  for (let i = 0; i < plane; i++) {
-    floatData[i] = (rgb[i] / maxVal - mean[0]) / std[0];
-    floatData[plane + i] = (rgb[plane + i] / maxVal - mean[1]) / std[1];
-    floatData[2 * plane + i] = (rgb[2 * plane + i] / maxVal - mean[2]) / std[2];
-  }
-
-  const tensor = new ort.Tensor("float32", floatData, [1, 3, SIZE, SIZE]);
-  const outputs = await session.run({ "input_image": tensor });
-  const rawOutput = outputs["output_image"].data; // Float32Array 1024x1024, valores sin acotar a 0..1
-  // A diferencia de u2netp, la salida cruda de isnet-general-use no viene ya repartida entre 0 y 1.
-  // Un min-max literal se puede ver arruinado por un solo píxel atípico (ruido de cuantización del
-  // modelo .quant.onnx): si ese pixel suelto marca el "máximo", toda la prenda real queda aplastada
-  // cerca de 0 y el recorte sale prácticamente vacío. Por eso usamos percentiles (0.5%/99.5%) en vez
-  // de min/max literal — igual de efectivo para estirar el contraste real, pero no lo destruye un
-  // pixel suelto.
-  const sortedOut = Float32Array.from(rawOutput).sort();
-  const loIdx = Math.floor(sortedOut.length * 0.005);
-  const hiIdx = Math.min(sortedOut.length - 1, Math.ceil(sortedOut.length * 0.995) - 1);
-  const rawLo = sortedOut[loIdx], rawHi = sortedOut[hiIdx];
-  const rawRange = (rawHi - rawLo) || 1;
-  const rawMask = new Float32Array(rawOutput.length);
-  for (let i = 0; i < rawOutput.length; i++) {
-    let v = (rawOutput[i] - rawLo) / rawRange;
-    if (v < 0) v = 0; else if (v > 1) v = 1;
-    rawMask[i] = v;
-  }
-  // El modelo a veces marca como "primer plano" el maniquí/gancho junto a la prenda
-  // (restos sueltos) y deja el contorno con ruido de píxel a píxel. cleanupBgMask se
-  // queda solo con el bulto principal (la prenda) y suaviza el borde.
-  const mask = cleanupBgMask(rawMask, SIZE, SIZE);
-
-  // ---- Build a grayscale mask canvas we can rescale to the final output size ----
-  const maskCanvas = document.createElement("canvas");
-  maskCanvas.width = SIZE; maskCanvas.height = SIZE;
-  const mctx = maskCanvas.getContext("2d");
-  const maskImgData = mctx.createImageData(SIZE, SIZE);
-  for (let i = 0; i < plane; i++) {
-    const v = Math.max(0, Math.min(255, Math.round(mask[i] * 255)));
-    maskImgData.data[i * 4] = v; maskImgData.data[i * 4 + 1] = v; maskImgData.data[i * 4 + 2] = v; maskImgData.data[i * 4 + 3] = 255;
-  }
-  mctx.putImageData(maskImgData, 0, 0);
-
-  // ---- Compose the final transparent PNG at the target resolution ----
-  let { width, height } = img;
-  if (width > height && width > maxDim) { height = Math.round(height * maxDim / width); width = maxDim; }
-  else if (height > maxDim) { width = Math.round(width * maxDim / height); height = maxDim; }
-
-  const outCanvas = document.createElement("canvas");
-  outCanvas.width = width; outCanvas.height = height;
-  const octx = outCanvas.getContext("2d");
-  octx.drawImage(img, 0, 0, width, height);
-  const outData = octx.getImageData(0, 0, width, height);
-
-  const maskScaledCanvas = document.createElement("canvas");
-  maskScaledCanvas.width = width; maskScaledCanvas.height = height;
-  const msctx = maskScaledCanvas.getContext("2d");
-  msctx.drawImage(maskCanvas, 0, 0, width, height);
-  const maskScaled = msctx.getImageData(0, 0, width, height).data;
-
-  for (let i = 0; i < width * height; i++) {
-    outData.data[i * 4 + 3] = maskScaled[i * 4];
-  }
-  octx.putImageData(outData, 0, 0);
-  return outCanvas.toDataURL("image/png");
-}
-
-// ---- Prueba: recorte via Hugging Face (BiRefNet) en vez del modelo local ----
-// Pon USE_HF_BG_REMOVAL a false para volver al 100% al modelo local sin perder nada.
-const USE_HF_BG_REMOVAL = true;
-const HF_TOKEN = "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"; // token de Hugging Face (permiso "Inference" es suficiente)
-const HF_MODEL = "ZhengPeng7/BiRefNet";
-
-function blobToDataURL(blob) {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader();
-    reader.onload = () => resolve(reader.result);
-    reader.onerror = () => reject(new Error("No se pudo leer la respuesta de Hugging Face"));
-    reader.readAsDataURL(blob);
-  });
-}
-
-// La API puede devolver: (a) la imagen ya recortada directamente, o (b) una
-// máscara en JSON que hay que aplicar nosotros sobre la foto original. Cubrimos
-// los dos casos porque no hemos podido comprobar en directo cuál usa BiRefNet.
-async function applyMaskToImage(file, maskBase64) {
-  const srcUrl = URL.createObjectURL(file);
-  let img;
-  try { img = await loadImageEl(srcUrl); } finally { URL.revokeObjectURL(srcUrl); }
-  const maskSrc = maskBase64.startsWith("data:") ? maskBase64 : `data:image/png;base64,${maskBase64}`;
-  const maskImg = await loadImageEl(maskSrc);
-  const canvas = document.createElement("canvas");
-  canvas.width = img.naturalWidth; canvas.height = img.naturalHeight;
-  const ctx = canvas.getContext("2d");
-  ctx.drawImage(img, 0, 0);
-  const imgData = ctx.getImageData(0, 0, canvas.width, canvas.height);
-  const maskCanvas = document.createElement("canvas");
-  maskCanvas.width = canvas.width; maskCanvas.height = canvas.height;
-  const mctx = maskCanvas.getContext("2d");
-  mctx.drawImage(maskImg, 0, 0, canvas.width, canvas.height);
-  const maskData = mctx.getImageData(0, 0, canvas.width, canvas.height).data;
-  for (let i = 0; i < canvas.width * canvas.height; i++) {
-    imgData.data[i * 4 + 3] = maskData[i * 4];
-  }
-  ctx.putImageData(imgData, 0, 0);
-  return canvas.toDataURL("image/png");
-}
-
-async function removeImageBackgroundHF(file) {
-  const res = await fetch(`https://api-inference.huggingface.co/models/${HF_MODEL}`, {
-    method: "POST",
-    headers: { "Authorization": `Bearer ${HF_TOKEN}` },
-    body: file,
-  });
-  if (!res.ok) {
-    const text = await res.text().catch(() => "");
-    throw new Error(`Hugging Face API error ${res.status}: ${text.slice(0, 300)}`);
-  }
-  const contentType = res.headers.get("content-type") || "";
-  if (contentType.startsWith("image/")) {
-    return blobToDataURL(await res.blob());
-  }
-  const data = await res.json();
-  const maskEntry = Array.isArray(data) ? data.find(d => d && d.mask) : null;
-  if (!maskEntry) throw new Error("Respuesta de Hugging Face en formato no reconocido: " + JSON.stringify(data).slice(0, 300));
-  return applyMaskToImage(file, maskEntry.mask);
-}
-
-async function runBackgroundRemoval(blob) {
-  if (USE_HF_BG_REMOVAL) {
-    try {
-      return await removeImageBackgroundHF(blob);
-    } catch (err) {
-      console.error("Hugging Face falló, usando el modelo local en su lugar:", err);
-      alert("DEBUG temporal — Hugging Face falló: " + err.message); // TODO: quitar este aviso
-    }
-  }
-  return removeImageBackground(blob);
-}
 /* ---------------- Rendering helpers ---------------- */
 function swatchHTML(colorId, size = 14) {
   const c = colorById[colorId];
@@ -3237,7 +2938,7 @@ function renderGrid() {
   gridEl.innerHTML = `<div class="grid">${cardsHTML}</div>`;
 
   gridEl.querySelectorAll(".add-card").forEach(addCard => {
-    addCard.addEventListener("click", () => document.getElementById("fileInput").click());
+    addCard.addEventListener("click", () => openNewGarmentWizard());
   });
 
   gridEl.querySelectorAll("[data-del]").forEach(btn => {
@@ -3322,7 +3023,6 @@ function duplicateGarment(g) {
   candidateMode = false;
   document.getElementById("modalTitle").textContent = "Duplicar prenda";
   document.getElementById("modalConfirm").textContent = "Guardar prenda";
-  document.getElementById("modalBgRemoveField").style.display = "none";
   document.getElementById("modalPreview").src = g.image;
   document.getElementById("modalName").value = g.name || "";
   document.getElementById("modalVersatile").checked = !!g.versatile;
@@ -3745,22 +3445,42 @@ function drawContainImage(ctx, img, x, y, w, h, srcRect) {
   const dw = sw * scale, dh = sh * scale;
   ctx.drawImage(img, sx, sy, sw, sh, x + (w - dw) / 2, y + (h - dh) / 2, dw, dh);
 }
-function getOpaqueBounds(img) {
+// Recorta cada foto de prenda hasta donde hay contenido real (sin depender de
+// transparencia): compara cada píxel con el color de fondo muestreado en el
+// borde de la foto (esquinas + mitad de cada lado). No es IA, es contraste de
+// color — determinista, nunca puede "adivinar mal" la silueta porque no
+// intenta entender ninguna forma.
+function getContentBounds(img) {
   const off = document.createElement("canvas");
   off.width = img.width; off.height = img.height;
   const octx = off.getContext("2d");
   octx.drawImage(img, 0, 0);
+  const w = img.width, h = img.height;
   let data;
   try {
-    data = octx.getImageData(0, 0, img.width, img.height).data;
+    data = octx.getImageData(0, 0, w, h).data;
   } catch {
-    return { sx: 0, sy: 0, sw: img.width, sh: img.height };
+    return { sx: 0, sy: 0, sw: w, sh: h };
   }
-  let minX = img.width, minY = img.height, maxX = -1, maxY = -1;
-  const threshold = 10;
-  for (let y = 0; y < img.height; y++) {
-    for (let x = 0; x < img.width; x++) {
-      if (data[(y * img.width + x) * 4 + 3] > threshold) {
+  const samplePoints = [
+    [0, 0], [w - 1, 0], [0, h - 1], [w - 1, h - 1],
+    [Math.floor(w / 2), 0], [Math.floor(w / 2), h - 1],
+    [0, Math.floor(h / 2)], [w - 1, Math.floor(h / 2)],
+  ];
+  let br = 0, bg = 0, bb = 0, n = 0;
+  for (const [x, y] of samplePoints) {
+    const i = (y * w + x) * 4;
+    br += data[i]; bg += data[i + 1]; bb += data[i + 2]; n++;
+  }
+  br /= n; bg /= n; bb /= n;
+  const alphaThreshold = 10, colorThreshold = 26;
+  let minX = w, minY = h, maxX = -1, maxY = -1;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const i = (y * w + x) * 4;
+      if (data[i + 3] <= alphaThreshold) continue;
+      const dr = data[i] - br, dg = data[i + 1] - bg, db = data[i + 2] - bb;
+      if (Math.sqrt(dr * dr + dg * dg + db * db) > colorThreshold) {
         if (x < minX) minX = x;
         if (x > maxX) maxX = x;
         if (y < minY) minY = y;
@@ -3768,8 +3488,11 @@ function getOpaqueBounds(img) {
       }
     }
   }
-  if (maxX < minX || maxY < minY) return { sx: 0, sy: 0, sw: img.width, sh: img.height };
-  return { sx: minX, sy: minY, sw: maxX - minX + 1, sh: maxY - minY + 1 };
+  if (maxX < minX || maxY < minY) return { sx: 0, sy: 0, sw: w, sh: h };
+  const pad = Math.round(Math.max(w, h) * 0.012);
+  const sx = Math.max(0, minX - pad), sy = Math.max(0, minY - pad);
+  const ex = Math.min(w, maxX + pad + 1), ey = Math.min(h, maxY + pad + 1);
+  return { sx, sy, sw: ex - sx, sh: ey - sy };
 }
 // Mide cuánto ancho ocupa la silueta de la prenda dentro de una franja horizontal
 // concreta (por ejemplo, el bajo de una camiseta o la cinturilla de un pantalón),
@@ -3801,26 +3524,6 @@ function getBandWidth(img, trim, bandStartFrac, bandEndFrac) {
   }
   if (maxX < minX) return trim.sw;
   return maxX - minX + 1;
-}
-function imageLikelyHasTransparency(dataUrl) {
-  return typeof dataUrl === "string" && dataUrl.startsWith("data:image/png");
-}
-async function ensureBgRemovedImage(garment, timeoutMs = 4000) {
-  const src = garmentImageForDisplay(garment) || garment.image;
-  if (imageLikelyHasTransparency(src)) return src;
-  try {
-    const blob = await (await fetch(src)).blob();
-    // En algunos móviles, quitar el fondo (WASM con hilos) puede quedarse
-    // colgado sin más (ni éxito ni error) por falta de las cabeceras que
-    // GitHub Pages no puede dar en móvil. Si tarda más de timeoutMs, seguimos
-    // con la foto normal en vez de dejar el outfit "cargando" para siempre.
-    const timeout = new Promise(resolve => setTimeout(() => resolve(null), timeoutMs));
-    const result = await Promise.race([runBackgroundRemoval(blob), timeout]);
-    return result || src;
-  } catch (err) {
-    console.error("No se pudo quitar el fondo al compartir:", err);
-    return src;
-  }
 }
 
 const SHARE_W = 1080, SHARE_H = 1920;
@@ -3874,41 +3577,6 @@ function fitDimsArea(trim, targetSize, maxW, maxH) {
 // Proporciones y huecos calibrados midiendo píxel a píxel una composición de
 // referencia (superior+inferior grandes a la izquierda, calzado+complementos
 // en cascada a la derecha, empezando casi a la misma altura que la superior).
-function drawShareItemFlat(ctx, img, trim, cx, topY, w, h, rot) {
-  ctx.save();
-  ctx.translate(cx, topY + h / 2);
-  ctx.rotate(rot * Math.PI / 180);
-  ctx.save();
-  ctx.shadowColor = "rgba(0,0,0,0.25)";
-  ctx.shadowBlur = 30;
-  ctx.shadowOffsetY = 16;
-  ctx.drawImage(img, trim.sx, trim.sy, trim.sw, trim.sh, -w / 2, -h / 2, w, h);
-  ctx.restore();
-  ctx.restore();
-  return h;
-}
-
-function drawShareItemOutline(ctx, img, trim, cx, topY, w, h, rot) {
-  ctx.save();
-  ctx.translate(cx, topY + h / 2);
-  ctx.rotate(rot * Math.PI / 180);
-  const off = document.createElement("canvas");
-  off.width = w; off.height = h;
-  const octx = off.getContext("2d");
-  octx.drawImage(img, trim.sx, trim.sy, trim.sw, trim.sh, 0, 0, w, h);
-  octx.globalCompositeOperation = "source-in";
-  octx.fillStyle = "#fff";
-  octx.fillRect(0, 0, w, h);
-  const thickness = 10, steps = 24;
-  for (let i = 0; i < steps; i++) {
-    const ang = (i / steps) * Math.PI * 2;
-    ctx.drawImage(off, -w / 2 + Math.cos(ang) * thickness, -h / 2 + Math.sin(ang) * thickness);
-  }
-  ctx.drawImage(img, trim.sx, trim.sy, trim.sw, trim.sh, -w / 2, -h / 2, w, h);
-  ctx.restore();
-  return h;
-}
-
 function drawShareItemPolaroid(ctx, img, trim, cx, topY, w, h, rot) {
   const bottomMargin = h * 0.14;
   const sideMargin = w * 0.045;
@@ -3931,7 +3599,7 @@ function drawShareItemPolaroid(ctx, img, trim, cx, topY, w, h, rot) {
   return frameH;
 }
 
-const SHARE_STYLE_DRAWERS = { flat: drawShareItemFlat, outline: drawShareItemOutline, polaroid: drawShareItemPolaroid };
+const SHARE_STYLE_DRAWERS = { polaroid: drawShareItemPolaroid };
 
 function drawShareHeader(ctx) {
   ctx.fillStyle = "#1A1714";
@@ -3954,9 +3622,20 @@ function drawShareHeader(ctx) {
 // sea cual sea la foto, y el hueco alrededor del conjunto es siempre el mismo.
 function drawGarments(ctx, top, bottom, shoes, accessories, style, imgs) {
   const { supImg, infImg, shoeImg, accImgs, supTrim, infTrim, shoeTrim, accTrims } = imgs;
-  const draw = SHARE_STYLE_DRAWERS[style] || drawShareItemFlat;
+  const draw = SHARE_STYLE_DRAWERS[style] || drawShareItemPolaroid;
   const L = SHARE_LAYOUT;
   const isOnePiece = !!(top.id && bottom.id && top.id === bottom.id);
+
+  // El abrigo (si lo hay) es una prenda grande que se lleva POR ENCIMA de todo
+  // lo demás, así que no puede ir al tamaño de un complemento normal: se separa
+  // del resto y se le da su propio hueco (ver más abajo).
+  const outerIdx = (accessories || []).findIndex(a => a.category === "outer");
+  const hasOuter = outerIdx !== -1;
+  const outerImg = hasOuter ? accImgs[outerIdx] : null;
+  const outerTrim = hasOuter ? accTrims[outerIdx] : null;
+  const restIdx = (accessories || []).map((a, i) => i).filter(i => i !== outerIdx);
+  const restAccImgs = restIdx.map(i => accImgs[i]);
+  const restAccTrims = restIdx.map(i => accTrims[i]);
 
   let supH, infBottomY, topBound;
   if (isOnePiece) {
@@ -3968,6 +3647,32 @@ function drawGarments(ctx, top, bottom, shoes, accessories, style, imgs) {
     supH = draw(ctx, supImg, supTrim, L.leftCX, L.supTopY, dims.w, dims.h, 0);
     infBottomY = L.supTopY + supH;
     topBound = L.supTopY;
+  } else if (hasOuter) {
+    // El abrigo ocupa el bloque de torso + arranque de pierna; la superior se
+    // dibuja más pequeña y desplazada, a caballo entre el abrigo y la
+    // inferior, por delante de los dos (asomando, como se ve puesta de verdad).
+    const outerTargetH = L.supMaxH * 0.62 + L.infMaxH * 0.4;
+    const outerDims = fitDimsHeightLocked(outerTrim, outerTargetH, L.supMaxW * 1.05);
+    const outerH = draw(ctx, outerImg, outerTrim, L.leftCX, L.supTopY, outerDims.w, outerDims.h, L.supRot - 1);
+
+    const supDims = fitDimsArea(supTrim, L.supArea * 0.6, L.supMaxW * 0.75, L.supMaxH * 0.75);
+    const supCX = L.leftCX + outerDims.w * 0.42;
+    const supTopYAdj = L.supTopY + outerH * 0.36;
+    supH = draw(ctx, supImg, supTrim, supCX, supTopYAdj, supDims.w, supDims.h, Math.abs(L.supRot) + 2);
+
+    const outerBottomY = L.supTopY + outerH;
+    const supScale = supDims.w / supTrim.sw;
+    const supHemWidth = getBandWidth(supImg, supTrim, 0.82, 1.0) * supScale;
+    const infWaistWidth = getBandWidth(infImg, infTrim, 0, 0.12);
+    let infScale = supHemWidth / infWaistWidth;
+    infScale = Math.min(infScale, L.infMaxW / infTrim.sw, L.infMaxH / infTrim.sh);
+    const infDims = { w: infTrim.sw * infScale, h: infTrim.sh * infScale };
+
+    const infTopY = outerBottomY - L.infOverlap - outerH * 0.18;
+    const infH = draw(ctx, infImg, infTrim, L.leftCX, infTopY, infDims.w, infDims.h, L.infRot);
+    infBottomY = infTopY + infH;
+    topBound = L.supTopY;
+    supH = Math.max(supH, outerH * 0.6);
   } else {
     const supDims = fitDimsArea(supTrim, L.supArea, L.supMaxW, L.supMaxH);
     supH = draw(ctx, supImg, supTrim, L.leftCX, L.supTopY, supDims.w, supDims.h, L.supRot);
@@ -3993,20 +3698,20 @@ function drawGarments(ctx, top, bottom, shoes, accessories, style, imgs) {
   const shoeDims = fitDimsWidthLocked(shoeTrim, supH * L.shoeWRatio, L.shoeMaxH);
   const shoeH = style === "polaroid" ? shoeDims.h * 1.14 : shoeDims.h;
   const shoeTopY = infBottomY - shoeH;
-  const hasAccessories = accTrims.length > 0;
+  const hasAccessories = restAccTrims.length > 0;
   const shoeCX = L.rightCX + (style === "polaroid" && hasAccessories ? L.shoeXShiftPolaroid : 0);
   draw(ctx, shoeImg, shoeTrim, shoeCX, shoeTopY, shoeDims.w, shoeDims.h, L.shoeRot);
 
-  const count = accTrims.length;
+  const count = restAccTrims.length;
   const gap = style === "polaroid" ? -30 : L.accGap;
   const accTarget = supH * L.accRatio;
   if (count <= 3) {
     let curBottom = shoeTopY - gap;
     for (let i = 0; i < count; i++) {
-      const accDims = fitDimsArea(accTrims[i], accTarget, accTarget * 1.4, accTarget * 1.4);
+      const accDims = fitDimsArea(restAccTrims[i], accTarget, accTarget * 1.4, accTarget * 1.4);
       const accFrameH = style === "polaroid" ? accDims.h * 1.14 : accDims.h;
       const accTopY = curBottom - accFrameH;
-      draw(ctx, accImgs[i], accTrims[i], L.rightCX, accTopY, accDims.w, accDims.h, i % 2 === 0 ? -6 : 6);
+      draw(ctx, restAccImgs[i], restAccTrims[i], L.rightCX, accTopY, accDims.w, accDims.h, i % 2 === 0 ? -6 : 6);
       curBottom = accTopY - gap;
     }
   } else {
@@ -4017,10 +3722,10 @@ function drawGarments(ctx, top, bottom, shoes, accessories, style, imgs) {
     for (let i = 0; i < count; i++) {
       const row = Math.floor(i / 2), col = i % 2;
       const cellMaxH = cellH / (style === "polaroid" ? 1.14 : 1);
-      const accDims = fitDimsArea(accTrims[i], accTarget, accTarget * 1.4, cellMaxH);
+      const accDims = fitDimsArea(restAccTrims[i], accTarget, accTarget * 1.4, cellMaxH);
       const gx = L.rightCX + (col === 0 ? -1 : 1) * (accDims.w / 2 + gap / 2);
       const yy = gy + row * (cellH + gap);
-      draw(ctx, accImgs[i], accTrims[i], gx, yy, accDims.w, accDims.h, col === 0 ? -6 : 6);
+      draw(ctx, restAccImgs[i], restAccTrims[i], gx, yy, accDims.w, accDims.h, col === 0 ? -6 : 6);
     }
   }
 }
@@ -4058,8 +3763,8 @@ async function generateOutfitShareCanvas(top, bottom, shoes, accessories, style)
   ]);
   const imgs = {
     supImg, infImg, shoeImg, accImgs,
-    supTrim: getOpaqueBounds(supImg), infTrim: getOpaqueBounds(infImg), shoeTrim: getOpaqueBounds(shoeImg),
-    accTrims: accImgs.map(img => getOpaqueBounds(img)),
+    supTrim: getContentBounds(supImg), infTrim: getContentBounds(infImg), shoeTrim: getContentBounds(shoeImg),
+    accTrims: accImgs.map(img => getContentBounds(img)),
   };
 
   // Pasada 1: dibujar en un lienzo de prueba, generoso de sobra, solo para medir
@@ -4117,8 +3822,8 @@ async function generateOutfitThumbCanvas(top, bottom, shoes, accessories, style)
   ]);
   const imgs = {
     supImg, infImg, shoeImg, accImgs,
-    supTrim: getOpaqueBounds(supImg), infTrim: getOpaqueBounds(infImg), shoeTrim: getOpaqueBounds(shoeImg),
-    accTrims: accImgs.map(img => getOpaqueBounds(img)),
+    supTrim: getContentBounds(supImg), infTrim: getContentBounds(infImg), shoeTrim: getContentBounds(shoeImg),
+    accTrims: accImgs.map(img => getContentBounds(img)),
   };
 
   const scratch = document.createElement("canvas");
@@ -4152,7 +3857,7 @@ async function generateOutfitThumbCanvas(top, bottom, shoes, accessories, style)
 let shareStyleContext = null;
 async function shareOutfitAsImage(top, bottom, shoes, outfitName, triggerBtn, accessories) {
   shareStyleContext = { top, bottom, shoes, outfitName, triggerBtn, accessories: accessories || [] };
-  document.getElementById("shareStyleBackdrop").classList.add("open");
+  await finalizeShareOutfitAsImage("polaroid");
 }
 
 async function finalizeShareOutfitAsImage(style) {
@@ -4161,9 +3866,10 @@ async function finalizeShareOutfitAsImage(style) {
   const originalHTML = triggerBtn ? triggerBtn.innerHTML : null;
   if (triggerBtn) { triggerBtn.disabled = true; triggerBtn.innerHTML = "Preparando imagen…"; }
   try {
+    const prep = (g) => Promise.resolve(garmentImageForDisplay(g) || g.image);
     const [topImg, bottomImg, shoesImg, ...accImgs] = await Promise.all([
-      ensureBgRemovedImage(top), ensureBgRemovedImage(bottom), ensureBgRemovedImage(shoes),
-      ...accessories.map(ensureBgRemovedImage),
+      prep(top), prep(bottom), prep(shoes),
+      ...accessories.map(prep),
     ]);
     const topReady = { ...top, image: topImg };
     const bottomReady = { ...bottom, image: bottomImg };
@@ -5046,10 +4752,6 @@ function openModal(image, rawFile, opts = {}) {
   // nombrar la prenda, el enlace de compra y quitar el fondo se hace después, solo si decide añadirla al armario.
   document.getElementById("modalNameField").style.display = candidateMode ? "none" : "block";
   document.getElementById("modalBuyLinkField").style.display = candidateMode ? "none" : "block";
-  document.getElementById("modalBgRemoveField").style.display = candidateMode ? "none" : "block";
-  document.getElementById("modalBgRemove").checked = false;
-  const bgStatus = document.getElementById("modalBgStatus");
-  bgStatus.style.display = "none"; bgStatus.textContent = "";
   document.getElementById("modalPreview").src = image;
   document.getElementById("modalName").value = "";
   document.getElementById("modalBuyLink").value = "";
@@ -5082,7 +4784,6 @@ function openEditModal(garment) {
   document.getElementById("modalColorField").style.display = "block";
   document.getElementById("modalNameField").style.display = "block";
   document.getElementById("modalBuyLinkField").style.display = "block";
-  document.getElementById("modalBgRemoveField").style.display = "none";
   document.getElementById("modalPreview").src = garment.image;
   document.getElementById("modalName").value = garment.name || "";
   document.getElementById("modalBuyLink").value = garment.buyLink || "";
@@ -5095,6 +4796,216 @@ function openEditModal(garment) {
   renderModalSeason();
   document.getElementById("modalBackdrop").classList.add("open");
 }
+
+/* ================= Asistente "Nueva prenda" (pantalla completa, 4 pasos) ================= */
+let wizardStep = 1;
+let wizardPreviousView = "wardrobe";
+let wizardNameEdited = false;
+
+function renderWizardCategory() {
+  const el = document.getElementById("wizardCategory");
+  el.innerHTML = CATEGORIES.map(c => `
+    <button class="formality-btn ${pending.category === c.id ? "selected" : ""}" data-category="${c.id}">${c.label}</button>
+  `).join("");
+  el.querySelectorAll("[data-category]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      if (pending.category !== btn.dataset.category) { pending.subtype = null; }
+      pending.category = btn.dataset.category;
+      renderWizardCategory();
+      document.getElementById("wizardSubtypeSearch").value = "";
+      renderWizardSubtype();
+    });
+  });
+}
+function renderWizardSubtype() {
+  const list = SUBTYPES[pending.category] || [];
+  const query = (document.getElementById("wizardSubtypeSearch").value || "").trim().toLowerCase();
+  let shown;
+  if (query) {
+    shown = list.filter(t => t.label.toLowerCase().includes(query));
+  } else {
+    const counts = subtypeUsageCounts(pending.category);
+    const used = list.filter(t => counts[t.id]).sort((a, b) => counts[b.id] - counts[a.id]);
+    const rest = list.filter(t => !counts[t.id]);
+    shown = used.length ? used.concat(rest).slice(0, Math.max(used.length, 6)) : list.slice(0, 6);
+  }
+  const el = document.getElementById("wizardSubtypeOptions");
+  el.innerHTML = shown.map(t => `
+    <button class="formality-btn ${pending.subtype === t.id ? "selected" : ""}" data-subtype="${t.id}">${t.label}</button>
+  `).join("") || `<span style="font-size:12px; color:var(--ink-soft);">Sin resultados</span>`;
+  el.querySelectorAll("[data-subtype]").forEach(btn => {
+    btn.addEventListener("click", () => {
+      const t = list.find(x => x.id === btn.dataset.subtype);
+      if (!t) return;
+      pending.subtype = t.id;
+      pending.formality = t.formality;
+      pending.versatile = t.versatile;
+      if (t.season) pending.season = t.season;
+      renderWizardSubtype();
+      renderWizardFormality();
+      renderWizardSeason();
+      document.getElementById("wizardVersatile").checked = pending.versatile;
+    });
+  });
+}
+function renderWizardFormality() {
+  const el = document.getElementById("wizardFormality");
+  el.innerHTML = [1,2,3,4].map(n => `
+    <button class="formality-btn ${pending.formality === n ? "selected" : ""}" data-formality="${n}">${n} · ${FORMALITY_LABELS[n]}</button>
+  `).join("");
+  el.querySelectorAll("[data-formality]").forEach(btn => {
+    btn.addEventListener("click", () => { pending.formality = parseInt(btn.dataset.formality, 10); renderWizardFormality(); });
+  });
+}
+function renderWizardColors() {
+  const el = document.getElementById("wizardColors");
+  el.innerHTML = COLORS.map(c => `
+    <button class="color-btn ${pending.color === c.id ? "selected" : ""}" data-color="${c.id}">
+      ${swatchHTML(c.id, 11)} ${c.label}
+    </button>`).join("");
+  el.querySelectorAll("[data-color]").forEach(btn => {
+    btn.addEventListener("click", () => { pending.color = btn.dataset.color; renderWizardColors(); maybeSuggestWizardName(); });
+  });
+}
+function renderWizardSeason() {
+  const el = document.getElementById("wizardSeason");
+  el.innerHTML = SEASONS.map(s => `
+    <button class="formality-btn ${pending.season === s.id ? "selected" : ""}" data-season="${s.id}">${s.label}</button>
+  `).join("");
+  el.querySelectorAll("[data-season]").forEach(btn => {
+    btn.addEventListener("click", () => { pending.season = btn.dataset.season; renderWizardSeason(); });
+  });
+}
+// Sugerencia simple (sin IA): tipo concreto (o categoría si no hay tipo) + color.
+// Siempre editable — es solo un punto de partida para no empezar en blanco.
+function suggestGarmentName() {
+  const list = SUBTYPES[pending.category] || [];
+  const subtypeLabel = list.find(t => t.id === pending.subtype)?.label;
+  const catLabel = CATEGORIES.find(c => c.id === pending.category)?.label || "";
+  const colorLabel = (COLORS.find(c => c.id === pending.color)?.label || "").toLowerCase();
+  const base = subtypeLabel || catLabel;
+  return colorLabel ? `${base} ${colorLabel}` : base;
+}
+function maybeSuggestWizardName() {
+  if (wizardNameEdited) return;
+  const nameInput = document.getElementById("wizardName");
+  if (nameInput) { pending.name = suggestGarmentName(); nameInput.value = pending.name; }
+}
+function updateWizardProgress() {
+  document.querySelectorAll("#wizardProgress .wizard-dot").forEach(dot => {
+    const n = parseInt(dot.dataset.step, 10);
+    dot.classList.toggle("active", n === wizardStep);
+    dot.classList.toggle("done", n < wizardStep);
+  });
+}
+function goToWizardStep(step) {
+  wizardStep = step;
+  [1,2,3,4].forEach(n => {
+    document.getElementById(`wizardStep${n}`).style.display = n === step ? "block" : "none";
+  });
+  document.getElementById("wizardStepDone").style.display = "none";
+  document.getElementById("wizardProgress").style.display = "flex";
+  document.getElementById("wizardFooter").style.display = "flex";
+  document.getElementById("wizardBackBtn").style.visibility = step === 1 ? "hidden" : "visible";
+  document.getElementById("wizardContinueBtn").textContent = step === 4 ? "Añadir al armario" : "Continuar";
+  updateWizardProgress();
+  if (step === 4) maybeSuggestWizardName();
+  document.querySelector(".wizard-body").scrollTop = 0;
+}
+function openNewGarmentWizard() {
+  wizardPreviousView = currentView || "wardrobe";
+  pending = { image: null, category: lastUsedCategory, subtype: null, color: "blanco", name: "", rawFile: null, formality: 2, versatile: false, season: "entretiempo", buyLink: "" };
+  wizardNameEdited = false;
+  document.getElementById("wizardPreview").style.display = "none";
+  document.getElementById("wizardPreview").src = "";
+  document.getElementById("wizardPhotoPlaceholder").style.display = "block";
+  document.getElementById("wizardName").value = "";
+  document.getElementById("wizardBuyLink").value = "";
+  document.getElementById("wizardVersatile").checked = false;
+  document.getElementById("wizardSubtypeSearch").value = "";
+  renderWizardCategory();
+  renderWizardSubtype();
+  renderWizardFormality();
+  renderWizardColors();
+  renderWizardSeason();
+  document.getElementById("viewNewGarmentWizard").style.display = "flex";
+  goToWizardStep(1);
+}
+function closeNewGarmentWizard() {
+  document.getElementById("viewNewGarmentWizard").style.display = "none";
+  pending = null;
+  switchView(wizardPreviousView);
+}
+function commitWizardGarment() {
+  lastUsedCategory = pending.category;
+  if (pending.buyLink) {
+    pending.buyLink = pending.buyLink.trim();
+    if (pending.buyLink && !/^https?:\/\//i.test(pending.buyLink)) pending.buyLink = `https://${pending.buyLink}`;
+  }
+  const { rawFile, ...garmentData } = pending;
+  const garment = { id: `${Date.now()}-${Math.random().toString(36).slice(2,8)}`, ...garmentData };
+  garments.push(garment);
+  saveGarments(garments);
+  renderAll();
+  return garment;
+}
+function showWizardDoneScreen(garment) {
+  document.getElementById("wizardProgress").style.display = "none";
+  document.getElementById("wizardFooter").style.display = "none";
+  document.getElementById("wizardBackBtn").style.visibility = "hidden";
+  [1,2,3,4].forEach(n => { document.getElementById(`wizardStep${n}`).style.display = "none"; });
+  document.getElementById("wizardStepDone").style.display = "block";
+  const catLabel = CATEGORIES.find(c => c.id === garment.category)?.label || "";
+  const colorLabel = COLORS.find(c => c.id === garment.color)?.label || "";
+  document.getElementById("wizardDonePreview").innerHTML = `
+    <img src="${garment.image}" alt="">
+    <div>
+      <div class="wdp-name">${garment.name || catLabel}</div>
+      <div class="wdp-meta">${catLabel}${colorLabel ? " · " + colorLabel : ""}</div>
+    </div>
+  `;
+  document.querySelector(".wizard-body").scrollTop = 0;
+}
+document.getElementById("wizardPhotoDrop").addEventListener("click", () => document.getElementById("wizardFileInput").click());
+document.getElementById("wizardFileInput").addEventListener("change", async (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  if (!file) return;
+  try {
+    const image = await resizeImage(file);
+    pending.image = image;
+    pending.rawFile = file;
+    document.getElementById("wizardPreview").src = image;
+    document.getElementById("wizardPreview").style.display = "block";
+    document.getElementById("wizardPhotoPlaceholder").style.display = "none";
+    detectDominantColor(image).then(colorId => {
+      if (colorId && pending) { pending.color = colorId; renderWizardColors(); }
+    });
+  } catch {
+    alert("No se pudo procesar esa foto. Prueba con otra.");
+  }
+});
+document.getElementById("wizardSubtypeSearch").addEventListener("input", () => renderWizardSubtype());
+document.getElementById("wizardVersatile").addEventListener("change", (e) => { pending.versatile = e.target.checked; });
+document.getElementById("wizardName").addEventListener("input", (e) => { pending.name = e.target.value; wizardNameEdited = true; });
+document.getElementById("wizardBuyLink").addEventListener("input", (e) => { pending.buyLink = e.target.value; });
+document.getElementById("wizardBackBtn").addEventListener("click", () => {
+  if (wizardStep > 1) goToWizardStep(wizardStep - 1); else closeNewGarmentWizard();
+});
+document.getElementById("wizardCloseBtn").addEventListener("click", closeNewGarmentWizard);
+document.getElementById("wizardContinueBtn").addEventListener("click", () => {
+  if (wizardStep === 1 && !pending.image) { alert("Añade una foto para continuar."); return; }
+  if (wizardStep < 4) { goToWizardStep(wizardStep + 1); return; }
+  const garment = commitWizardGarment();
+  showWizardDoneScreen(garment);
+});
+document.getElementById("wizardAddAnotherBtn").addEventListener("click", () => openNewGarmentWizard());
+document.getElementById("wizardGoWardrobeBtn").addEventListener("click", () => {
+  document.getElementById("viewNewGarmentWizard").style.display = "none";
+  pending = null;
+  switchView("wardrobe");
+});
+document.getElementById("viewTabCreate").addEventListener("click", openNewGarmentWizard);
 
 function openShopFinalizeModal() {
   if (!shopCandidate) return;
@@ -5112,73 +5023,19 @@ function openShopFinalizeModal() {
   document.getElementById("modalColorField").style.display = "none";
   document.getElementById("modalNameField").style.display = "block";
   document.getElementById("modalBuyLinkField").style.display = "block";
-  document.getElementById("modalBgRemoveField").style.display = "block";
   document.getElementById("modalPreview").src = pending.image;
   document.getElementById("modalName").value = pending.name;
   document.getElementById("modalBuyLink").value = pending.buyLink;
   document.getElementById("modalVersatile").checked = pending.versatile;
-  document.getElementById("modalBgRemove").checked = false;
-  const bgStatus = document.getElementById("modalBgStatus");
-  bgStatus.style.display = "none"; bgStatus.textContent = "";
   document.getElementById("modalBackdrop").classList.add("open");
 }
 
 function closeModal() { document.getElementById("modalBackdrop").classList.remove("open"); pending = null; editingId = null; candidateMode = false; shopFinalizeMode = false; uploadQueue = []; }
 
 /* ---------------- Wiring ---------------- */
-document.getElementById("uploadBtn").addEventListener("click", () => document.getElementById("fileInput").click());
-document.getElementById("fileInput").addEventListener("change", async (e) => {
-  const files = Array.from(e.target.files || []);
-  e.target.value = "";
-  if (!files.length) return;
-  const errEl = document.getElementById("uploadError");
-  errEl.style.display = "none";
-  try {
-    const items = await Promise.all(files.map(async (file) => ({ file, image: await resizeImage(file) })));
-    const first = items.shift();
-    uploadQueue = items;
-    openModal(first.image, first.file, { queueRemaining: uploadQueue.length });
-  } catch {
-    errEl.textContent = "No se pudo procesar la imagen. Prueba con otra foto.";
-    errEl.style.display = "block";
-  }
-});
+document.getElementById("uploadBtn").addEventListener("click", () => openNewGarmentWizard());
 document.getElementById("modalVersatile").addEventListener("change", (e) => { if (pending) pending.versatile = e.target.checked; });
 document.getElementById("modalSubtypeSearch").addEventListener("input", () => { if (pending) renderModalSubtype(); });
-document.getElementById("modalBgRemove").addEventListener("change", async (e) => {
-  if (!pending) return;
-  const statusEl = document.getElementById("modalBgStatus");
-  const previewEl = document.getElementById("modalPreview");
-  if (e.target.checked) {
-    statusEl.style.display = "block";
-    statusEl.style.color = "var(--ink-soft)";
-    statusEl.textContent = "Un momento, estamos en ello…";
-    try {
-      const bgTimeout = new Promise((_, reject) => setTimeout(() => reject(new Error("timeout")), 8000));
-      const result = await Promise.race([removeImageBackground(pending.rawFile), bgTimeout]);
-      pending.image = result;
-      previewEl.src = result;
-      statusEl.textContent = "¡Fondo eliminado!";
-      statusEl.style.color = "var(--accent)";
-    } catch (err) {
-      console.error(err);
-      e.target.checked = false;
-      statusEl.style.color = "var(--danger)";
-      statusEl.textContent = "No se pudo eliminar el fondo. Se mantiene la foto original.";
-    }
-  } else {
-    statusEl.style.display = "block";
-    statusEl.style.color = "var(--ink-soft)";
-    statusEl.textContent = "Restaurando foto original…";
-    try {
-      pending.image = await resizeImage(pending.rawFile);
-      previewEl.src = pending.image;
-      statusEl.style.display = "none";
-    } catch {
-      statusEl.textContent = "¡Algo ha fallado! Vuelve a cargar la foto.";
-    }
-  }
-});
 document.getElementById("modalClose").addEventListener("click", closeModal);
 document.getElementById("modalBackdrop").addEventListener("click", (e) => { if (e.target.id === "modalBackdrop") closeModal(); });
 document.getElementById("suggestionOverlayClose").addEventListener("click", closeSuggestionOverlay);
@@ -5281,15 +5138,7 @@ function showSavedOutfitCard(top, bottom, shoes, outfitName, accessories) {
 }
 document.getElementById("savedOutfitClose").addEventListener("click", () => document.getElementById("savedOutfitBackdrop").classList.remove("open"));
 document.getElementById("savedOutfitBackdrop").addEventListener("click", (e) => { if (e.target.id === "savedOutfitBackdrop") document.getElementById("savedOutfitBackdrop").classList.remove("open"); });
-document.getElementById("shareStyleClose").addEventListener("click", () => { document.getElementById("shareStyleBackdrop").classList.remove("open"); shareStyleContext = null; });
-document.getElementById("shareStyleBackdrop").addEventListener("click", (e) => { if (e.target.id === "shareStyleBackdrop") { document.getElementById("shareStyleBackdrop").classList.remove("open"); shareStyleContext = null; } });
-document.querySelectorAll("[data-share-style]").forEach(btn => {
-  btn.addEventListener("click", () => {
-    const style = btn.dataset.shareStyle;
-    document.getElementById("shareStyleBackdrop").classList.remove("open");
-    finalizeShareOutfitAsImage(style);
-  });
-});
+
 function showConfirmModal(message, onConfirm, opts = {}) {
   const backdrop = document.getElementById("confirmBackdrop");
   document.getElementById("confirmMessage").textContent = message;
@@ -5676,6 +5525,7 @@ function switchView(view) {
   stopLiveListeners();
   currentView = view;
   document.getElementById("viewVisitorProfile").style.display = "none";
+  document.getElementById("viewNewGarmentWizard").style.display = "none";
   document.getElementById("viewHome").style.display = view === "home" ? "block" : "none";
   document.getElementById("viewWardrobe").style.display = view === "wardrobe" ? "block" : "none";
   document.getElementById("viewShop").style.display = view === "shop" ? "block" : "none";
@@ -7883,10 +7733,13 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
         if (likeBtnNow && !likeBtnNow.classList.contains("liked")) likeBtnNow.click();
       }
     });
-    card.querySelector('[data-role="open-profile"]').addEventListener("click", (e) => {
-      e.stopPropagation();
-      if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
-    });
+    const openProfileEl = card.querySelector('[data-role="open-profile"]');
+    if (openProfileEl) {
+      openProfileEl.addEventListener("click", (e) => {
+        e.stopPropagation();
+        if (uid === myUid) switchView("profile"); else openVisitorProfile(uid);
+      });
+    }
     const buyBanner = card.querySelector('[data-buy-banner]');
     if (buyBanner) {
       buyBanner.addEventListener("click", (e) => {
@@ -10059,15 +9912,12 @@ function outfitMiniCardHTML(entry) {
 async function generateAndCacheOutfitThumb(entry) {
   try {
     const accessories = entryAccessories(entry);
-    const [topImg, bottomImg, shoesImg, ...accImgs] = await Promise.all([
-      ensureBgRemovedImage(entry.top), ensureBgRemovedImage(entry.bottom), ensureBgRemovedImage(entry.shoes),
-      ...accessories.map(ensureBgRemovedImage),
-    ]);
-    const topReady = { ...entry.top, image: topImg };
-    const bottomReady = { ...entry.bottom, image: bottomImg };
-    const shoesReady = { ...entry.shoes, image: shoesImg };
-    const accReady = accessories.map((a, i) => ({ ...a, image: accImgs[i] }));
-    const canvas = await generateOutfitThumbCanvas(topReady, bottomReady, shoesReady, accReady, "flat");
+    const prep = (g) => garmentImageForDisplay(g) || g.image;
+    const topReady = { ...entry.top, image: prep(entry.top) };
+    const bottomReady = { ...entry.bottom, image: prep(entry.bottom) };
+    const shoesReady = { ...entry.shoes, image: prep(entry.shoes) };
+    const accReady = accessories.map(a => ({ ...a, image: prep(a) }));
+    const canvas = await generateOutfitThumbCanvas(topReady, bottomReady, shoesReady, accReady, "polaroid");
     const url = canvas.toDataURL("image/jpeg", 0.7);
     entry.thumbCache = url;
     saveOutfits(outfits);
