@@ -388,8 +388,8 @@
     cursor: pointer; color: var(--ink); font-family: inherit;
   }
   .formality-btn.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); font-weight: 600; }
-  input[type="text"] {
-    width: 100%; margin-top: 4px; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius:var(--radius-xs); font-size:var(--fs-base);
+  input[type="text"], input[type="url"] {
+    width: 100%; margin-top: 4px; padding: 9px 12px; border: 1px solid var(--line-strong); border-radius:var(--radius-xs); font-size:var(--fs-base); box-sizing: border-box;
   }
   .error-msg { margin-top: 8px; font-size:var(--fs-xs); color: var(--danger); }
   .ai-status { font-size:var(--fs-2xs); margin: -10px 0 14px; }
@@ -866,6 +866,22 @@
   .wizard-done-preview div { flex:1; min-width:0; }
   .wizard-done-preview .wdp-name { font-weight:700; font-size:var(--fs-sm); }
   .wizard-done-preview .wdp-meta { font-size:var(--fs-xs); color:var(--ink-soft); margin-top:2px; }
+
+  .wizard-breadcrumb { display:flex; align-items:center; gap:4px; font-size:var(--fs-sm); color:var(--ink-soft); margin: 0 0 14px; cursor:pointer; }
+  .wizard-tile-grid { display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:8px; }
+  .wizard-tile {
+    display:flex; align-items:center; gap:10px; padding:10px 12px; border:1.5px solid var(--line-strong); border-radius:12px;
+    background:var(--paper); cursor:pointer; text-align:left; font-size:var(--fs-sm); font-family:inherit; color:var(--ink);
+  }
+  .wizard-tile.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
+  .wizard-tile-icon { width:34px; height:34px; border-radius:8px; background:var(--disabled-bg); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .wizard-tile-icon svg { width:18px; height:18px; }
+  .wizard-tile.selected .wizard-tile-icon { background:#fff; }
+  .wizard-photo-buttons { display:flex; gap:10px; }
+  .wizard-photo-buttons .btn { padding:9px 16px; font-size:var(--fs-xs); }
+  .btn-primary:disabled, .btn-primary:disabled:hover { background: var(--disabled-bg); color: var(--ink-soft); cursor:not-allowed; }
+  .wizard-footer .btn-outline { flex:0 0 auto; padding-left:22px; padding-right:22px; }
+  .wizard-name-hint { font-size:var(--fs-xs); color:var(--ink-soft); margin: -12px 0 18px; }
 
   /* Botón "Crear" del menú: distinto al resto para que destaque como acción, no como pestaña */
   .nav-item.nav-create .nav-create-circle {
@@ -2027,38 +2043,51 @@
 </div>
 
 <input type="file" id="wizardFileInput" accept="image/*" style="display:none;">
+<input type="file" id="wizardCameraInput" accept="image/*" capture="environment" style="display:none;">
 <div id="viewNewGarmentWizard" style="display:none;">
   <div class="wizard-header">
     <button class="wizard-header-btn" id="wizardBackBtn" aria-label="Volver">‹</button>
-    <div class="wizard-progress" id="wizardProgress">
-      <span class="wizard-dot" data-step="1"></span>
-      <span class="wizard-dot" data-step="2"></span>
-      <span class="wizard-dot" data-step="3"></span>
-      <span class="wizard-dot" data-step="4"></span>
+    <div style="text-align:center;">
+      <h2 style="margin:0; font-size:16px; font-weight:700;">Nueva prenda</h2>
+      <div class="wizard-progress" id="wizardProgress">
+        <span class="wizard-dot" data-step="1"></span>
+        <span class="wizard-dot" data-step="2"></span>
+        <span class="wizard-dot" data-step="3"></span>
+        <span class="wizard-dot" data-step="4"></span>
+      </div>
     </div>
     <button class="wizard-header-btn" id="wizardCloseBtn" aria-label="Cerrar">✕</button>
   </div>
 
   <div class="wizard-body">
+    <p class="wizard-breadcrumb" id="wizardBreadcrumb" style="display:none;"></p>
+
     <div class="wizard-step" id="wizardStep1">
-      <h2 class="wizard-step-title">Foto y categoría</h2>
       <div class="wizard-photo-drop" id="wizardPhotoDrop">
         <img id="wizardPreview" style="display:none;" alt="Vista previa">
-        <span id="wizardPhotoPlaceholder">Toca para añadir una foto<br>(cámara o galería)</span>
+        <div id="wizardPhotoPlaceholder">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:34px; height:34px; margin-bottom:10px;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+          <p style="font-weight:700; color:var(--ink); margin:0 0 4px;">Añade una foto de la prenda</p>
+          <p style="margin:0 0 14px;">Puedes subirla desde tu galería o hacer una foto.</p>
+          <div class="wizard-photo-buttons">
+            <button type="button" class="btn btn-primary" id="wizardGalleryBtn">Elegir de la galería</button>
+            <button type="button" class="btn btn-outline" id="wizardCameraBtn">Hacer una foto</button>
+          </div>
+        </div>
       </div>
-      <label class="field-eyebrow">Categoría
-        <div class="formality-options" id="wizardCategory"></div>
+      <label class="field-eyebrow">¿Qué es?
+        <div class="wizard-tile-grid" id="wizardCategory"></div>
       </label>
     </div>
 
     <div class="wizard-step" id="wizardStep2" style="display:none;">
-      <h2 class="wizard-step-title">Tipo de prenda</h2>
-      <input type="text" id="wizardSubtypeSearch" class="wizard-search-input" placeholder="Busca el tipo (ej. vestido, chinos...)">
-      <div class="formality-options" id="wizardSubtypeOptions"></div>
+      <label class="field-eyebrow">¿Qué tipo de prenda es?
+        <input type="text" id="wizardSubtypeSearch" class="wizard-search-input" placeholder="Busca el tipo (ej. vestido, chinos...)">
+        <div class="wizard-tile-grid" id="wizardSubtypeOptions"></div>
+      </label>
     </div>
 
     <div class="wizard-step" id="wizardStep3" style="display:none;">
-      <h2 class="wizard-step-title">Características</h2>
       <label class="field-eyebrow">¿Qué estilo tiene esta prenda?
         <div class="formality-options" id="wizardFormality"></div>
       </label>
@@ -2067,6 +2096,7 @@
         <label for="wizardVersatile" class="versatile-toggle">
           <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M18 6c-2.69 0-4.756 1.855-6 3.37-1.244-1.515-3.31-3.37-6-3.37a6 6 0 0 0 0 12c2.69 0 4.756-1.855 6-3.37 1.244 1.515 3.31 3.37 6 3.37a6 6 0 0 0 0-12zm-12 9a3 3 0 0 1 0-6c1.791 0 3.4 1.783 4.239 3-.839 1.217-2.448 3-4.239 3zm12 0c-1.791 0-3.4-1.783-4.239-3 .839-1.217 2.448-3 4.239-3a3 3 0 0 1 0 6z"/></svg>
           Prenda versátil
+          <span title="Se puede combinar con cualquier estilo, no solo con el suyo." style="color:var(--ink-soft); cursor:help;">ⓘ</span>
         </label>
       </div>
       <label class="field-eyebrow">Temporada
@@ -2078,12 +2108,12 @@
     </div>
 
     <div class="wizard-step" id="wizardStep4" style="display:none;">
-      <h2 class="wizard-step-title">Detalles</h2>
       <label class="field-eyebrow">Nombre
         <input type="text" id="wizardName" placeholder="p. ej. camiseta lino blanca">
       </label>
+      <p class="wizard-name-hint">DROBR sugiere un nombre según los datos de la prenda.</p>
       <label class="field-eyebrow">¿Dónde comprarla? (opcional)
-        <input type="url" id="wizardBuyLink" placeholder="Pega tu enlace (de afiliado o donde la compraste)">
+        <input type="url" id="wizardBuyLink" placeholder="Pega aquí tu enlace de afiliado o tienda">
       </label>
     </div>
 
@@ -2099,7 +2129,8 @@
   </div>
 
   <div class="wizard-footer" id="wizardFooter">
-    <button class="btn btn-primary" id="wizardContinueBtn" style="width:100%;">Continuar</button>
+    <button class="btn btn-outline" id="wizardFooterBackBtn" style="display:none;">← Volver</button>
+    <button class="btn btn-primary" id="wizardContinueBtn" style="flex:1;">Continuar</button>
   </div>
 </div>
 
@@ -4805,7 +4836,10 @@ let wizardNameEdited = false;
 function renderWizardCategory() {
   const el = document.getElementById("wizardCategory");
   el.innerHTML = CATEGORIES.map(c => `
-    <button class="formality-btn ${pending.category === c.id ? "selected" : ""}" data-category="${c.id}">${c.label}</button>
+    <button type="button" class="wizard-tile ${pending.category === c.id ? "selected" : ""}" data-category="${c.id}">
+      <span class="wizard-tile-icon">${categoryBadgeIcon(c.id)}</span>
+      <span>${c.label}</span>
+    </button>
   `).join("");
   el.querySelectorAll("[data-category]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -4831,7 +4865,10 @@ function renderWizardSubtype() {
   }
   const el = document.getElementById("wizardSubtypeOptions");
   el.innerHTML = shown.map(t => `
-    <button class="formality-btn ${pending.subtype === t.id ? "selected" : ""}" data-subtype="${t.id}">${t.label}</button>
+    <button type="button" class="wizard-tile ${pending.subtype === t.id ? "selected" : ""}" data-subtype="${t.id}">
+      <span class="wizard-tile-icon">${categoryBadgeIcon(pending.category)}</span>
+      <span>${t.label}</span>
+    </button>
   `).join("") || `<span style="font-size:12px; color:var(--ink-soft);">Sin resultados</span>`;
   el.querySelectorAll("[data-subtype]").forEach(btn => {
     btn.addEventListener("click", () => {
@@ -4898,6 +4935,15 @@ function updateWizardProgress() {
     dot.classList.toggle("done", n < wizardStep);
   });
 }
+function wizardBreadcrumbLabel() {
+  const list = SUBTYPES[pending.category] || [];
+  const subtypeLabel = list.find(t => t.id === pending.subtype)?.label;
+  const catLabel = CATEGORIES.find(c => c.id === pending.category)?.label || "";
+  return wizardStep >= 3 && subtypeLabel ? subtypeLabel : catLabel;
+}
+function updateWizardContinueState() {
+  document.getElementById("wizardContinueBtn").disabled = (wizardStep === 1 && !pending.image);
+}
 function goToWizardStep(step) {
   wizardStep = step;
   [1,2,3,4].forEach(n => {
@@ -4907,8 +4953,13 @@ function goToWizardStep(step) {
   document.getElementById("wizardProgress").style.display = "flex";
   document.getElementById("wizardFooter").style.display = "flex";
   document.getElementById("wizardBackBtn").style.visibility = step === 1 ? "hidden" : "visible";
+  document.getElementById("wizardFooterBackBtn").style.display = step === 1 ? "none" : "block";
   document.getElementById("wizardContinueBtn").textContent = step === 4 ? "Añadir al armario" : "Continuar";
+  const breadcrumbEl = document.getElementById("wizardBreadcrumb");
+  if (step === 1) { breadcrumbEl.style.display = "none"; }
+  else { breadcrumbEl.style.display = "flex"; breadcrumbEl.innerHTML = `‹ ${wizardBreadcrumbLabel()}`; }
   updateWizardProgress();
+  updateWizardContinueState();
   if (step === 4) maybeSuggestWizardName();
   document.querySelector(".wizard-body").scrollTop = 0;
 }
@@ -4966,10 +5017,7 @@ function showWizardDoneScreen(garment) {
   `;
   document.querySelector(".wizard-body").scrollTop = 0;
 }
-document.getElementById("wizardPhotoDrop").addEventListener("click", () => document.getElementById("wizardFileInput").click());
-document.getElementById("wizardFileInput").addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  e.target.value = "";
+async function handleWizardFile(file) {
   if (!file) return;
   try {
     const image = await resizeImage(file);
@@ -4978,23 +5026,43 @@ document.getElementById("wizardFileInput").addEventListener("change", async (e) 
     document.getElementById("wizardPreview").src = image;
     document.getElementById("wizardPreview").style.display = "block";
     document.getElementById("wizardPhotoPlaceholder").style.display = "none";
+    updateWizardContinueState();
     detectDominantColor(image).then(colorId => {
       if (colorId && pending) { pending.color = colorId; renderWizardColors(); }
     });
   } catch {
     alert("No se pudo procesar esa foto. Prueba con otra.");
   }
+}
+document.getElementById("wizardGalleryBtn").addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("wizardFileInput").click(); });
+document.getElementById("wizardCameraBtn").addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("wizardCameraInput").click(); });
+document.getElementById("wizardPreview").addEventListener("click", () => document.getElementById("wizardFileInput").click());
+document.getElementById("wizardFileInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  handleWizardFile(file);
+});
+document.getElementById("wizardCameraInput").addEventListener("change", (e) => {
+  const file = e.target.files[0];
+  e.target.value = "";
+  handleWizardFile(file);
 });
 document.getElementById("wizardSubtypeSearch").addEventListener("input", () => renderWizardSubtype());
 document.getElementById("wizardVersatile").addEventListener("change", (e) => { pending.versatile = e.target.checked; });
 document.getElementById("wizardName").addEventListener("input", (e) => { pending.name = e.target.value; wizardNameEdited = true; });
 document.getElementById("wizardBuyLink").addEventListener("input", (e) => { pending.buyLink = e.target.value; });
+document.getElementById("wizardBreadcrumb").addEventListener("click", () => {
+  if (wizardStep > 1) goToWizardStep(wizardStep - 1);
+});
 document.getElementById("wizardBackBtn").addEventListener("click", () => {
   if (wizardStep > 1) goToWizardStep(wizardStep - 1); else closeNewGarmentWizard();
 });
+document.getElementById("wizardFooterBackBtn").addEventListener("click", () => {
+  if (wizardStep > 1) goToWizardStep(wizardStep - 1);
+});
 document.getElementById("wizardCloseBtn").addEventListener("click", closeNewGarmentWizard);
 document.getElementById("wizardContinueBtn").addEventListener("click", () => {
-  if (wizardStep === 1 && !pending.image) { alert("Añade una foto para continuar."); return; }
+  if (wizardStep === 1 && !pending.image) return;
   if (wizardStep < 4) { goToWizardStep(wizardStep + 1); return; }
   const garment = commitWizardGarment();
   showWizardDoneScreen(garment);
