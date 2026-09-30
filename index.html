@@ -884,6 +884,8 @@
   .wizard-tile.selected .wizard-tile-icon { background:#fff; }
   .wizard-photo-buttons { display:flex; gap:10px; }
   .wizard-photo-buttons .btn { padding:9px 16px; font-size:var(--fs-xs); }
+  .wizard-icon-btn { display:inline-flex; align-items:center; gap:6px; }
+  .wizard-icon-btn svg { width:15px; height:15px; flex-shrink:0; }
   .btn-primary:disabled, .btn-primary:disabled:hover { background: var(--disabled-bg); color: var(--ink-soft); cursor:not-allowed; }
   .wizard-footer .btn-outline { flex:0 0 auto; padding-left:22px; padding-right:22px; }
   .wizard-name-hint { font-size:var(--fs-xs); color:var(--ink-soft); margin: -12px 0 18px; }
@@ -2073,22 +2075,21 @@
         <img id="wizardPreview" style="display:none;" alt="Vista previa">
         <div id="wizardPhotoPlaceholder">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" style="width:34px; height:34px; margin-bottom:10px;"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
-          <p style="font-weight:700; color:var(--ink); margin:0 0 4px;">Añade una foto de la prenda</p>
+          <p style="font-weight:700; color:var(--ink); margin:0 0 4px;">Añade una foto de tu prenda</p>
           <p style="margin:0 0 14px;">Puedes subirla desde tu galería o hacer una foto.</p>
           <div class="wizard-photo-buttons">
-            <button type="button" class="btn btn-primary" id="wizardGalleryBtn">Elegir de la galería</button>
-            <button type="button" class="btn btn-outline" id="wizardCameraBtn">Hacer una foto</button>
+            <button type="button" class="btn btn-primary wizard-icon-btn" id="wizardGalleryBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Elegir de la galería</button>
+            <button type="button" class="btn btn-outline wizard-icon-btn" id="wizardCameraBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="14" r="3.5"/></svg>Hacer una foto</button>
           </div>
         </div>
       </div>
-      <label class="field-eyebrow">¿Qué es?
+      <label class="field-eyebrow">Tipo de prenda
         <div class="wizard-tile-grid" id="wizardCategory"></div>
       </label>
     </div>
 
     <div class="wizard-step" id="wizardStep2" style="display:none;">
-      <label class="field-eyebrow">¿Qué tipo de prenda es?
-        <input type="text" id="wizardSubtypeSearch" class="wizard-search-input" placeholder="Busca el tipo (ej. vestido, chinos...)">
+      <label class="field-eyebrow">¿Qué prenda es?
         <div class="wizard-tile-grid" id="wizardSubtypeOptions"></div>
       </label>
     </div>
@@ -2100,9 +2101,8 @@
       <div style="margin: 4px 0 18px;">
         <input type="checkbox" id="wizardVersatile" class="pill-checkbox">
         <label for="wizardVersatile" class="versatile-toggle">
-          <svg viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M18 6c-2.69 0-4.756 1.855-6 3.37-1.244-1.515-3.31-3.37-6-3.37a6 6 0 0 0 0 12c2.69 0 4.756-1.855 6-3.37 1.244 1.515 3.31 3.37 6 3.37a6 6 0 0 0 0-12zm-12 9a3 3 0 0 1 0-6c1.791 0 3.4 1.783 4.239 3-.839 1.217-2.448 3-4.239 3zm12 0c-1.791 0-3.4-1.783-4.239-3 .839-1.217 2.448-3 4.239-3a3 3 0 0 1 0 6z"/></svg>
           Prenda versátil
-          <span title="Se puede combinar con cualquier estilo, no solo con el suyo." style="color:var(--ink-soft); cursor:help;">ⓘ</span>
+          <span title="Se puede combinar con cualquier estilo" style="color:var(--ink-soft); cursor:help;">ⓘ</span>
         </label>
       </div>
       <label class="field-eyebrow">Temporada
@@ -2118,8 +2118,8 @@
         <input type="text" id="wizardName" placeholder="p. ej. camiseta lino blanca">
       </label>
       <p class="wizard-name-hint">DROBR sugiere un nombre según los datos de la prenda.</p>
-      <label class="field-eyebrow">¿Dónde comprarla? (opcional)
-        <input type="url" id="wizardBuyLink" placeholder="Pega aquí tu enlace de afiliado o tienda">
+      <label class="field-eyebrow">Enlace de compra (opcional)
+        <input type="url" id="wizardBuyLink" placeholder="Pega aquí el enlace de compra de la prenda">
       </label>
     </div>
 
@@ -2128,8 +2128,8 @@
       <h2 class="wizard-step-title" style="text-align:center;">¡Prenda añadida!</h2>
       <div class="wizard-done-preview" id="wizardDonePreview"></div>
       <div style="display:flex; flex-direction:column; gap:10px;">
-        <button class="btn btn-outline" id="wizardAddAnotherBtn">Añadir otra prenda</button>
-        <button class="btn btn-primary" id="wizardGoWardrobeBtn">Ver en mi armario</button>
+        <button class="btn btn-primary" id="wizardAddAnotherBtn">Añadir otra prenda</button>
+        <button class="btn btn-outline" id="wizardGoWardrobeBtn">Ver en mi armario</button>
       </div>
     </div>
   </div>
@@ -4867,23 +4867,16 @@ function renderWizardCategory() {
       if (pending.category !== btn.dataset.category) { pending.subtype = null; }
       pending.category = btn.dataset.category;
       renderWizardCategory();
-      document.getElementById("wizardSubtypeSearch").value = "";
       renderWizardSubtype();
     });
   });
 }
 function renderWizardSubtype() {
   const list = SUBTYPES[pending.category] || [];
-  const query = (document.getElementById("wizardSubtypeSearch").value || "").trim().toLowerCase();
-  let shown;
-  if (query) {
-    shown = list.filter(t => t.label.toLowerCase().includes(query));
-  } else {
-    const counts = subtypeUsageCounts(pending.category);
-    const used = list.filter(t => counts[t.id]).sort((a, b) => counts[b.id] - counts[a.id]);
-    const rest = list.filter(t => !counts[t.id]);
-    shown = used.length ? used.concat(rest).slice(0, Math.max(used.length, 6)) : list.slice(0, 6);
-  }
+  const counts = subtypeUsageCounts(pending.category);
+  const used = list.filter(t => counts[t.id]).sort((a, b) => counts[b.id] - counts[a.id]);
+  const rest = list.filter(t => !counts[t.id]);
+  const shown = used.concat(rest);
   const el = document.getElementById("wizardSubtypeOptions");
   el.innerHTML = shown.map(t => `
     <button type="button" class="wizard-tile ${pending.subtype === t.id ? "selected" : ""}" data-subtype="${t.id}">
@@ -4909,7 +4902,7 @@ function renderWizardSubtype() {
 function renderWizardFormality() {
   const el = document.getElementById("wizardFormality");
   el.innerHTML = [1,2,3,4].map(n => `
-    <button class="formality-btn ${pending.formality === n ? "selected" : ""}" data-formality="${n}">${n} · ${FORMALITY_LABELS[n]}</button>
+    <button class="formality-btn ${pending.formality === n ? "selected" : ""}" data-formality="${n}">${FORMALITY_LABELS[n]}</button>
   `).join("");
   el.querySelectorAll("[data-formality]").forEach(btn => {
     btn.addEventListener("click", () => { pending.formality = parseInt(btn.dataset.formality, 10); renderWizardFormality(); });
@@ -4994,7 +4987,6 @@ function openNewGarmentWizard() {
   document.getElementById("wizardName").value = "";
   document.getElementById("wizardBuyLink").value = "";
   document.getElementById("wizardVersatile").checked = false;
-  document.getElementById("wizardSubtypeSearch").value = "";
   renderWizardCategory();
   renderWizardSubtype();
   renderWizardFormality();
@@ -5068,7 +5060,6 @@ document.getElementById("wizardCameraInput").addEventListener("change", (e) => {
   e.target.value = "";
   handleWizardFile(file);
 });
-document.getElementById("wizardSubtypeSearch").addEventListener("input", () => renderWizardSubtype());
 document.getElementById("wizardVersatile").addEventListener("change", (e) => { pending.versatile = e.target.checked; });
 document.getElementById("wizardName").addEventListener("input", (e) => { pending.name = e.target.value; wizardNameEdited = true; });
 document.getElementById("wizardBuyLink").addEventListener("input", (e) => { pending.buyLink = e.target.value; });
