@@ -10,7 +10,7 @@
 <meta name="theme-color" content="#17171A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <style>
   :root {
     --sidebar-bg: #17171A;
@@ -20,10 +20,10 @@
     --bg: #F4F4F2;
     --paper: #FFFFFF;
     --ink: #1B1B18;
-    --ink-soft: #6B6B68;
+    --ink-soft: #5E5E5A;
     --line: rgba(27,27,24,0.08);
     --line-strong: rgba(27,27,24,0.14);
-    --accent: #2F4858;
+    --accent: #386684; /* azul niebla de marca */
     --success: #2E7D32;
     --gold: #B08D57;
     --gold-deep: #8F6E3F;
@@ -33,7 +33,7 @@
     --radius-sm: 10px;
     --shadow: 0 1px 2px rgba(20,20,15,0.04), 0 8px 24px rgba(20,20,15,0.06);
     --bg-muted: #EFEFEC;
-    --accent-tint: #EFF4F5;
+    --accent-tint: #E3EDF2;
     --disabled-bg: #D8D8D3;
     --skeleton-highlight: #E4E2DA;
     --danger-on-dark: #ffb3b3;
@@ -60,8 +60,13 @@
     margin: 0;
     background: var(--bg);
     color: var(--ink);
-    font-family: ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+    font-family: "Poppins", ui-sans-serif, -apple-system, "Segoe UI", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    line-height: 1.45;
   }
+  button, input, select, textarea { font-family: inherit; }
+  ::selection { background: var(--accent-tint); color: var(--ink); }
+  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
   .app-shell { display: flex; min-height: 100vh; }
   .sidebar {
     width: 220px; flex-shrink: 0; background: var(--sidebar-bg); color: var(--sidebar-text);
@@ -99,7 +104,8 @@
   .wrap { max-width: 980px; margin: 0 auto; padding: 46px 32px 70px; }
   .page-head { display: flex; justify-content: flex-end; align-items: flex-start; gap: 16px; flex-wrap: wrap; margin-bottom: 24px; }
   h1 { font-family: ui-serif, Georgia, "Times New Roman", serif; font-size:var(--fs-2xl); font-weight: 600; letter-spacing: -0.01em; margin: 0; }
-  h2 { font-family: ui-sans-serif, -apple-system, sans-serif; font-size:var(--fs-base); font-weight: 700; margin: 0; }
+  h2 { font-size:var(--fs-base); font-weight: 600; margin: 0; letter-spacing: -0.005em; }
+  h3 { font-weight: 600; margin: 0; }
   p.sub { margin: 6px 0 0; font-size:var(--fs-xs); color: var(--ink-soft); max-width: 460px; line-height: 1.5; }
 
   .settings { margin: 0 0 22px; font-size:var(--fs-xs); color: var(--ink-soft); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
@@ -272,6 +278,25 @@
   .add-card .plus { font-size:var(--fs-lg); color: var(--ink); line-height: 1; }
   .add-card:hover { background: var(--paper); border-color: var(--ink-soft); }
 
+  /* Estado vacío: icono + titular + frase + acción. Sustituye a la caja punteada gris. */
+  .empty-state { display:flex; flex-direction:column; align-items:center; text-align:center; padding:56px 24px 48px; }
+  .empty-state-icon { width:72px; height:72px; border-radius:50%; background:var(--accent-tint); color:var(--accent); display:flex; align-items:center; justify-content:center; margin-bottom:22px; }
+  .empty-state-icon svg { width:30px; height:30px; }
+  .empty-state-title { font-size:var(--fs-md); font-weight:600; line-height:1.25; margin:0 0 8px; color:var(--ink); text-wrap:balance; }
+  .empty-state-text { font-size:var(--fs-xs); line-height:1.55; color:var(--ink-soft); max-width:300px; margin:0 0 24px; text-wrap:pretty; }
+  .empty-state-actions { display:flex; flex-wrap:wrap; gap:10px; justify-content:center; }
+  .empty-state-actions .btn { justify-content:center; min-height:44px; padding-left:22px; padding-right:22px; }
+  .empty-state.compact { padding:36px 20px 32px; }
+  .empty-state.compact .empty-state-icon { width:56px; height:56px; margin-bottom:16px; }
+  .empty-state.compact .empty-state-icon svg { width:24px; height:24px; }
+  .wizard-summary { display:flex; align-items:center; gap:14px; padding:12px; margin-bottom:22px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm); box-shadow:var(--shadow); }
+  .wizard-summary img { width:76px; height:76px; border-radius:var(--radius-xs); object-fit:contain; background:var(--bg-muted); flex-shrink:0; }
+  .wizard-summary-title { margin:0 0 3px; font-size:var(--fs-sm); font-weight:600; }
+  .wizard-summary-meta { margin:0; font-size:var(--fs-xs); color:var(--ink-soft); display:flex; align-items:center; gap:7px; }
+  .wizard-summary-dot { width:12px; height:12px; border-radius:50%; border:1px solid var(--line-strong); flex-shrink:0; }
+  .hint-banner { margin-bottom:16px; padding:14px 16px; background:var(--accent-tint); color:var(--ink); border:1px solid rgba(56,102,132,0.25); border-radius:var(--radius-sm); font-size:var(--fs-xs); line-height:1.5; }
+  .btn-accent-solid { background:var(--accent); color:var(--paper); }
+  .btn-danger { background:var(--danger); color:#fff; border-color:var(--danger); }
   .empty { border: 1.5px dashed var(--line-strong); border-radius: var(--radius); padding: 36px 20px; text-align: center; color: var(--ink-soft); font-size:var(--fs-xs); background: rgba(255,255,255,0.4); }
   .row { display: flex; gap: 10px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
   .hint { width: 100%; margin-top: 4px; font-size:var(--fs-xs); color: var(--ink-soft); }
@@ -448,8 +473,8 @@
     #viewTabNotifications { display: none; }
     #viewTabMessages { display: none; } /* ya accesible desde el icono de mensajes de la topbar móvil */
     #viewTabWardrobe { order: 1; }
-    #viewTabCreate { order: 2; }
-    #viewTabHome { order: 3; }
+    #viewTabHome { order: 2; }
+    #viewTabCreate { order: 3; }
     #viewTabSearchUser { order: 4; }
     #viewTabProfile { order: 5; }
     html, .grid-row-collapsed, .picker-scroll, .modal-backdrop {
@@ -505,7 +530,7 @@
   }
   .activity-notif-item { display:flex; gap:10px; align-items:flex-start; padding:9px 6px; border-radius:var(--radius-xs); cursor:pointer; }
   .activity-notif-item:hover { background:var(--bg); }
-  .activity-notif-item.unread { background:rgba(47,72,88,0.07); }
+  .activity-notif-item.unread { background:rgba(56,102,132,0.07); }
   .activity-notif-avatar { width:34px; height:34px; border-radius:50%; overflow:hidden; flex-shrink:0; background:var(--line); display:flex; align-items:center; justify-content:center; font-size:var(--fs-xs); font-weight:700; color:var(--ink-soft); }
   .activity-notif-avatar img { width:100%; height:100%; object-fit:cover; }
   .activity-notif-text { font-size:var(--fs-xs); color:var(--ink); line-height:1.35; margin:0; }
@@ -563,8 +588,8 @@
   .section-icon-badge { width:36px; height:36px; border-radius:50%; background:var(--bg-muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; color:var(--ink-soft); }
   .section-icon-badge svg { width:17px; height:17px; }
   .section-header-text { flex:1; min-width:0; }
-  .section-header-text h2 { font-size:var(--fs-base); margin:0 0 2px; }
-  .section-header-sub { font-size:var(--fs-2xs); color:var(--ink-soft); margin:0; }
+  .section-header-text h2 { font-size:var(--fs-md); margin:0 0 2px; }
+  .section-header-sub { font-size:var(--fs-xs); color:var(--ink-soft); margin:0; line-height:1.4; }
   .section-header .btn-text { flex-shrink:0; margin-top:3px; }
   .profile-big-number { font-size:var(--fs-2xl); font-weight:700; line-height:1; margin:6px 0 2px; font-family:"Poppins",sans-serif; }
   .profile-big-number-label { font-size:var(--fs-xs); color:var(--ink-soft); margin:0 0 14px; }
@@ -607,7 +632,7 @@
   .foreign-sort-option { display:block; width:100%; text-align:left; padding:10px 14px; background:none; border:none; font-size:var(--fs-xs); color:var(--ink); cursor:pointer; font-family:inherit; }
   .foreign-sort-option:hover { background:var(--bg); }
   .foreign-sort-option.active { font-weight:700; }
-  .foreign-gallery-section-controls { display:flex; align-items:center; justify-content:space-between; margin-bottom:14px; }
+  .foreign-gallery-section-controls { display:flex; align-items:center; justify-content:space-between; gap:8px 10px; margin-bottom:14px; flex-wrap:wrap; }
   .wardrobe-filter-top-row { display:flex; align-items:flex-start; gap:10px; margin-bottom:18px; }
   .foreign-filter-chip { flex-shrink:0; padding:6px 14px; border-radius:999px; border:1px solid var(--line-strong); background:var(--paper); font-size:var(--fs-2xs); font-weight:600; color:var(--ink-soft); cursor:pointer; font-family:inherit; white-space:nowrap; }
   .foreign-filter-chip.active { background:var(--ink); color:var(--paper); border-color:var(--ink); }
@@ -742,7 +767,7 @@
   .chat-shared-post-info span { color:var(--ink-soft); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
   .post-card-comment-thread { margin-bottom:2px; }
   .post-card-comment-item.is-reply { margin-left:26px; margin-top:6px; }
-  .post-card-comment-item.is-highlighted { background:rgba(47,72,88,0.08); border-radius:var(--radius-xs); padding:5px 6px; margin-left:-6px; margin-right:-6px; }
+  .post-card-comment-item.is-highlighted { background:rgba(56,102,132,0.08); border-radius:var(--radius-xs); padding:5px 6px; margin-left:-6px; margin-right:-6px; }
   .post-card-comment-item.is-reply.is-highlighted { margin-left:20px; }
   .post-card-comment-reply-btn { display:block; background:none; border:none; padding:0; margin-top:2px; font-size:var(--fs-2xs); font-weight:700; color:var(--ink-soft); cursor:pointer; }
   .post-card-comment-toggle-replies { display:block; background:none; border:none; padding:0; margin:4px 0 0 26px; font-size:var(--fs-2xs); font-weight:700; color:var(--accent); cursor:pointer; }
@@ -800,6 +825,27 @@
   .identity-track { flex:1; height:2px; background:var(--line-strong); position:relative; border-radius:2px; }
   .identity-fill { position:absolute; top:0; left:0; height:100%; background:var(--ink); border-radius:2px; }
   .identity-dot { position:absolute; top:50%; width:9px; height:9px; border-radius:50%; background:var(--ink); transform:translate(-50%,-50%); }
+  .identity-bar-row .identity-track { margin:10px 0 8px; }
+  .analysis-tap { display:flex; background:none; border:0; padding:0; font:inherit; color:inherit; text-align:left; cursor:pointer; border-radius:var(--radius-xs); }
+  .analysis-tap:focus-visible { outline:2px solid var(--ink); outline-offset:2px; }
+  .analysis-unused-grid .analysis-tap { width:44px; height:44px; }
+  .analysis-unused-grid .analysis-tap .frame-img { width:100%; height:100%; }
+  .analysis-more { display:flex; align-items:center; justify-content:center; width:44px; height:44px; font-size:var(--fs-2xs); font-weight:600; color:var(--ink-soft); border:1px dashed var(--line-strong); border-radius:6px; }
+  .stats-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; }
+  .stat-card { border:1px solid var(--line); border-radius:var(--radius-sm); padding:12px; min-width:0; }
+  .stat-star { display:flex; align-items:center; gap:10px; margin-top:4px; }
+  .stat-star .frame-img { width:48px; height:48px; flex-shrink:0; border-radius:var(--radius-xs); overflow:hidden; background:var(--bg-muted); }
+  .stat-star .frame-img img { width:100%; height:100%; object-fit:contain; }
+  .stat-bar { height:4px; border-radius:2px; background:var(--line-strong); overflow:hidden; margin:2px 0 6px; }
+  .stat-bar > div { height:100%; background:var(--ink); border-radius:2px; }
+  .stat-swatches { display:flex; gap:5px; flex-wrap:wrap; margin:4px 0 8px; }
+  .bar-row { display:flex; align-items:center; gap:10px; margin-bottom:8px; }
+  .bar-row-label { display:flex; align-items:center; gap:6px; width:104px; flex-shrink:0; font-size:var(--fs-xs); color:var(--ink); }
+  .bar-row .stat-bar { flex:1; margin:0; height:6px; }
+  .bar-row-pct { width:36px; text-align:right; font-size:var(--fs-xs); color:var(--ink-soft); }
+  .analysis-empty { text-align:center; padding:18px 8px 6px; }
+  .analysis-empty p { font-size:var(--fs-xs); color:var(--ink-soft); line-height:1.5; margin-bottom:14px; }
+  #identityAnalysisBackdrop .modal { max-height:88vh; overflow-y:auto; }
 
   .outfit-mini-row { display:flex; gap:14px; overflow-x:auto; padding-bottom:4px; }
   .outfit-mini-card { flex:0 0 168px; background:var(--paper); border:1px solid var(--line); border-radius:var(--radius-sm); padding:10px; position:relative; cursor:pointer; }
@@ -848,7 +894,7 @@
   }
   .wizard-header { display:flex; align-items:center; justify-content:space-between; padding: 16px 16px 8px; flex-shrink:0; }
   .wizard-header-btn { background:none; border:none; font-size:20px; color:var(--ink); cursor:pointer; padding:6px; line-height:1; }
-  .wizard-progress { display:flex; gap:6px; }
+  .wizard-progress { display:flex; justify-content:center; gap:6px; margin-top:24px; }
   .wizard-dot { width:8px; height:8px; border-radius:50%; background:var(--line); transition: background 0.2s ease, transform 0.2s ease; }
   .wizard-dot.active { background: var(--accent); transform: scale(1.2); }
   .wizard-dot.done { background: var(--ink-soft); }
@@ -857,11 +903,15 @@
   .wizard-photo-drop {
     width:100%; aspect-ratio: 4/3; border-radius:14px; border:2px dashed var(--line-strong);
     display:flex; align-items:center; justify-content:center; cursor:pointer; overflow:hidden;
-    background: #F3F1EC; margin-bottom: 22px; color: var(--ink-soft); font-size: var(--fs-sm); text-align:center;
+    background: var(--bg-muted); margin-bottom: 22px; color: var(--ink-soft); font-size: var(--fs-sm); text-align:center;
   }
-  .wizard-photo-drop img { width:100%; height:100%; object-fit:contain; }
+  .wizard-photo-drop { position:relative; }
+  .wizard-photo-drop img { position:absolute; inset:0; width:100%; height:100%; object-fit:contain; }
   .wizard-search-input { width:100%; box-sizing:border-box; padding:10px 14px; border-radius:999px; border:1px solid var(--line-strong); font-size:var(--fs-sm); margin-bottom:12px; }
-  .wizard-footer { padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; gap:10px; flex-shrink:0; }
+  .wizard-footer { padding: 12px 20px calc(16px + env(safe-area-inset-bottom)); border-top:1px solid var(--line); display:flex; justify-content:center; flex-shrink:0; }
+  .wizard-footer-actions { display:flex; justify-content:center; gap:10px; }
+  .wizard-footer-actions .btn { justify-content:center; text-align:center; }
+  .wizard-footer-actions .btn-primary { min-width:160px; }
   .wizard-done-icon {
     width:64px; height:64px; border-radius:50%; background: var(--accent); color:#fff;
     display:flex; align-items:center; justify-content:center; font-size:30px; margin: 20px auto 16px;
@@ -879,7 +929,7 @@
     background:var(--paper); cursor:pointer; text-align:left; font-size:var(--fs-sm); font-family:inherit; color:var(--ink);
   }
   .wizard-tile.selected { border-color: var(--accent); background: var(--accent-tint); color: var(--accent); }
-  .wizard-tile-icon { width:34px; height:34px; border-radius:8px; background:#F3F1EC; display:flex; align-items:center; justify-content:center; flex-shrink:0; }
+  .wizard-tile-icon { width:34px; height:34px; border-radius:8px; background:var(--bg-muted); display:flex; align-items:center; justify-content:center; flex-shrink:0; }
   .wizard-tile-icon svg { width:18px; height:18px; }
   .wizard-tile.selected .wizard-tile-icon { background:#fff; }
   .wizard-photo-buttons { display:flex; gap:10px; }
@@ -890,15 +940,27 @@
   .wizard-footer .btn-outline { flex:0 0 auto; padding-left:22px; padding-right:22px; }
   .wizard-name-hint { font-size:var(--fs-xs); color:var(--ink-soft); margin: -12px 0 18px; }
 
+  /* Objetivos táctiles: mínimo ~40-44px en móvil sin cambiar el aspecto en escritorio */
+  @media (max-width: 720px) {
+    .foreign-sort-btn { min-width:40px; min-height:40px; }
+    .sort-text-btn, .foreign-filter-chip, .color-filter-chip, .filter-select { min-height:36px; }
+    .fav-filter-circle { min-width:40px; min-height:40px; }
+    .profile-tab { padding-bottom:12px; padding-top:6px; }
+    .btn-text { min-height:36px; }
+    .nav-item.nav-create { padding-top:7px; }
+  }
+
   /* Botón "Crear" del menú: distinto al resto para que destaque como acción, no como pestaña */
   .nav-item.nav-create .nav-create-circle {
-    width:32px; height:32px; border-radius:50%; background:var(--ink); color:var(--paper);
-    display:flex; align-items:center; justify-content:center; margin: 0 auto 2px;
+    width:24px; height:24px; border-radius:50%; background:var(--paper); color:var(--ink);
+    display:flex; align-items:center; justify-content:center; margin: 0 -3px 0 -3px; flex-shrink:0;
   }
-  .nav-item.nav-create .nav-create-circle svg { width:16px; height:16px; }
+  .nav-item.nav-create .nav-create-circle svg { width:14px; height:14px; opacity:1; }
   @media (max-width: 720px) {
-    .nav-item.nav-create .nav-create-circle { width:44px; height:44px; margin-top:-16px; box-shadow: 0 3px 10px rgba(0,0,0,0.25); }
-    .nav-item.nav-create .nav-create-circle svg { width:22px; height:22px; }
+    .nav-item.nav-create { justify-content:flex-start; }
+    .nav-item.nav-create .nav-label { display:none; }
+    .nav-item.nav-create .nav-create-circle { width:32px; height:32px; margin: -6px auto 0; }
+    .nav-item.nav-create .nav-create-circle svg { width:18px; height:18px; opacity:1; }
   }
 </style>
 </head>
@@ -1000,14 +1062,14 @@
     <div class="brand"><img src="data:image/png;base64,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" alt=""><div class="brand-text"><span>D</span><span>R</span><span>O</span><span>B</span><span>R</span></div></div>
     <nav class="nav-list">
       <button class="nav-item" id="viewTabWardrobe">
-        <svg viewBox="0 0 24 24" fill="currentColor"><path d="m6.329 17.765c-.486.497-1.329.153-1.329-.542v-1.223h-3.5c-.828 0-1.5-.671-1.5-1.5s.672-1.5 1.5-1.5h3.5v-1.223c0-.695.844-1.039 1.33-.542l2.481 2.538c.402.401.402 1.053 0 1.453l-2.481 2.538zm10.171-6.765c-.828 0-1.5.672-1.5 1.5s.672 1.5 1.5 1.5 1.5-.672 1.5-1.5-.672-1.5-1.5-1.5zm7.5-5.289v14.789c0 1.93-1.57 3.5-3.5 3.5h-11c-1.93 0-3.5-1.57-3.5-3.5 0-.829.672-1.5 1.5-1.5s1.5.671 1.5 1.5c0 .276.225.5.5.5h1.5v-16h-.5c-.827 0-1.5.673-1.5 1.5v2c0 .829-.672 1.5-1.5 1.5s-1.5-.671-1.5-1.5v-2c0-2.481 2.019-4.5 4.5-4.5h1.286c.242-.359.518-.697.862-.979 1.047-.858 2.412-1.197 3.734-.933l3.599.72c2.329.466 4.02 2.528 4.02 4.903zm-3 0c0-.95-.676-1.775-1.607-1.961l-3.599-.72c-.441-.087-.896.025-1.245.311s-.549.709-.549 1.16v16.499h6.5c.275 0 .5-.224.5-.5z"/></svg>
+        <svg viewBox="0 0 24 24" fill="currentColor"><path d="m22.598,16.689l-8.179-6.017c2.097-1.842,3.054-3.184,2.449-5.832-.419-1.834-1.875-3.29-3.71-3.708-1.517-.348-3.077.002-4.274.958-1.198.955-1.884,2.38-1.884,3.911,0,.829.671,1.5,1.5,1.5s1.5-.671,1.5-1.5c0-.612.275-1.183.754-1.565.486-.388,1.101-.525,1.737-.378.707.161,1.291.745,1.452,1.452.293,1.283.232,1.48-2.87,4.066L1.381,16.705c-.865.659-1.381,1.702-1.381,2.789,0,1.934,1.573,3.506,3.506,3.506h16.987c1.934,0,3.506-1.573,3.506-3.506,0-1.087-.517-2.13-1.402-2.804Zm-2.104,3.311H3.506c-.279,0-.506-.227-.506-.506,0-.157.075-.307.179-.387l8.821-6.489,8.8,6.474c.125.095.2.246.2.402,0,.279-.227.506-.506.506Z"/></svg>
         Mi armario
       </button>
       <button class="nav-item nav-create" id="viewTabCreate" aria-label="Crear">
         <span class="nav-create-circle">
           <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="M12 5v14M5 12h14"/></svg>
         </span>
-        Crear
+        <span class="nav-label">Crear</span>
       </button>
       <button class="nav-item" id="viewTabShop">
         <svg viewBox="0 0 24 24" fill="currentColor"><path d="M20.5,6.2H18V6A6,6,0,0,0,6,6v.2H3.5A3.543,3.543,0,0,0,0,9.7v8.8A5.549,5.549,0,0,0,5.5,24h13A5.549,5.549,0,0,0,24,18.5V9.7A3.543,3.543,0,0,0,20.5,6.2ZM9,6a3,3,0,0,1,6,0v.2H9ZM21,18.5A2.476,2.476,0,0,1,18.5,21H5.5A2.476,2.476,0,0,1,3,18.5V9.7a.472.472,0,0,1,.5-.5H6v1.3a1.5,1.5,0,0,0,3,0V9.2h6v1.3a1.5,1.5,0,0,0,3,0V9.2h2.5a.472.472,0,0,1,.5.5Z"/></svg>
@@ -1094,7 +1156,16 @@
     </div>
   </div>
 
-  <div class="empty" id="emptyState" style="display:none;">Aún no has subido ninguna prenda. Empieza subiendo la foto de una prenda cualquiera.</div>
+  <div id="emptyState" style="display:none;">
+    <div class="empty-state">
+      <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m22.598,16.689l-8.179-6.017c2.097-1.842,3.054-3.184,2.449-5.832-.419-1.834-1.875-3.29-3.71-3.708-1.517-.348-3.077.002-4.274.958-1.198.955-1.884,2.38-1.884,3.911,0,.829.671,1.5,1.5,1.5s1.5-.671,1.5-1.5c0-.612.275-1.183.754-1.565.486-.388,1.101-.525,1.737-.378.707.161,1.291.745,1.452,1.452.293,1.283.232,1.48-2.87,4.066L1.381,16.705c-.865.659-1.381,1.702-1.381,2.789,0,1.934,1.573,3.506,3.506,3.506h16.987c1.934,0,3.506-1.573,3.506-3.506,0-1.087-.517-2.13-1.402-2.804Zm-2.104,3.311H3.506c-.279,0-.506-.227-.506-.506,0-.157.075-.307.179-.387l8.821-6.489,8.8,6.474c.125.095.2.246.2.402,0,.279-.227.506-.506.506Z"/></svg></div>
+      <h2 class="empty-state-title">Tu armario está vacío</h2>
+      <p class="empty-state-text">Sube la foto de una prenda y Drobr detecta su color y te sugiere un nombre. Con tres o cuatro prendas ya puedes crear tu primer outfit.</p>
+      <div class="empty-state-actions">
+        <button class="btn btn-primary" id="emptyWardrobeAddBtn">Añadir mi primera prenda</button>
+      </div>
+    </div>
+  </div>
 
   <div class="wardrobe-filter-top-row" id="wardrobeFilterTopRow" style="display:none;">
     <button class="fav-filter-circle" id="favoritesFilterBtn" title="Favoritas">★</button>
@@ -1130,7 +1201,7 @@
     <div id="grid"></div>
   </div>
 
-  <div id="onboardingBanner" style="display:none; margin-bottom:16px; padding:14px 16px; background:var(--ink); color:#fff; border-radius:var(--radius-sm); font-size:13.5px;"></div>
+  <div id="onboardingBanner" class="hint-banner" style="display:none;"></div>
 
   <div id="actionsRow" style="display:none;">
     <button id="generateOutfitBtn"></button>
@@ -1140,7 +1211,16 @@
 
   <div id="wardrobeOutfitsPane" style="display:none;">
     <input type="text" id="outfitSearchInput" placeholder="Buscar por nombre…" style="margin-top:0; width:220px; margin-bottom:18px;">
-    <div id="outfitsEmpty" class="empty" style="display:none;">Aún no has guardado ningún outfit. ¡Crea uno y guárdalo para que aparezca!</div>
+    <div id="outfitsEmpty" style="display:none;">
+      <div class="empty-state">
+        <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="m6,6h3v3h-3v-3Zm9,12h3v-3h-3v3Zm-9,0h3v-3h-3v3Zm9-9h3v-3h-3v3Zm9-4v14c0,2.757-2.243,5-5,5H5c-2.757,0-5-2.243-5-5V5C0,2.243,2.243,0,5,0h14c2.757,0,5,2.243,5,5Zm-13,9.5c0-.827-.673-1.5-1.5-1.5h-4c-.827,0-1.5.673-1.5,1.5v4c0,.827.673,1.5,1.5,1.5h4c.827,0,1.5-.673,1.5-1.5v-4Zm0-9c0-.827-.673-1.5-1.5-1.5h-4c-.827,0-1.5.673-1.5,1.5v4c0,.827.673,1.5,1.5,1.5h4c.827,0,1.5-.673,1.5-1.5v-4Zm9,9c0-.827-.673-1.5-1.5-1.5h-4c-.827,0-1.5.673-1.5,1.5v4c0,.827.673,1.5,1.5,1.5h4c.827,0,1.5-.673,1.5-1.5v-4Zm0-9c0-.827-.673-1.5-1.5-1.5h-4c-.827,0-1.5.673-1.5,1.5v4c0,.827.673,1.5,1.5,1.5h4c.827,0,1.5-.673,1.5-1.5v-4Z"/></svg></div>
+        <h2 class="empty-state-title">Aún no tienes outfits</h2>
+        <p class="empty-state-text">Combina prendas de tu armario y guarda tus mejores looks para tenerlos siempre a mano.</p>
+        <div class="empty-state-actions">
+          <button class="btn btn-primary" id="emptyOutfitsCreateBtn">Crear mi primer outfit</button>
+        </div>
+      </div>
+    </div>
     <div class="wardrobe-filter-top-row" id="outfitFilterTopRow" style="display:none;">
       <button class="fav-filter-circle" id="outfitFavoritesFilterBtn" title="Favoritos">★</button>
       <div class="foreign-gallery-controls" id="outfitStyleChipRow" style="margin-bottom:0; flex:1;"></div>
@@ -1355,11 +1435,11 @@
       </div>
       <div id="notifSolicitudesPane">
         <div id="followRequestsList" style="display:flex; flex-direction:column; gap:10px;"></div>
-        <p id="followRequestsEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">No tienes solicitudes pendientes.</p>
+        <div id="followRequestsEmpty" style="display:none;"><div class="empty-state compact"><div class="empty-state-icon"><svg viewBox="0 0 512 512" fill="currentColor"><path d="M244.317,299.051c-90.917,8.218-160.183,85.041-158.976,176.32V480c0,17.673,14.327,32,32,32l0,0c17.673,0,32-14.327,32-32v-5.909c-0.962-56.045,40.398-103.838,96-110.933c58.693-5.82,110.992,37.042,116.812,95.735c0.344,3.47,0.518,6.954,0.521,10.441V480c0,17.673,14.327,32,32,32l0,0c17.673,0,32-14.327,32-32v-10.667c-0.104-94.363-76.685-170.774-171.047-170.67C251.854,298.668,248.082,298.797,244.317,299.051z"/><path fill-rule="evenodd" d="M256.008,256c70.692,0,128-57.308,128-128S326.7,0,256.008,0s-128,57.308-128,128C128.078,198.663,185.345,255.929,256.008,256z M256.008,64c35.346,0,64,28.654,64,64s-28.654,64-64,64s-64-28.654-64-64S220.662,64,256.008,64z"/></svg></div><h3 class="empty-state-title">Sin solicitudes pendientes</h3><p class="empty-state-text" style="margin-bottom:0;">Cuando alguien quiera seguirte, su solicitud aparecerá aquí para que la aceptes o la rechaces.</p></div></div>
       </div>
       <div id="notifActividadPane" style="display:none;">
         <div id="activityNotifList" style="display:flex; flex-direction:column; gap:4px;"></div>
-        <p id="activityNotifEmpty" class="sub" style="display:none; text-align:center; margin-bottom:0;">Todavía no tienes actividad.</p>
+        <div id="activityNotifEmpty" style="display:none;"><div class="empty-state compact"><div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.552,13.21,20.8,6.916A9.443,9.443,0,0,0,2.486,7.4L1.132,13.489A5.5,5.5,0,0,0,6.5,20.182h.4a5.285,5.285,0,0,0,10.154,0h.193a5.5,5.5,0,0,0,5.3-6.972Zm-3.309,2.984a2.48,2.48,0,0,1-1.991.988H6.5a2.5,2.5,0,0,1-2.44-3.042l1.354-6.1a6.443,6.443,0,0,1,12.5-.326l1.748,6.294A2.478,2.478,0,0,1,19.243,16.194Z"/></svg></div><h3 class="empty-state-title">Todo tranquilo por ahora</h3><p class="empty-state-text" style="margin-bottom:0;">Aquí verás los me gusta, comentarios y nuevos seguidores de tus publicaciones.</p></div></div>
       </div>
     </div>
   </div>
@@ -1482,24 +1562,24 @@
           <svg width="13" height="13" viewBox="0 0 512 512" fill="currentColor"><path fill-rule="evenodd" d="M405.333,179.712v-30.379C405.333,66.859,338.475,0,256,0S106.667,66.859,106.667,149.333v30.379c-38.826,16.945-63.944,55.259-64,97.621v128C42.737,464.214,90.452,511.93,149.333,512h213.333c58.881-0.07,106.596-47.786,106.667-106.667v-128C469.278,234.971,444.159,196.657,405.333,179.712z M277.333,362.667c0,11.782-9.551,21.333-21.333,21.333c-11.782,0-21.333-9.551-21.333-21.333V320c0-11.782,9.551-21.333,21.333-21.333c11.782,0,21.333,9.551,21.333,21.333V362.667z M362.667,170.667H149.333v-21.333c0-58.91,47.756-106.667,106.667-106.667s106.667,47.756,106.667,106.667V170.667z"/></svg>
           Armario privado
         </p>
-        <button type="button" id="profileIncompleteBanner" style="display:none; width:100%; text-align:left; background:var(--bg); border:1px dashed var(--line-strong); border-radius:var(--radius-sm); padding:9px 12px; margin-top:4px; font-size:12.5px; color:var(--ink); cursor:pointer; font-family:inherit;">
-          ⚠️ Tu perfil está incompleto (sin nombre o usuario reales). Toca para completarlo
+        <button type="button" id="profileIncompleteBanner" class="hint-banner" style="display:none; width:100%; text-align:left; margin:4px 0 0; padding:10px 12px; cursor:pointer; font-family:inherit; align-items:flex-start; gap:9px;">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--accent)" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; margin-top:1px;"><circle cx="12" cy="12" r="9"/><path d="M12 8v5M12 16.5v.01"/></svg>
+          <span>Completa tu perfil: faltan tu nombre y tu @usuario. Toca para añadirlos.</span>
         </button>
       </div>
     </div>
 
     <div class="section">
-      <button class="section-header identity-toggle-btn" id="profileIdentityToggle" style="width:100%; text-align:left; background:none; border:none; cursor:pointer; font-family:inherit; padding:0;">
-        <div class="section-icon-badge"><svg viewBox="0 0 512 512" fill="currentColor"><path d="M244.317,299.051c-90.917,8.218-160.183,85.041-158.976,176.32V480c0,17.673,14.327,32,32,32l0,0c17.673,0,32-14.327,32-32v-5.909c-0.962-56.045,40.398-103.838,96-110.933c58.693-5.82,110.992,37.042,116.812,95.735c0.344,3.47,0.518,6.954,0.521,10.441V480c0,17.673,14.327,32,32,32l0,0c17.673,0,32-14.327,32-32v-10.667c-0.104-94.363-76.685-170.774-171.047-170.67C251.854,298.668,248.082,298.797,244.317,299.051z"/><path fill-rule="evenodd" d="M256.008,256c70.692,0,128-57.308,128-128S326.7,0,256.008,0s-128,57.308-128,128C128.078,198.663,185.345,255.929,256.008,256z M256.008,64c35.346,0,64,28.654,64,64s-28.654,64-64,64s-64-28.654-64-64S220.662,64,256.008,64z"/></svg></div>
+      <div class="section-header">
+        <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg></div>
         <div class="section-header-text">
-          <h2>Mi identidad</h2>
-          <p class="section-header-sub">La forma en la que vistes lo que tienes.</p>
+          <h2>Tu armario en datos</h2>
+          <p class="section-header-sub">Un vistazo a lo que tienes y cómo lo usas.</p>
         </div>
-        <svg id="profileIdentityChevron" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="flex-shrink:0; transition:transform 0.2s ease; color:var(--ink-soft);"><path d="m6 9 6 6 6-6"/></svg>
-      </button>
-      <div id="profileIdentityBody" style="display:none;">
-        <div id="profileIdentitySliders" style="margin-top:18px;"></div>
-        <button class="btn-text" id="profileIdentityDetailBtn" style="margin-top:14px;">Ver análisis →</button>
+      </div>
+      <div id="profileIdentityBody">
+        <div id="profileStatsSummary" style="margin-top:18px;"></div>
+        <button class="btn-text" id="profileIdentityDetailBtn" style="margin-top:14px;">Ver análisis completo →</button>
       </div>
     </div>
 
@@ -1595,14 +1675,13 @@
           <p class="section-header-sub">Prendas que has guardado del armario de otras personas.</p>
         </div>
       </div>
-      <div class="empty" id="savedGarmentsEmpty">
-        <svg width="40" height="40" style="margin-bottom:14px;" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M21.526,8.284L13.937,.879C13.278,.219,12.33-.104,11.409,.028L4.521,.97c-.547,.075-.93,.579-.855,1.126,.075,.547,.578,.929,1.127,.855l6.889-.942c.306-.042,.622,.063,.851,.292l7.59,7.405c1.045,1.045,1.147,2.68,.323,3.847-.234-.467-.523-.912-.911-1.3l-7.475-7.412c-.658-.658-1.597-.975-2.528-.851l-6.889,.942c-.454,.062-.808,.425-.858,.881l-.765,6.916c-.1,.911,.214,1.804,.864,2.453l7.416,7.353c.944,.945,2.199,1.464,3.534,1.464h.017c1.342-.004,2.6-.532,3.543-1.487l3.167-3.208c.927-.939,1.393-2.159,1.423-3.388l.577-.576c1.925-1.95,1.914-5.112-.032-7.057Zm-15.526,1.716c-.552,0-1-.448-1-1,.006-1.308,1.994-1.307,2,0,0,.552-.448,1-1,1Z"/></svg>
-        <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Aún no has guardado ninguna prenda</p>
-        <p class="sub" style="margin:0 auto 16px; text-align:center;">Explora el armario de otras personas y guarda las prendas que te inspiren, sin necesidad de tenerlas tú.</p>
-        <button class="btn btn-outline" id="savedGarmentsSearchBtn" style="margin:0 auto;">
-          <svg width="15" height="15" viewBox="0 0 513.749 513.749" fill="currentColor"><path d="M504.352,459.061l-99.435-99.477c74.402-99.427,54.115-240.344-45.312-314.746S119.261-9.277,44.859,90.15S-9.256,330.494,90.171,404.896c79.868,59.766,189.565,59.766,269.434,0l99.477,99.477c12.501,12.501,32.769,12.501,45.269,0c12.501-12.501,12.501-32.769,0-45.269L504.352,459.061z M225.717,385.696c-88.366,0-160-71.634-160-160s71.634-160,160-160s160,71.634,160,160C385.623,314.022,314.044,385.602,225.717,385.696z"/></svg>
-          Explorar
-        </button>
+      <div id="savedGarmentsEmpty">
+        <div class="empty-state compact">
+          <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M21.526,8.284L13.937,.879C13.278,.219,12.33-.104,11.409,.028L4.521,.97c-.547,.075-.93,.579-.855,1.126,.075,.547,.578,.929,1.127,.855l6.889-.942c.306-.042,.622,.063,.851,.292l7.59,7.405c1.045,1.045,1.147,2.68,.323,3.847-.234-.467-.523-.912-.911-1.3l-7.475-7.412c-.658-.658-1.597-.975-2.528-.851l-6.889,.942c-.454,.062-.808,.425-.858,.881l-.765,6.916c-.1,.911,.214,1.804,.864,2.453l7.416,7.353c.944,.945,2.199,1.464,3.534,1.464h.017c1.342-.004,2.6-.532,3.543-1.487l3.167-3.208c.927-.939,1.393-2.159,1.423-3.388l.577-.576c1.925-1.95,1.914-5.112-.032-7.057Zm-15.526,1.716c-.552,0-1-.448-1-1,.006-1.308,1.994-1.307,2,0,0,.552-.448,1-1,1Z"/></svg></div>
+          <h3 class="empty-state-title">Aún no has guardado ninguna prenda</h3>
+          <p class="empty-state-text">Explora el armario de otras personas y guarda las prendas que te inspiren, sin necesidad de tenerlas tú.</p>
+          <div class="empty-state-actions"><button class="btn btn-primary" id="savedGarmentsSearchBtn">Explorar armarios</button></div>
+        </div>
       </div>
       <div class="home-feed-grid" id="savedGarmentsGrid" style="margin-top:14px;"></div>
     </div>
@@ -1617,14 +1696,13 @@
           <p class="section-header-sub">Outfits que has guardado de otras personas.</p>
         </div>
       </div>
-      <div class="empty" id="savedOutfitsEmpty">
-        <svg width="40" height="40" style="margin-bottom:14px;" viewBox="0 0 24 24" fill="currentColor"><path fill-rule="evenodd" d="M21.526,8.284L13.937,.879C13.278,.219,12.33-.104,11.409,.028L4.521,.97c-.547,.075-.93,.579-.855,1.126,.075,.547,.578,.929,1.127,.855l6.889-.942c.306-.042,.622,.063,.851,.292l7.59,7.405c1.045,1.045,1.147,2.68,.323,3.847-.234-.467-.523-.912-.911-1.3l-7.475-7.412c-.658-.658-1.597-.975-2.528-.851l-6.889,.942c-.454,.062-.808,.425-.858,.881l-.765,6.916c-.1,.911,.214,1.804,.864,2.453l7.416,7.353c.944,.945,2.199,1.464,3.534,1.464h.017c1.342-.004,2.6-.532,3.543-1.487l3.167-3.208c.927-.939,1.393-2.159,1.423-3.388l.577-.576c1.925-1.95,1.914-5.112-.032-7.057Zm-15.526,1.716c-.552,0-1-.448-1-1,.006-1.308,1.994-1.307,2,0,0,.552-.448,1-1,1Z"/></svg>
-        <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Aún no has guardado ningún outfit</p>
-        <p class="sub" style="margin:0 auto 16px; text-align:center;">Cuando veas un outfit de otra persona que te guste, guárdalo aquí como inspiración para tus propias combinaciones.</p>
-        <button class="btn btn-outline" id="savedOutfitsSearchBtn" style="margin:0 auto;">
-          <svg width="15" height="15" viewBox="0 0 513.749 513.749" fill="currentColor"><path d="M504.352,459.061l-99.435-99.477c74.402-99.427,54.115-240.344-45.312-314.746S119.261-9.277,44.859,90.15S-9.256,330.494,90.171,404.896c79.868,59.766,189.565,59.766,269.434,0l99.477,99.477c12.501,12.501,32.769,12.501,45.269,0c12.501-12.501,12.501-32.769,0-45.269L504.352,459.061z M225.717,385.696c-88.366,0-160-71.634-160-160s71.634-160,160-160s160,71.634,160,160C385.623,314.022,314.044,385.602,225.717,385.696z"/></svg>
-          Explorar
-        </button>
+      <div id="savedOutfitsEmpty">
+        <div class="empty-state compact">
+          <div class="empty-state-icon"><svg viewBox="0 0 24 24" fill="currentColor"><path d="M17.5,0H6.5A5.507,5.507,0,0,0,1,5.5V20.472a3.5,3.5,0,0,0,6.044,2.4l4.912-5.2,5.013,5.25A3.5,3.5,0,0,0,23,20.51V5.5A5.507,5.507,0,0,0,17.5,0ZM20,20.51a.5.5,0,0,1-.861.345l-6.1-6.391A1.5,1.5,0,0,0,11.95,14h0a1.5,1.5,0,0,0-1.086.47l-6,6.345a.479.479,0,0,1-.549.122A.471.471,0,0,1,4,20.472V5.5A2.5,2.5,0,0,1,6.5,3h11A2.5,2.5,0,0,1,20,5.5Z"/></svg></div>
+          <h3 class="empty-state-title">Aún no has guardado ningún outfit</h3>
+          <p class="empty-state-text">Cuando veas un outfit que te guste, guárdalo aquí como inspiración para tus propias combinaciones.</p>
+          <div class="empty-state-actions"><button class="btn btn-primary" id="savedOutfitsSearchBtn">Explorar armarios</button></div>
+        </div>
       </div>
       <div class="home-feed-grid" id="savedOutfitsGrid" style="margin-top:14px;"></div>
     </div>
@@ -1644,7 +1722,7 @@
 
   <div class="modal-backdrop" id="identityAnalysisBackdrop">
     <div class="modal" style="max-width:520px;">
-      <div class="modal-head"><h2 style="font-size:16px;">Análisis de tu identidad</h2><button class="modal-close" id="identityAnalysisClose">✕</button></div>
+      <div class="modal-head"><h2 style="font-size:16px;">Análisis de tu armario</h2><button class="modal-close" id="identityAnalysisClose" aria-label="Cerrar">✕</button></div>
       <div id="identityAnalysisContent"></div>
     </div>
   </div>
@@ -1869,7 +1947,7 @@
 
 <div class="modal-backdrop" id="onboardingBackdrop">
   <div class="modal" style="max-width:380px; text-align:center;">
-    <div id="onboardingImgSlot" style="display:none; width:100%; aspect-ratio:4/3; background:#EFEFEC; border-radius:var(--radius-sm); margin-bottom:16px; overflow:hidden;"></div>
+    <div id="onboardingImgSlot" style="display:none; width:100%; aspect-ratio:4/3; background:var(--bg-muted); border-radius:var(--radius-sm); margin-bottom:16px; overflow:hidden;"></div>
     <h2 id="onboardingCardTitle" style="font-size:19px; margin-bottom:10px; line-height:1.3;"></h2>
     <p class="sub" id="onboardingCardText" style="margin-bottom:22px; text-align:center;"></p>
     <div style="display:flex; justify-content:center; gap:6px; margin-bottom:22px;" id="onboardingDots"></div>
@@ -2057,12 +2135,6 @@
     <button class="wizard-header-btn" id="wizardBackBtn" aria-label="Volver">‹</button>
     <div style="text-align:center;">
       <h2 style="margin:0; font-size:16px; font-weight:700;">Nueva prenda</h2>
-      <div class="wizard-progress" id="wizardProgress">
-        <span class="wizard-dot" data-step="1"></span>
-        <span class="wizard-dot" data-step="2"></span>
-        <span class="wizard-dot" data-step="3"></span>
-        <span class="wizard-dot" data-step="4"></span>
-      </div>
     </div>
     <button class="wizard-header-btn" id="wizardCloseBtn" aria-label="Cerrar">✕</button>
   </div>
@@ -2081,11 +2153,13 @@
             <button type="button" class="btn btn-primary wizard-icon-btn" id="wizardGalleryBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>Elegir de la galería</button>
             <button type="button" class="btn btn-outline wizard-icon-btn" id="wizardCameraBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M4 8h3l1.5-2h7L17 8h3a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V9a1 1 0 0 1 1-1Z"/><circle cx="12" cy="14" r="3.5"/></svg>Hacer una foto</button>
           </div>
+          <p id="wizardPhotoError" style="display:none; color:var(--danger); margin:12px 0 0;"></p>
         </div>
       </div>
       <label class="field-eyebrow">Tipo de prenda
         <div class="wizard-tile-grid" id="wizardCategory"></div>
       </label>
+      <p class="wizard-name-hint" id="wizardStep1Hint" style="margin:12px 0 0;">Elige el tipo de prenda para continuar.</p>
     </div>
 
     <div class="wizard-step" id="wizardStep2" style="display:none;">
@@ -2114,6 +2188,7 @@
     </div>
 
     <div class="wizard-step" id="wizardStep4" style="display:none;">
+      <div class="wizard-summary" id="wizardSummary"></div>
       <label class="field-eyebrow">Nombre
         <input type="text" id="wizardName" placeholder="p. ej. camiseta lino blanca">
       </label>
@@ -2132,11 +2207,20 @@
         <button class="btn btn-outline" id="wizardGoWardrobeBtn">Ver en mi armario</button>
       </div>
     </div>
+
+    <div class="wizard-progress" id="wizardProgress">
+      <span class="wizard-dot" data-step="1"></span>
+      <span class="wizard-dot" data-step="2"></span>
+      <span class="wizard-dot" data-step="3"></span>
+      <span class="wizard-dot" data-step="4"></span>
+    </div>
   </div>
 
   <div class="wizard-footer" id="wizardFooter">
-    <button class="btn btn-outline" id="wizardFooterBackBtn" style="display:none;">← Volver</button>
-    <button class="btn btn-primary" id="wizardContinueBtn" style="flex:1;">Continuar</button>
+    <div class="wizard-footer-actions">
+      <button class="btn btn-outline" id="wizardFooterBackBtn" style="display:none;">← Volver</button>
+      <button class="btn btn-primary" id="wizardContinueBtn">Continuar</button>
+    </div>
   </div>
   </div>
 </div>
@@ -2199,6 +2283,15 @@ document.addEventListener("error", (e) => {
   if (img && img.tagName === "IMG" && !img.dataset.brokenHidden) {
     img.dataset.brokenHidden = "1";
     img.style.visibility = "hidden";
+  }
+}, true);
+// Si la imagen se recupera (se le asigna un src válido después de haber fallado,
+// p. ej. la vista previa del asistente, que se vacía al abrirlo), la volvemos a mostrar.
+document.addEventListener("load", (e) => {
+  const img = e.target;
+  if (img && img.tagName === "IMG" && img.dataset.brokenHidden) {
+    delete img.dataset.brokenHidden;
+    img.style.visibility = "";
   }
 }, true);
 
@@ -2943,6 +3036,9 @@ function renderGrid() {
   let list = garments.filter(g => matchesSearch(g) && matchesColorFilter(g) && matchesContextFilter(g) && matchesSeasonFilter(g) && matchesFavoritesFilter(g));
   list = list.slice().reverse(); // más recientes primero (se añaden al final del array al subirlas)
   emptyEl.style.display = garments.length === 0 ? "block" : "none";
+  // Con 0 prendas, buscador y "Añadir prenda" sobran: la acción vive en el estado vacío.
+  document.getElementById("searchInput").style.display = garments.length === 0 ? "none" : "";
+  document.getElementById("uploadBtn").style.display = garments.length === 0 ? "none" : "";
 
   updateSelectionBar();
 
@@ -3235,7 +3331,7 @@ function renderActions() {
   renderHomeOutfitCard();
   if (garments.length === 0) {
     onboardEl.style.display = "none";
-    fab.style.display = "flex";
+    fab.style.display = "none";
     generateBtn.disabled = true;
     builderBtn.disabled = true;
     updateSelectionBar();
@@ -3257,7 +3353,7 @@ function renderActions() {
       if (c.bottom === 0) missing.push("una prenda inferior (o un vestido/mono)");
     }
     onboardEl.style.display = "block";
-    onboardEl.textContent = `Te falta: ${missing.join(", ")}.`;
+    onboardEl.textContent = `Para que Drobr te sugiera outfits te falta: ${missing.join(", ")}.`;
   } else {
     onboardEl.style.display = "none";
   }
@@ -4868,10 +4964,12 @@ function renderWizardCategory() {
       pending.category = btn.dataset.category;
       renderWizardCategory();
       renderWizardSubtype();
+      updateWizardContinueState();
     });
   });
 }
 function renderWizardSubtype() {
+  if (!pending.category) { document.getElementById("wizardSubtypeOptions").innerHTML = ""; return; }
   const list = SUBTYPES[pending.category] || [];
   const counts = subtypeUsageCounts(pending.category);
   const used = list.filter(t => counts[t.id]).sort((a, b) => counts[b.id] - counts[a.id]);
@@ -4956,7 +5054,18 @@ function wizardBreadcrumbLabel() {
   return wizardStep >= 3 && subtypeLabel ? subtypeLabel : catLabel;
 }
 function updateWizardContinueState() {
-  document.getElementById("wizardContinueBtn").disabled = (wizardStep === 1 && !pending.image);
+  document.getElementById("wizardContinueBtn").disabled = (wizardStep === 1 && (!pending.image || !pending.category));
+  const hint = document.getElementById("wizardStep1Hint");
+  if (hint) hint.style.display = (wizardStep === 1 && pending.image && !pending.category) ? "block" : "none";
+}
+function renderWizardSummary() {
+  const el = document.getElementById("wizardSummary");
+  if (!el || !pending) return;
+  const cat = CATEGORIES.find(c => c.id === pending.category)?.label || "";
+  const sub = (SUBTYPES[pending.category] || []).find(t => t.id === pending.subtype)?.label || "";
+  const col = COLORS.find(c => c.id === pending.color);
+  const swatch = col && col.hex ? `<span class="wizard-summary-dot" style="background:${col.hex}"></span>` : "";
+  el.innerHTML = `<img src="${pending.image}" alt=""><div><p class="wizard-summary-title">${sub || cat}</p><p class="wizard-summary-meta">${swatch}${[sub ? cat : "", col ? col.label : ""].filter(Boolean).join(" · ")}</p></div>`;
 }
 function goToWizardStep(step) {
   wizardStep = step;
@@ -4974,16 +5083,17 @@ function goToWizardStep(step) {
   else { breadcrumbEl.style.display = "flex"; breadcrumbEl.innerHTML = `‹ ${wizardBreadcrumbLabel()}`; }
   updateWizardProgress();
   updateWizardContinueState();
-  if (step === 4) maybeSuggestWizardName();
+  if (step === 4) { renderWizardSummary(); maybeSuggestWizardName(); }
   document.querySelector(".wizard-body").scrollTop = 0;
 }
 function openNewGarmentWizard() {
   wizardPreviousView = currentView || "wardrobe";
-  pending = { image: null, category: lastUsedCategory, subtype: null, color: "blanco", name: "", rawFile: null, formality: 2, versatile: false, season: "entretiempo", buyLink: "" };
+  pending = { image: null, category: null, subtype: null, color: "blanco", name: "", rawFile: null, formality: 2, versatile: false, season: "entretiempo", buyLink: "" };
   wizardNameEdited = false;
   document.getElementById("wizardPreview").style.display = "none";
-  document.getElementById("wizardPreview").src = "";
+  document.getElementById("wizardPreview").removeAttribute("src");
   document.getElementById("wizardPhotoPlaceholder").style.display = "block";
+  document.getElementById("wizardPhotoError").style.display = "none";
   document.getElementById("wizardName").value = "";
   document.getElementById("wizardBuyLink").value = "";
   document.getElementById("wizardVersatile").checked = false;
@@ -5036,6 +5146,7 @@ async function handleWizardFile(file) {
     const image = await resizeImage(file);
     pending.image = image;
     pending.rawFile = file;
+    document.getElementById("wizardPhotoError").style.display = "none";
     document.getElementById("wizardPreview").src = image;
     document.getElementById("wizardPreview").style.display = "block";
     document.getElementById("wizardPhotoPlaceholder").style.display = "none";
@@ -5043,22 +5154,24 @@ async function handleWizardFile(file) {
     detectDominantColor(image).then(colorId => {
       if (colorId && pending) { pending.color = colorId; renderWizardColors(); }
     });
-  } catch {
-    alert("No se pudo procesar esa foto. Prueba con otra.");
+  } catch (err) {
+    console.error("Error al procesar la foto:", err);
+    const errEl = document.getElementById("wizardPhotoError");
+    errEl.textContent = "No se pudo procesar esa foto. Prueba con otra.";
+    errEl.style.display = "block";
   }
 }
 document.getElementById("wizardGalleryBtn").addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("wizardFileInput").click(); });
 document.getElementById("wizardCameraBtn").addEventListener("click", (e) => { e.stopPropagation(); document.getElementById("wizardCameraInput").click(); });
 document.getElementById("wizardPreview").addEventListener("click", () => document.getElementById("wizardFileInput").click());
-document.getElementById("wizardFileInput").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  e.target.value = "";
-  handleWizardFile(file);
-});
-document.getElementById("wizardCameraInput").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  e.target.value = "";
-  handleWizardFile(file);
+// El input se limpia DESPUÉS de leer el archivo: en algunos navegadores móviles
+// vaciar .value antes invalida el File y la lectura falla.
+[["wizardFileInput"], ["wizardCameraInput"]].forEach(([id]) => {
+  document.getElementById(id).addEventListener("change", (e) => {
+    const input = e.target;
+    const file = input.files[0];
+    handleWizardFile(file).finally(() => { input.value = ""; });
+  });
 });
 document.getElementById("wizardVersatile").addEventListener("change", (e) => { pending.versatile = e.target.checked; });
 document.getElementById("wizardName").addEventListener("input", (e) => { pending.name = e.target.value; wizardNameEdited = true; });
@@ -5074,7 +5187,7 @@ document.getElementById("wizardFooterBackBtn").addEventListener("click", () => {
 });
 document.getElementById("wizardCloseBtn").addEventListener("click", closeNewGarmentWizard);
 document.getElementById("wizardContinueBtn").addEventListener("click", () => {
-  if (wizardStep === 1 && !pending.image) return;
+  if (wizardStep === 1 && (!pending.image || !pending.category)) return;
   if (wizardStep < 4) { goToWizardStep(wizardStep + 1); return; }
   const garment = commitWizardGarment();
   showWizardDoneScreen(garment);
@@ -5114,6 +5227,12 @@ function closeModal() { document.getElementById("modalBackdrop").classList.remov
 
 /* ---------------- Wiring ---------------- */
 document.getElementById("uploadBtn").addEventListener("click", () => openNewGarmentWizard());
+document.getElementById("emptyWardrobeAddBtn").addEventListener("click", () => openNewGarmentWizard());
+document.getElementById("emptyOutfitsCreateBtn").addEventListener("click", () => {
+  if (garments.length === 0) { openNewGarmentWizard(); return; }
+  switchWardrobeTab("armario"); // si aún falta algo, el aviso del armario explica qué
+  if (canSuggest()) document.getElementById("builderToggleBtn").click();
+});
 document.getElementById("modalVersatile").addEventListener("change", (e) => { if (pending) pending.versatile = e.target.checked; });
 document.getElementById("modalSubtypeSearch").addEventListener("input", () => { if (pending) renderModalSubtype(); });
 document.getElementById("modalClose").addEventListener("click", closeModal);
@@ -6933,7 +7052,8 @@ async function renderMessagesInbox() {
     const convs = snap.docs.map(d => d.data());
     document.getElementById("messagesInboxCount").textContent = convs.length ? `${convs.length} conversaci${convs.length === 1 ? "ón" : "ones"}` : "Tus conversaciones.";
     if (!convs.length) {
-      list.innerHTML = `<p class="sub foreign-gallery-empty">Todavía no tienes conversaciones. Busca un @usuario arriba para escribirle.</p>`;
+      list.innerHTML = emptyStateHTML({ icon: "mail", title: "Aún no tienes conversaciones", text: "Busca a alguien por su @usuario y escríbele para hablar de ropa, outfits o planes.", actions: [{ id: "messagesFindPeopleBtn", label: "Buscar personas", primary: true }] });
+      document.getElementById("messagesFindPeopleBtn").addEventListener("click", goToUserSearch);
       return;
     }
     const rows = await Promise.all(convs.map(async (c) => {
@@ -8045,32 +8165,49 @@ function wirePostCards(container, outfitEntries, garmentEntries) {
   });
 }
 
+// Componente común de estado vacío (icono + titular + frase + acciones).
+// actions: [{ id, label, primary }]. Los listeners los engancha quien lo pinta.
+const EMPTY_ICONS = {
+  search: '<svg viewBox="0 0 513.749 513.749" fill="currentColor"><path d="M504.352,459.061l-99.435-99.477c74.402-99.427,54.115-240.344-45.312-314.746S119.261-9.277,44.859,90.15S-9.256,330.494,90.171,404.896c79.868,59.766,189.565,59.766,269.434,0l99.477,99.477c12.501,12.501,32.769,12.501,45.269,0c12.501-12.501,12.501-32.769,0-45.269L504.352,459.061z M225.717,385.696c-88.366,0-160-71.634-160-160s71.634-160,160-160s160,71.634,160,160C385.623,314.022,314.044,385.602,225.717,385.696z"/></svg>',
+  star: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M1.327,12.4,4.887,15,3.535,19.187A3.178,3.178,0,0,0,4.719,22.8a3.177,3.177,0,0,0,3.8-.019L12,20.219l3.482,2.559a3.227,3.227,0,0,0,4.983-3.591L19.113,15l3.56-2.6a3.227,3.227,0,0,0-1.9-5.832H16.4L15.073,2.432a3.227,3.227,0,0,0-6.146,0L7.6,6.568H3.231a3.227,3.227,0,0,0-1.9,5.832Z"/></svg>',
+  mail: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M18.5,1H5.5A5.506,5.506,0,0,0,0,6.5v11A5.506,5.506,0,0,0,5.5,23h13A5.506,5.506,0,0,0,24,17.5V6.5A5.506,5.506,0,0,0,18.5,1Zm0,3a2.476,2.476,0,0,1,1.643.631l-6.5,6.5a2.373,2.373,0,0,1-3.278,0l-6.5-6.5A2.476,2.476,0,0,1,5.5,4Zm0,16H5.5A2.5,2.5,0,0,1,3,17.5V8.017l5.239,5.239a5.317,5.317,0,0,0,7.521,0L21,8.017V17.5A2.5,2.5,0,0,1,18.5,20Z"/></svg>',
+  bell: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="M22.552,13.21,20.8,6.916A9.443,9.443,0,0,0,2.486,7.4L1.132,13.489A5.5,5.5,0,0,0,6.5,20.182h.4a5.285,5.285,0,0,0,10.154,0h.193a5.5,5.5,0,0,0,5.3-6.972Zm-3.309,2.984a2.48,2.48,0,0,1-1.991.988H6.5a2.5,2.5,0,0,1-2.44-3.042l1.354-6.1a6.443,6.443,0,0,1,12.5-.326l1.748,6.294A2.478,2.478,0,0,1,19.243,16.194Z"/></svg>',
+  hanger: '<svg viewBox="0 0 24 24" fill="currentColor"><path d="m22.598,16.689l-8.179-6.017c2.097-1.842,3.054-3.184,2.449-5.832-.419-1.834-1.875-3.29-3.71-3.708-1.517-.348-3.077.002-4.274.958-1.198.955-1.884,2.38-1.884,3.911,0,.829.671,1.5,1.5,1.5s1.5-.671,1.5-1.5c0-.612.275-1.183.754-1.565.486-.388,1.101-.525,1.737-.378.707.161,1.291.745,1.452,1.452.293,1.283.232,1.48-2.87,4.066L1.381,16.705c-.865.659-1.381,1.702-1.381,2.789,0,1.934,1.573,3.506,3.506,3.506h16.987c1.934,0,3.506-1.573,3.506-3.506,0-1.087-.517-2.13-1.402-2.804Zm-2.104,3.311H3.506c-.279,0-.506-.227-.506-.506,0-.157.075-.307.179-.387l8.821-6.489,8.8,6.474c.125.095.2.246.2.402,0,.279-.227.506-.506.506Z"/></svg>'
+};
+function emptyStateHTML({ icon, title, text, actions = [], compact = false }) {
+  const btns = actions.map(a => `<button class="btn ${a.primary ? "btn-primary" : "btn-outline"}" id="${a.id}">${a.label}</button>`).join("");
+  return `
+    <div class="empty-state${compact ? " compact" : ""}">
+      <div class="empty-state-icon">${EMPTY_ICONS[icon] || EMPTY_ICONS.hanger}</div>
+      <h3 class="empty-state-title">${title}</h3>
+      <p class="empty-state-text">${text}</p>
+      ${btns ? `<div class="empty-state-actions">${btns}</div>` : ""}
+    </div>`;
+}
+
 function homeFeedEmptyHTML(kind) {
   if (kind === "no-follows") {
-    return `
-      <div class="empty">
-        <svg width="40" height="40" style="margin-bottom:14px;" viewBox="0 0 513.749 513.749" fill="currentColor"><path d="M504.352,459.061l-99.435-99.477c74.402-99.427,54.115-240.344-45.312-314.746S119.261-9.277,44.859,90.15S-9.256,330.494,90.171,404.896c79.868,59.766,189.565,59.766,269.434,0l99.477,99.477c12.501,12.501,32.769,12.501,45.269,0c12.501-12.501,12.501-32.769,0-45.269L504.352,459.061z M225.717,385.696c-88.366,0-160-71.634-160-160s71.634-160,160-160s160,71.634,160,160C385.623,314.022,314.044,385.602,225.717,385.696z"/></svg>
-        <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Todavía no sigues a nadie</p>
-        <p class="sub" style="margin:0 auto 16px; text-align:center;">En cuanto sigas a otras personas, sus prendas y outfits irán apareciendo aquí.</p>
-        <button class="btn btn-outline" id="homeFeedSearchBtn" style="margin:0 auto;">
-          <svg width="15" height="15" viewBox="0 0 513.749 513.749" fill="currentColor"><path d="M504.352,459.061l-99.435-99.477c74.402-99.427,54.115-240.344-45.312-314.746S119.261-9.277,44.859,90.15S-9.256,330.494,90.171,404.896c79.868,59.766,189.565,59.766,269.434,0l99.477,99.477c12.501,12.501,32.769,12.501,45.269,0c12.501-12.501,12.501-32.769,0-45.269L504.352,459.061z M225.717,385.696c-88.366,0-160-71.634-160-160s71.634-160,160-160s160,71.634,160,160C385.623,314.022,314.044,385.602,225.717,385.696z"/></svg>
-          Explorar
-        </button>
-      </div>`;
+    const actions = [{ id: "homeFeedSearchBtn", label: "Buscar personas", primary: true }];
+    if (!garments.length) actions.push({ id: "homeFeedAddBtn", label: "Subir mi primera prenda" });
+    return emptyStateHTML({
+      icon: "search",
+      title: "Tu inicio está esperando",
+      text: "Sigue a otras personas y sus prendas y outfits irán apareciendo aquí. También puedes empezar por tu propio armario.",
+      actions
+    });
   }
   if (kind === "no-favorites") {
-    return `
-      <div class="empty">
-        <svg width="40" height="40" style="margin-bottom:14px;" viewBox="0 0 24 24" fill="currentColor"><path d="M1.327,12.4,4.887,15,3.535,19.187A3.178,3.178,0,0,0,4.719,22.8a3.177,3.177,0,0,0,3.8-.019L12,20.219l3.482,2.559a3.227,3.227,0,0,0,4.983-3.591L19.113,15l3.56-2.6a3.227,3.227,0,0,0-1.9-5.832H16.4L15.073,2.432a3.227,3.227,0,0,0-6.146,0L7.6,6.568H3.231a3.227,3.227,0,0,0-1.9,5.832Z"/></svg>
-        <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Todavía no tienes favoritos</p>
-        <p class="sub" style="margin:0 auto; text-align:center;">Entra al perfil de alguien que ya sigas y márcala como favorita para verla aquí.</p>
-      </div>`;
+    return emptyStateHTML({
+      icon: "star",
+      title: "Todavía no tienes favoritos",
+      text: "Entra al perfil de alguien que ya sigas y márcalo como favorito para verlo aquí."
+    });
   }
-  return `
-    <div class="empty">
-      <p style="margin:0 0 6px; color:var(--ink); font-weight:600;">Nada nuevo por aquí todavía</p>
-      <p class="sub" style="margin:0 auto; text-align:center;">${homeFeedScope === "favoritos" ? "Tus favoritos" : "Las personas que sigues"} aún no han subido ninguna prenda ni outfit.</p>
-    </div>`;
+  return emptyStateHTML({
+    icon: "hanger",
+    title: "Nada nuevo por aquí todavía",
+    text: `${homeFeedScope === "favoritos" ? "Tus favoritos" : "Las personas que sigues"} aún no han subido ninguna prenda ni outfit.`
+  });
 }
 
 let homeFeedOutfitEntries = [];
@@ -8185,11 +8322,13 @@ function renderHomeFeedScopedContent() {
   const hasContent = homeFeedOutfitEntries.some(e => scopeUids.has(e.uid)) || homeFeedGarmentEntries.some(e => scopeUids.has(e.uid));
   if (!hasContent) {
     let kind = "no-posts";
-    if (homeFeedScope === "siguiendo" && !homeFeedFollowingUids.length) kind = "no-follows";
+    if (homeFeedScope === "siguiendo" && homeFeedFollowingUids.filter(u => u !== (window.__drobrAuth.currentUser && window.__drobrAuth.currentUser.uid)).length === 0) kind = "no-follows";
     else if (homeFeedScope === "favoritos" && !homeFeedFavoriteUids.length) kind = "no-favorites";
     pane.innerHTML = homeFeedEmptyHTML(kind);
     const btn = document.getElementById("homeFeedSearchBtn");
     if (btn) btn.addEventListener("click", goToUserSearch);
+    const addBtn = document.getElementById("homeFeedAddBtn");
+    if (addBtn) addBtn.addEventListener("click", () => openNewGarmentWizard());
     return;
   }
   pane.innerHTML = `
@@ -9286,11 +9425,6 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
   const name = meta.name || meta.username || "Usuario";
   const username = meta.username || "";
   const avatarHTML = meta.avatar ? `<img src="${meta.avatar}" alt="">` : name.charAt(0).toUpperCase();
-  // Antes se usaba meta.identityAxes (persistido) incluso si canSeeContent era
-  // falso, filtrando el estilo inferido de un armario privado a cualquier
-  // visitante. Ahora se exige canSeeContent igual que para el resto del contenido.
-  const identity = canSeeContent ? (meta.identityAxes || computeIdentityAxes(prendas, foreignOutfits)) : null;
-
   const lockBadge = (meta.isPrivate && !hasBlockedMe) ? `
     <p class="profile-privacy-line">
       <svg width="13" height="13" viewBox="0 0 512 512" fill="currentColor"><path fill-rule="evenodd" d="M405.333,179.712v-30.379C405.333,66.859,338.475,0,256,0S106.667,66.859,106.667,149.333v30.379c-38.826,16.945-63.944,55.259-64,97.621v128C42.737,464.214,90.452,511.93,149.333,512h213.333c58.881-0.07,106.596-47.786,106.667-106.667v-128C469.278,234.971,444.159,196.657,405.333,179.712z M277.333,362.667c0,11.782-9.551,21.333-21.333,21.333c-11.782,0-21.333-9.551-21.333-21.333V320c0-11.782,9.551-21.333,21.333-21.333c11.782,0,21.333,9.551,21.333,21.333V362.667z M362.667,170.667H149.333v-21.333c0-58.91,47.756-106.667,106.667-106.667s106.667,47.756,106.667,106.667V170.667z"/></svg>
@@ -9396,24 +9530,16 @@ function renderVisitorProfile(targetUid, meta, prendas, foreignOutfits, publicCo
       </div>
     </div>
 
-    ${identity ? `
+    ${canSeeContent && prendas.length >= 3 ? `
     <div class="section">
       <div class="section-header">
-        <div class="section-icon-badge"><svg viewBox="0 0 512 512" fill="currentColor"><path d="M244.317,299.051c-90.917,8.218-160.183,85.041-158.976,176.32V480c0,17.673,14.327,32,32,32l0,0c17.673,0,32-14.327,32-32v-5.909c-0.962-56.045,40.398-103.838,96-110.933c58.693-5.82,110.992,37.042,116.812,95.735c0.344,3.47,0.518,6.954,0.521,10.441V480c0,17.673,14.327,32,32,32l0,0c17.673,0,32-14.327,32-32v-10.667c-0.104-94.363-76.685-170.774-171.047-170.67C251.854,298.668,248.082,298.797,244.317,299.051z"/><path fill-rule="evenodd" d="M256.008,256c70.692,0,128-57.308,128-128S326.7,0,256.008,0s-128,57.308-128,128C128.078,198.663,185.345,255.929,256.008,256z M256.008,64c35.346,0,64,28.654,64,64s-28.654,64-64,64s-64-28.654-64-64S220.662,64,256.008,64z"/></svg></div>
+        <div class="section-icon-badge"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20V10"/><path d="M10 20V4"/><path d="M16 20v-7"/><path d="M22 20H2"/></svg></div>
         <div class="section-header-text">
-          <h2>Identidad</h2>
-          <p class="section-header-sub">La forma en la que ${name} viste lo que tiene.</p>
+          <h2>Armario en datos</h2>
+          <p class="section-header-sub">Un vistazo a lo que ${name} tiene y cómo lo usa.</p>
         </div>
       </div>
-      <div>${IDENTITY_AXES.map(axis => {
-        const v = identity[axis.id] ?? 50;
-        return `
-        <div class="identity-row">
-          <span class="identity-label">${axis.left}</span>
-          <div class="identity-track"><div class="identity-fill" style="width:${v}%;"></div><div class="identity-dot" style="left:${v}%;"></div></div>
-          <span class="identity-label right">${axis.right}</span>
-        </div>`;
-      }).join("")}</div>
+      <div style="margin-top:18px;">${statsSummaryHTML(prendas, foreignOutfits || [])}</div>
     </div>` : ""}
 
     ${canSeeContent ? `
@@ -9862,7 +9988,7 @@ function renderProfile() {
   document.getElementById("profileName").textContent = profileData.name;
   document.getElementById("profileUsername").textContent = "@" + profileData.username;
   document.getElementById("profileBio").textContent = profileData.bio;
-  document.getElementById("profileIncompleteBanner").style.display = (profileData.username === "usuario" && profileData.name === "Tu nombre") ? "block" : "none";
+  document.getElementById("profileIncompleteBanner").style.display = (profileData.username === "usuario" && profileData.name === "Tu nombre") ? "flex" : "none";
   const linkEl = document.getElementById("profileLink");
   if (profileData.link) {
     const href = /^https?:\/\//i.test(profileData.link) ? profileData.link : `https://${profileData.link}`;
@@ -9878,37 +10004,62 @@ function renderProfile() {
   document.getElementById("profileHeaderGarmentLabel").textContent = garments.length === 1 ? "prenda" : "prendas";
   document.getElementById("profileHeaderOutfitCount").textContent = outfits.length;
   document.getElementById("profileHeaderOutfitLabel").textContent = outfits.length === 1 ? "outfit" : "outfits";
-  renderProfileIdentitySliders();
+  renderProfileStats();
   renderProfileCollections();
   switchProfileTab(profileActiveTab || "armario");
 }
 
-function renderProfileIdentitySliders() {
-  const el = document.getElementById("profileIdentitySliders");
-  el.innerHTML = IDENTITY_AXES.map(axis => {
-    const v = identityData[axis.id] ?? 50;
-    return `
-    <div class="identity-row">
-      <span class="identity-label">${axis.left}</span>
-      <div class="identity-track"><div class="identity-fill" style="width:${v}%;"></div><div class="identity-dot" style="left:${v}%;"></div></div>
-      <span class="identity-label right">${axis.right}</span>
+function statsSummaryHTML(gs, os) {
+  const countIn = id => os.filter(o => [o.top, o.bottom, o.shoes, ...entryAccessories(o)].filter(Boolean).some(x => x.id === id)).length;
+  const total = gs.length;
+  const counts = gs.map(g => ({ g, n: countIn(g.id) }));
+  const used = counts.filter(x => x.n > 0).length;
+  const pct = Math.round((used / total) * 100);
+  const star = counts.filter(x => x.n > 0).sort((a, b) => b.n - a.n)[0];
+  const colorCount = {};
+  gs.forEach(g => { if (g.color) colorCount[g.color] = (colorCount[g.color] || 0) + 1; });
+  const topColors = Object.entries(colorCount).filter(([id]) => colorById[id]).sort((a, b) => b[1] - a[1]).slice(0, 5);
+  return `
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div class="analysis-card-title">Prendas</div>
+        <div class="analysis-big-num">${total}</div>
+        <div class="analysis-card-text">${os.length} outfit${os.length === 1 ? "" : "s"}</div>
+      </div>
+      <div class="stat-card">
+        <div class="analysis-card-title">Prenda estrella</div>
+        ${star ? `
+        <div class="stat-star"><div class="frame-img"><img src="${star.g.image}" alt=""></div>
+          <div class="analysis-card-text">En ${star.n} outfit${star.n === 1 ? "" : "s"}</div></div>`
+        : `<div class="analysis-card-text" style="margin-top:6px;">Crea tu primer outfit para descubrirla</div>`}
+      </div>
+      <div class="stat-card">
+        <div class="analysis-card-title">Colores</div>
+        <div class="stat-swatches">${topColors.map(([id]) => swatchHTML(id, 22)).join("")}</div>
+        <div class="analysis-card-text">${topColors[0] ? colorById[topColors[0][0]].label + " domina" : "Sin colores aún"}</div>
+      </div>
+      <div class="stat-card">
+        <div class="analysis-card-title">En uso</div>
+        <div class="analysis-big-num">${pct}%</div>
+        <div class="stat-bar"><div style="width:${pct}%;"></div></div>
+        <div class="analysis-card-text">${used} de ${total} prendas en outfits</div>
+      </div>
     </div>`;
-  }).join("");
 }
 
-const DIST_PALETTE = ["#3B6E91", "#4FA6A0", "#E0763C", "#6A4C93", "#4C9A5B", "#D9B44A", "#9C3B3B", "#7FA6C9"];
-
-function interpretAxis(axis, value) {
-  if (value < 35) return `Tu armario es marcadamente ${axis.left.toLowerCase()}.`;
-  if (value > 65) return `Tu armario es marcadamente ${axis.right.toLowerCase()}.`;
-  return `Tienes un equilibrio entre ${axis.left.toLowerCase()} y ${axis.right.toLowerCase()}.`;
+function renderProfileStats() {
+  const el = document.getElementById("profileStatsSummary");
+  el.innerHTML = garments.length < 3
+    ? `<p class="analysis-card-text">Añade al menos 3 prendas para ver aquí el resumen de tu armario.</p>`
+    : statsSummaryHTML(garments, outfits);
 }
+
+const DIST_PALETTE = ["#151515", "#4A4A46", "#7A7A73", "#A3A39B", "#C4C4BC", "#DADAD3", "#5E5E58", "#8E8E86"];
 
 // Modal visual "Ver análisis": solo para el propietario del perfil (¿Me lo compro?,
 // prendas sin usar, etc. son datos de utilidad personal, no tiene sentido que los
 // vea alguien visitando el perfil). Todo se calcula al vuelo a partir de garments/outfits.
 function renderIdentityAnalysis() {
-  recalcInferredIdentity();
   const sections = allSections().map(sec => ({ sec, items: garmentsInSection(garments, sec) })).filter(s => s.items.length > 0);
   const total = garments.length || 1;
 
@@ -9928,6 +10079,38 @@ function renderIdentityAnalysis() {
   const unused = withCounts.filter(x => x.count === 0).map(x => x.g);
 
   const analysisEl = document.getElementById("identityAnalysisContent");
+  const MIN_ANALYSIS = 3;
+  if (garments.length < MIN_ANALYSIS) {
+    const falta = MIN_ANALYSIS - garments.length;
+    analysisEl.innerHTML = `
+      <div class="analysis-empty">
+        <p>${garments.length === 0 ? "Tu armario está vacío." : `Solo tienes ${garments.length} prenda${garments.length === 1 ? "" : "s"}.`} Añade ${falta} prenda${falta === 1 ? "" : "s"} más y verás aquí tus ejes de estilo, la distribución de tu armario y qué prendas no estás usando.</p>
+        <button class="btn btn-primary" id="identityAnalysisEmptyBtn">Entendido</button>
+      </div>`;
+    document.getElementById("identityAnalysisEmptyBtn").onclick = () => document.getElementById("identityAnalysisBackdrop").classList.remove("open");
+    document.getElementById("identityAnalysisBackdrop").classList.add("open");
+    return;
+  }
+  const pctOf = n => Math.round((n / total) * 100);
+  const tally = (keyFn) => { const m = {}; garments.forEach(g => { const k = keyFn(g); m[k] = (m[k] || 0) + 1; }); return m; };
+  const colorT = tally(g => g.color);
+  const colorRows = Object.entries(colorT).filter(([id]) => colorById[id]).sort((a, b) => b[1] - a[1]).slice(0, 6)
+    .map(([id, n]) => ({ label: colorById[id].label, pct: pctOf(n), dot: id }));
+  const neutralPct = pctOf(garments.filter(g => NEUTRALS.has(g.color)).length);
+  const formalT = tally(g => g.formality || 2);
+  const formalRows = [1, 2, 3, 4].filter(k => formalT[k]).map(k => ({ label: FORMALITY_LABELS[k], pct: pctOf(formalT[k]) }));
+  const missingFormal = [2, 3].filter(k => !formalT[k]).map(k => FORMALITY_LABELS[k].toLowerCase());
+  const formalGap = missingFormal.length ? `No tienes ropa ${missingFormal.join(" ni ")}: limita las ocasiones que cubres.` : "";
+  const seasonT = tally(g => g.season || "entretiempo");
+  const seasonRows = SEASONS.map(x => ({ label: x.label, pct: pctOf(seasonT[x.id] || 0) }));
+  const emptySeasons = SEASONS.filter(x => !seasonT[x.id]).map(x => x.label.toLowerCase());
+  const seasonGap = emptySeasons.length ? `Sin prendas de ${emptySeasons.join(" ni ")}.` : "";
+  const barRowsHTML = rows => rows.map(r => `
+    <div class="bar-row">
+      <span class="bar-row-label">${r.dot ? swatchHTML(r.dot, 12) : ""}${r.label}</span>
+      <div class="stat-bar"><div style="width:${r.pct}%;"></div></div>
+      <span class="bar-row-pct">${r.pct}%</span>
+    </div>`).join("");
   analysisEl.innerHTML = `
     <div class="analysis-grid">
       <div class="analysis-card" style="grid-column: 1 / -1;">
@@ -9940,35 +10123,46 @@ function renderIdentityAnalysis() {
       ${star ? `
       <div class="analysis-card">
         <div class="analysis-card-title">Tu prenda estrella</div>
-        <div class="analysis-star-row">
+        <button class="analysis-tap analysis-star-row" data-analysis-garment="${star.g.id}" aria-label="Ver tu prenda estrella">
           <div class="frame-img"><img src="${star.g.image}" alt=""></div>
           <div>
             <div class="analysis-card-text" style="color:var(--ink); font-weight:600;">${star.g.name || (CATEGORIES.find(c => c.id === star.g.category)?.label || star.g.category)}</div>
             <div class="analysis-card-text">Aparece en ${star.count} outfit${star.count === 1 ? "" : "s"}</div>
           </div>
-        </div>
+        </button>
       </div>` : ""}
 
       <div class="analysis-card">
         <div class="analysis-card-title">Prendas sin usar</div>
         <div class="analysis-big-num">${unused.length}</div>
         <p class="analysis-card-text">${unused.length > 0 ? "No aparecen en ningún outfit guardado todavía." : "¡Le estás sacando partido a todo tu armario!"}</p>
-        ${unused.length > 0 ? `<div class="analysis-unused-grid">${unused.slice(0, 6).map(g => `<div class="frame-img"><img src="${g.image}" alt=""></div>`).join("")}</div>` : ""}
+        ${unused.length > 0 ? `<div class="analysis-unused-grid">${unused.slice(0, 5).map(g => `<button class="analysis-tap" data-analysis-garment="${g.id}" aria-label="Ver prenda sin usar"><div class="frame-img"><img src="${g.image}" alt=""></div></button>`).join("")}${unused.length > 5 ? `<div class="analysis-more">+${unused.length - 5}</div>` : ""}</div>` : ""}
       </div>
     </div>
 
     <div class="section-plain">
-      <div class="analysis-card-title" style="margin-bottom:14px;">Tus ejes de identidad</div>
-      ${IDENTITY_AXES.map(axis => {
-        const v = identityData[axis.id] ?? 50;
-        return `
-        <div class="identity-bar-row">
-          <div class="identity-bar-labels"><span>${axis.left}</span><span>${axis.right}</span></div>
-          <div class="identity-bar-track"><div class="identity-bar-fill" style="width:${v}%;"></div></div>
-          <p class="identity-bar-text">${interpretAxis(axis, v)}</p>
-        </div>`;
-      }).join("")}
+      <div class="analysis-card-title" style="margin-bottom:12px;">Colores</div>
+      ${barRowsHTML(colorRows)}
+      <p class="analysis-card-text" style="margin-top:8px;">${neutralPct}% de tu armario son colores neutros${neutralPct >= 75 ? ": combina casi todo, pero te falta color para dar variedad." : neutralPct <= 30 ? ": tienes mucho color, un par de básicos neutros te daría más combinaciones." : "."}</p>
+    </div>
+
+    <div class="section-plain" style="margin-top:20px;">
+      <div class="analysis-card-title" style="margin-bottom:12px;">Ocasiones</div>
+      ${barRowsHTML(formalRows)}
+      ${formalGap ? `<p class="analysis-card-text" style="margin-top:8px;">${formalGap}</p>` : ""}
+    </div>
+
+    <div class="section-plain" style="margin-top:20px;">
+      <div class="analysis-card-title" style="margin-bottom:12px;">Temporadas</div>
+      ${barRowsHTML(seasonRows)}
+      ${seasonGap ? `<p class="analysis-card-text" style="margin-top:8px;">${seasonGap}</p>` : ""}
     </div>`;
+  analysisEl.querySelectorAll("[data-analysis-garment]").forEach(btn => btn.addEventListener("click", () => {
+    const g = garments.find(x => String(x.id) === btn.dataset.analysisGarment);
+    if (!g) return;
+    document.getElementById("identityAnalysisBackdrop").classList.remove("open");
+    openGarmentDetail(g);
+  }));
   document.getElementById("identityAnalysisBackdrop").classList.add("open");
 }
 
@@ -10502,13 +10696,6 @@ function openCollectionDetail(collectionId) {
 
 document.getElementById("collectionPickerClose").addEventListener("click", () => document.getElementById("collectionPickerBackdrop").classList.remove("open"));
 document.getElementById("collectionDetailClose").addEventListener("click", () => document.getElementById("collectionDetailBackdrop").classList.remove("open"));
-document.getElementById("profileIdentityToggle").addEventListener("click", () => {
-  const body = document.getElementById("profileIdentityBody");
-  const chevron = document.getElementById("profileIdentityChevron");
-  const isOpen = body.style.display !== "none";
-  body.style.display = isOpen ? "none" : "block";
-  chevron.style.transform = isOpen ? "rotate(0deg)" : "rotate(180deg)";
-});
 document.getElementById("profileIdentityDetailBtn").addEventListener("click", renderIdentityAnalysis);
 document.getElementById("identityAnalysisClose").addEventListener("click", () => document.getElementById("identityAnalysisBackdrop").classList.remove("open"));
 
